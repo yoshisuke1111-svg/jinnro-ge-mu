@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#121923">
+<meta name="description" content="友達とURLで集まる、軽量オンライン人狼。1人＋CPUの練習にも対応。">
+<title>人狼ゲーム</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/shared/rules.js" defer></script>
+<script src="/transport.js" defer></script>
+<script src="/app.js" defer></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="brand"><span class="brand-moon" aria-hidden="true"></span><div>人狼ゲーム<small>WEREWOLF · 0.6.2</small></div></div>
+  <div class="header-tools"><span id="connection" class="connection">準備完了</span><button id="motionToggle" class="quiet" aria-pressed="false">演出 ON</button><button id="helpOpen" class="quiet">遊び方・役職</button></div>
+</header>
+<main>
+  <section id="entrance" class="entrance">
+    <div class="intro">
+      <p class="eyebrow">人狼ゲーム</p>
+      <h1>ゲームを始める</h1>
+      <p class="intro-copy">名前を入力して、CPUとの練習またはオンライン対戦を始められます。<br>待機室では参加人数・CPU人数・役職・制限時間を変更できます。</p>
+      <div class="intro-tags"><span>1人＋CPU対応</span><span>最大30人</span><span>ブラウザでプレイ</span></div>
+      <div class="orbit" aria-hidden="true"><div class="moon"></div><span class="orbit-dot"></span></div>
+    </div>
+    <div class="entry-card panel">
+      <p class="eyebrow">プレイヤー設定</p><h2>名前を入力</h2>
+      <label for="name">プレイヤー名 <span class="muted">1〜16文字</span></label>
+      <input id="name" maxlength="32" placeholder="名前を入力" autocomplete="nickname">
+      <label for="practiceRole">ソロ練習で試す役職</label>
+      <select id="practiceRole"></select>
+      <button id="practice" class="primary large">ひとり＋CPUで練習する <span>→</span></button>
+      <p class="caption">あなた＋CPU7人で準備します。<br>待機室で人数・配役を変更できます。</p>
+      <div id="onlineEntry">
+        <div class="divider"><span>友達と遊ぶ</span></div>
+        <label for="customCode" class="custom-code-label">作る部屋のコード <span class="muted">空欄なら自動生成</span></label>
+        <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off">
+        <button id="create" class="secondary full">オンラインの部屋を作る</button>
+        <p class="caption room-code-help">3〜16文字。文字・数字・「-」「_」が使えます。同じコードの部屋がある場合は作成できません。</p>
+        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加する部屋コード" maxlength="16"><button id="join" class="secondary">参加</button></div>
+      </div>
+      <p id="entryNote" class="entry-note">招待URLを開くと、部屋コードが自動で入ります。</p>
+    </div>
+  </section>
+
+  <section id="room" hidden>
+    <div class="room-heading">
+      <div><p id="roomEyebrow" class="eyebrow">PRIVATE VILLAGE</p><h1 id="roomTitle">待機室</h1></div>
+      <div class="room-tools"><span class="room-code-label">部屋コード <code id="roomCode"></code></span><button id="copy" class="quiet">招待リンクをコピー</button><button id="shareInvite" class="quiet" hidden>招待を共有</button><button id="leave" class="quiet">退出</button></div>
+    </div>
+    <div id="idleWarning" class="warning" hidden><span id="idleText"></span><button id="stillHere" class="secondary">ここにいます</button></div>
+
+    <section id="lobby" class="lobby-layout">
+      <div class="panel settings-panel">
+        <div class="section-heading"><div><p class="eyebrow">SET THE TABLE</p><h2>村の準備</h2></div><span id="playerSummary" class="tag"></span></div>
+        <div id="hostControls">
+          <p class="caption">プリセットを選ぶか、配役設定から役職を変更できます。</p>
+          <div class="preset-row"><button data-preset="basic:6" class="secondary">基本 6人</button><button data-preset="basic:8" class="secondary">基本 8人</button><button data-preset="third:12" class="secondary">第三陣営 12人</button><button data-preset="all:24" class="secondary">全役職 24人</button></div>
+          <div class="cpu-row"><label for="cpuCount">CPU人数</label><input id="cpuCount" type="number" min="0" max="29" value="7"><button id="setBots" class="secondary">人数を変更</button><small class="muted">変更すると基本配役に戻ります。</small></div>
+          <details id="roleSettings" class="setting-details">
+            <summary>配役を自由に設定 <span id="roleSum"></span></summary>
+            <p class="caption">16の基本役職＋追加状態「恋人」。第三陣営の配役は勝利条件も確認してください。</p>
+            <div id="roleInputs" class="role-grid"></div>
+            <button id="fillVillagers" class="quiet">残りを村人で埋める</button>
+            <div class="check-row"><label><input id="lovers" type="checkbox"> 恋人を1組追加（2人・元の役職に重ねる）</label></div>
+          </details>
+          <details class="setting-details">
+            <summary>時間・練習の設定</summary>
+            <div class="time-grid">
+              <label>昼の話し合い <input id="time-discussion" type="number" min="10" max="600">秒</label>
+              <label>人狼・占い師／夜全体 <input id="time-night" type="number" min="5" max="120">秒</label>
+              <label>騎士・疫病神 <input id="time-other" type="number" min="3" max="120">秒</label>
+              <label>投票 <input id="time-vote" type="number" min="5" max="120">秒</label>
+            </div>
+            <p class="caption">夜は全員同時進行。選択がそろえば早く終わります。役職確認20秒、朝・投票結果は各8秒です。</p>
+            <div class="check-row"><label><input id="firstNightSafe" type="checkbox" checked> 初夜は人狼の顔合わせのみ（占い・感染・呪殺は有効）</label></div>
+            <label id="soloRoleLabel" class="solo-role-label">あなたの練習役職（人間が1人の時だけ）<select id="soloRole"></select></label>
+            <button id="shortTimes" class="quiet">テスト用に短縮する（昼20秒・夜10秒）</button>
+          </details>
+          <div class="settings-footer"><button id="saveSettings" class="secondary">設定を保存</button><span id="dirtyHint" class="caption"></span></div>
+          <p id="configErrors" class="validation" aria-live="polite"></p>
+          <button id="start" class="primary large">この配役でゲームを始める <span>→</span></button>
+        </div>
+        <div id="guestControls" hidden><p>部屋主が配役を準備しています。右の参加者を確認してお待ちください。</p><div id="guestConfig" class="caption"></div><button id="guestActive" class="secondary">準備できています</button></div>
+        <p class="small-note">待機室は60秒無操作で警告、75秒で退出。対戦中の無言・選択時間切れでは追放しません。</p>
+      </div>
+      <aside class="panel lobby-members"><div class="section-heading"><h2>参加者</h2><span class="mini-label">HUMAN + CPU</span></div><div id="lobbyPlayers" class="player-list"></div><p class="caption">CPUは公開情報と自分の能力結果だけを使います。ほかの人の役職をこっそり読むことはしません。</p></aside>
+    </section>
+
+    <section id="play" hidden>
+      <div class="phase-bar panel">
+        <div class="phase-info"><span id="dayBadge" class="day-badge"></span><div><h2 id="phaseName"></h2><p id="phaseHint"></p></div></div>
+        <div class="clock-area"><span id="countdown" class="countdown" aria-label="残り時間">00:00</span><div class="time-track"><div id="timeFill"></div></div></div>
+        <button id="speed" class="quiet" hidden aria-hidden="true">早送り ≫</button>
+      </div>
+      <div id="resultBanner" class="result-banner" hidden></div>
+
+      <div class="play-layout">
+        <section id="boardPanel" class="panel board-panel">
+          <div class="board-head">
+            <div><p class="eyebrow">VILLAGE TABLE</p><h2>村の盤面</h2></div>
+            <div class="board-legend" aria-label="矢印の意味">
+              <span class="legend relation">疑い</span><span class="legend trust">白寄り</span><span class="legend seer">占い</span><span class="legend medium">霊媒</span><span class="legend vote">投票</span>
+            </div>
+          </div>
+          <div id="board" class="village-board" aria-label="プレイヤーと会話の盤面">
+            <svg id="relationSvg" class="relation-svg" aria-hidden="true"></svg>
+            <div id="boardPlayers" class="board-players"></div>
+            <div id="bubbleLayer" class="bubble-layer" aria-live="polite"></div>
+            <div id="boardCenter" class="board-center"><strong id="boardPhase">議論</strong><span id="boardSub">発言と関係がここに見えます</span></div>
+            <div id="narration" class="narration" aria-live="assertive" hidden><small id="narrationKicker">SYSTEM</small><strong id="narrationText"></strong></div>
+            <div id="scene" class="board-scene" aria-live="assertive" hidden><div class="scene-inner"><div id="sceneMark" class="scene-mark">☾</div><p id="sceneTitle"></p><h2 id="sceneNames"></h2></div></div>
+          </div>
+          <div id="boardHint" class="board-hint">プレイヤーをタップすると、その人への主張を矢印で出せます。</div>
+          <div id="boardActionDock" class="board-action-dock" hidden><span id="boardActionText"></span><button id="boardConfirm" class="primary" type="button">確定</button><button id="boardAbstain" class="quiet" type="button" hidden>棄権</button></div>
+          <div id="boardMenu" class="board-menu" hidden>
+            <div class="board-menu-head"><strong id="boardMenuName"></strong><button id="boardMenuClose" class="quiet" type="button">閉じる ×</button></div>
+            <div class="board-menu-grid">
+              <button type="button" data-relation="accuse">怪しい</button><button type="button" data-relation="trust">白寄り</button><button type="button" data-relation="question">質問</button>
+              <button type="button" data-report="seer:false">占い：白</button><button type="button" data-report="seer:true">占い：黒</button>
+              <button type="button" data-report="medium:false">霊媒：白</button><button type="button" data-report="medium:true">霊媒：黒</button>
+            </div>
+            <p>これは「あなたの主張」として公開されます。本物の役職でなくても使えるので、騙りにも使えます。</p>
+          </div>
+        </section>
+
+        <section id="chatPanel" class="chat-column panel">
+          <div class="chat-header"><div class="chat-tabs"><button data-channel="public" class="chat-tab active">村の会話</button><button data-channel="wolves" class="chat-tab" hidden>人狼の会話</button><button data-channel="ghost" class="chat-tab" hidden>幽霊チャット</button></div><span id="chatScope" class="mini-label">PUBLIC</span></div>
+          <div id="messages" class="messages" role="log" aria-live="polite" aria-label="チャット履歴"></div>
+          <details id="statementBox" class="statement-box"><summary>役職を名乗る・判定を報告（CO）</summary>
+            <p class="caption">盤面からも同じ主張を出せます。嘘の主張も可能です。</p>
+            <div class="statement-row"><select id="claimRole" aria-label="名乗る役職"></select><button id="claim" class="secondary">COする</button></div>
+            <div class="statement-row"><select id="reportKind" aria-label="判定の種類"><option value="seer">占い</option><option value="medium">霊媒</option></select><select id="reportTarget" aria-label="判定対象"></select><select id="reportColor" aria-label="判定"><option value="false">白</option><option value="true">黒</option></select><button id="report" class="secondary">報告</button></div>
+          </details>
+          <form id="chatForm" class="chat-form"><label class="sr-only" for="chatInput">メッセージ</label><input id="chatInput" maxlength="400" placeholder="発言を入力…" autocomplete="off"><button id="send" class="primary" type="submit">送信</button></form>
+          <p id="chatHint" class="chat-hint"></p>
+        </section>
+
+        <aside id="selfPanel" class="action-column">
+          <section class="panel identity-panel"><div class="section-heading"><span class="eyebrow">YOUR SECRET</span><span id="aliveStatus" class="mini-label"></span></div>
+            <button id="identityCard" class="identity-card" title="自分の役職カードを見る"><span id="roleSymbol" class="role-symbol">☾</span><strong id="myRole">役職カードを見る</strong><small id="myRoleTeam">ゆっくり確認できます</small></button>
+            <p id="roleText" class="caption">役職は常時表示しません。必要な時だけカードを開けます。</p><p id="allies" class="secret-note"></p>
+          </section>
+          <section id="actions" class="panel actions-panel" aria-label="あなたの行動"></section>
+          <details class="panel private-panel"><summary>自分だけの記録 <span id="recordCount"></span></summary><div id="privateResults"></div></details>
+        </aside>
+      </div>
+
+      <nav id="mobileNav" class="mobile-nav" aria-label="スマホ用画面切り替え">
+        <button type="button" data-mobile-view="board" class="active">盤面</button>
+        <button type="button" data-mobile-view="chat">会話</button>
+        <button type="button" data-mobile-view="self">自分</button>
+      </nav>
+      <section class="panel records-panel"><div class="section-heading"><div><p class="eyebrow">FOLLOW THE EVIDENCE</p><h2>公開された主張と投票</h2></div><button id="exportLog" class="quiet">ログを保存</button></div>
+        <p class="caption">色付き矢印は「発言者がそう主張した」ことを表します。占い・霊媒の矢印も真実とは限りません。</p>
+        <div class="record-grid"><div><h3>CO・判定の主張</h3><div id="publicClaims"></div></div><div><h3>投票履歴</h3><div id="voteRecords"></div></div></div>
+      </section>
+      <div id="endControls" class="end-controls" hidden><button id="again" class="primary large">もう一戦・待機室へ</button></div>
+    </section>
+  </section>
+</main>
+<footer class="site-footer"><span>人狼ゲーム · v0.6.2</span><span>画像・動画・外部フォントなし。</span></footer>
+<div id="toast" class="toast" role="status" hidden></div>
+<dialog id="helpDialog" class="help-dialog"><div class="dialog-head"><div><p class="eyebrow">VILLAGE HANDBOOK</p><h2>遊び方と役職</h2></div><button id="helpClose" class="quiet">閉じる ×</button></div><div id="helpContent"></div></dialog>
+<dialog id="tarotDialog" class="tarot-dialog secret-dialog">
+  <p class="eyebrow" id="tarotEyebrow">SECRET CARD</p><p id="tarotHeading">あなただけに公開</p>
+  <button id="tarotCard" class="tarot-card" type="button" aria-label="カードをめくる">
+    <span class="tarot-front"><span>☾</span><strong id="tarotName">カードをタップ</strong><small>タップで確認</small></span>
+    <span class="tarot-back"><span id="tarotSymbol">✧</span><strong id="tarotResult"></strong><small id="tarotDetail"></small></span>
+  </button>
+  <p id="tarotAuto" class="caption">タップで確認できます。表になってからしばらく表示します。</p><button id="tarotClose" class="secondary">閉じる</button>
+</dialog>
+</body>
+</html>
