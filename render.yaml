@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: jinro-game
+    runtime: docker
+    region: singapore
+    plan: free
+    numInstances: 1
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 120
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_PASSWORD
+        sync: false

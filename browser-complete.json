@@ -1,0 +1,41 @@
+{
+  "offlineGames": [
+    {
+      "phase": "ended",
+      "day": 2,
+      "winner": {
+        "kind": "village",
+        "label": "村人陣営の勝利",
+        "winners": [
+          "you",
+          "cpu-SOLO-0-42476997",
+          "cpu-SOLO-4-190183051",
+          "cpu-SOLO-5-795505631",
+          "cpu-SOLO-6-278119981"
+        ],
+        "day": 2
+      },
+      "players": 8,
+      "ghostMessages": 1
+    },
+    {
+      "phase": "ended",
+      "day": 1,
+      "winner": {
+        "kind": "jester",
+        "label": "てるてる坊主の単独勝利",
+        "winners": [
+          "cpu-SOLO-6-278119981"
+        ],
+        "day": 1
+      },
+      "players": 24,
+      "ghostMessages": 0
+    }
+  ],
+  "online": {},
+  "errors": [],
+  "offlineExternalRequests": 0,
+  "escapedChatVerified": true,
+  "onlineBrowserNavigation": "Not run: this environment blocks all browser URL navigation by administrator policy. Real HTTP/SSE is tested separately by test/network.js."
+}

@@ -1,0 +1,1279 @@
+{
+  "code": "SIM1271",
+  "phase": "ended",
+  "phaseId": 23,
+  "phaseLabel": "ゲーム終了",
+  "day": 4,
+  "host": true,
+  "solo": true,
+  "now": 724750,
+  "startedAt": 724750,
+  "deadline": null,
+  "revision": 874,
+  "configVersion": 2,
+  "config": {
+    "roles": {
+      "villager": 2,
+      "seer": 1,
+      "medium": 1,
+      "guard": 1,
+      "baker": 0,
+      "cat": 0,
+      "mason": 0,
+      "wolf": 2,
+      "darkwolf": 0,
+      "madman": 1,
+      "fanatic": 0,
+      "fox": 0,
+      "jester": 0,
+      "plague": 0,
+      "survivor": 0,
+      "avenger": 0
+    },
+    "times": {
+      "reveal": 20,
+      "night": 30,
+      "other": 20,
+      "dawn": 8,
+      "discussion": 120,
+      "vote": 30,
+      "execution": 8
+    },
+    "lovers": false,
+    "firstNightSafe": true,
+    "testRole": ""
+  },
+  "me": {
+    "id": "human",
+    "name": "テスター",
+    "role": "medium",
+    "alive": false,
+    "bot": false,
+    "auto": false,
+    "lover": null,
+    "revengeTarget": null,
+    "revengeDone": false,
+    "privateResults": [
+      {
+        "id": "medium-2-human",
+        "kind": "medium",
+        "day": 2,
+        "target": "cpu-SIM1271-0-838016902",
+        "name": "アオイ",
+        "black": false
+      }
+    ],
+    "knownWolves": [],
+    "knownMasons": [],
+    "infected": [],
+    "acted": false,
+    "actionTarget": null,
+    "voted": false,
+    "voteTarget": null,
+    "ready": false
+  },
+  "players": [
+    {
+      "id": "human",
+      "name": "テスター",
+      "bot": false,
+      "connected": true,
+      "alive": false,
+      "auto": false,
+      "host": true,
+      "role": "medium",
+      "lover": null,
+      "won": true
+    },
+    {
+      "id": "cpu-SIM1271-0-838016902",
+      "name": "アオイ",
+      "bot": true,
+      "connected": true,
+      "alive": false,
+      "auto": false,
+      "host": false,
+      "role": "villager",
+      "lover": null,
+      "won": true
+    },
+    {
+      "id": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "bot": true,
+      "connected": true,
+      "alive": false,
+      "auto": false,
+      "host": false,
+      "role": "wolf",
+      "lover": null,
+      "won": false
+    },
+    {
+      "id": "cpu-SIM1271-2-851020186",
+      "name": "ミオ",
+      "bot": true,
+      "connected": true,
+      "alive": true,
+      "auto": false,
+      "host": false,
+      "role": "madman",
+      "lover": null,
+      "won": false
+    },
+    {
+      "id": "cpu-SIM1271-3-602282944",
+      "name": "レン",
+      "bot": true,
+      "connected": true,
+      "alive": true,
+      "auto": false,
+      "host": false,
+      "role": "seer",
+      "lover": null,
+      "won": true
+    },
+    {
+      "id": "cpu-SIM1271-4-110851959",
+      "name": "ユズ",
+      "bot": true,
+      "connected": true,
+      "alive": false,
+      "auto": false,
+      "host": false,
+      "role": "villager",
+      "lover": null,
+      "won": true
+    },
+    {
+      "id": "cpu-SIM1271-5-206735207",
+      "name": "カナタ",
+      "bot": true,
+      "connected": true,
+      "alive": true,
+      "auto": false,
+      "host": false,
+      "role": "guard",
+      "lover": null,
+      "won": true
+    },
+    {
+      "id": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "bot": true,
+      "connected": true,
+      "alive": false,
+      "auto": false,
+      "host": false,
+      "role": "wolf",
+      "lover": null,
+      "won": false
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "day": 1,
+      "phase": "reveal",
+      "at": 100000,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "ゲームを開始します。役職を確認してください。20秒後に自動で夜へ進みます。"
+    },
+    {
+      "id": 2,
+      "day": 1,
+      "phase": "night",
+      "at": 109500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "1日目の夜です。能力を持つ人は対象を選んでください。全員同時進行です。初夜は人狼の顔合わせのみで、襲撃はありません。"
+    },
+    {
+      "id": 3,
+      "day": 1,
+      "phase": "night",
+      "at": 112000,
+      "playerId": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "channel": "wolves",
+      "text": "今夜は顔合わせだけですね。明日の占いと投票の流れを見て、襲撃先を決めましょう。"
+    },
+    {
+      "id": 4,
+      "day": 1,
+      "phase": "night",
+      "at": 116500,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "wolves",
+      "text": "今日は顔合わせだけ。明日、占いを見て噛み先決めよう。"
+    },
+    {
+      "id": 5,
+      "day": 1,
+      "phase": "dawn",
+      "at": 117500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "昨夜の犠牲者はいませんでした。"
+    },
+    {
+      "id": 6,
+      "day": 1,
+      "phase": "discussion",
+      "at": 125500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "1日目の話し合いを開始します。制限時間は120秒です。終了すると自動で投票へ進みます。"
+    },
+    {
+      "id": 7,
+      "day": 1,
+      "phase": "discussion",
+      "at": 125750,
+      "playerId": "human",
+      "name": "テスター",
+      "channel": "public",
+      "text": "霊媒師で出るね。 まだ結果は出てない。",
+      "meta": {
+        "kind": "claim",
+        "role": "medium"
+      }
+    },
+    {
+      "id": 8,
+      "day": 1,
+      "phase": "discussion",
+      "at": 126000,
+      "playerId": "human",
+      "name": "テスター",
+      "channel": "public",
+      "text": "今のところアオイが気になってる。 今は仮置き。投票理由が出たら見直したい。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-0-838016902"
+      }
+    },
+    {
+      "id": 9,
+      "day": 1,
+      "phase": "discussion",
+      "at": 133250,
+      "playerId": "cpu-SIM1271-0-838016902",
+      "name": "アオイ",
+      "channel": "public",
+      "text": "そこを気にされてるのは分かったよ。 ただ、自分はシオンの方を見てる。今は仮置き。投票理由が出たら見直したい。 ほかの人がどう見てるかも聞きたい。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-1-446693820"
+      }
+    },
+    {
+      "id": 10,
+      "day": 1,
+      "phase": "discussion",
+      "at": 144250,
+      "playerId": "cpu-SIM1271-3-602282944",
+      "name": "レン",
+      "channel": "public",
+      "text": "テスター、白だった。占い結果。 白でも狂人は残る。",
+      "meta": {
+        "kind": "report",
+        "role": "seer",
+        "target": "human",
+        "black": false
+      }
+    },
+    {
+      "id": 11,
+      "day": 1,
+      "phase": "discussion",
+      "at": 150250,
+      "playerId": "cpu-SIM1271-2-851020186",
+      "name": "ミオ",
+      "channel": "public",
+      "text": "自分ならカナタを見る。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-5-206735207"
+      }
+    },
+    {
+      "id": 12,
+      "day": 1,
+      "phase": "discussion",
+      "at": 161000,
+      "playerId": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "channel": "public",
+      "text": "ナギさんは今のところ白寄りで見ています。 占いだけで決める気はない。本人の発言と票も見たい。",
+      "meta": {
+        "kind": "trust",
+        "target": "cpu-SIM1271-6-516296041"
+      }
+    },
+    {
+      "id": 13,
+      "day": 1,
+      "phase": "discussion",
+      "at": 171000,
+      "playerId": "cpu-SIM1271-5-206735207",
+      "name": "カナタ",
+      "channel": "public",
+      "text": "アオイは何を一番怪しいと思ってる？",
+      "meta": {
+        "kind": "question",
+        "target": "cpu-SIM1271-0-838016902"
+      }
+    },
+    {
+      "id": 14,
+      "day": 1,
+      "phase": "discussion",
+      "at": 184000,
+      "playerId": "cpu-SIM1271-4-110851959",
+      "name": "ユズ",
+      "channel": "public",
+      "text": "自分はナギが少し怪しく見える。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-6-516296041"
+      }
+    },
+    {
+      "id": 15,
+      "day": 1,
+      "phase": "discussion",
+      "at": 194500,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "public",
+      "text": "レンが気になる。 占い結果が割れてるし、発言と投票も一緒に見たい。 ほかの人がどう見てるかも聞きたい。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-3-602282944"
+      }
+    },
+    {
+      "id": 16,
+      "day": 1,
+      "phase": "vote",
+      "at": 245500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "投票を開始します。30秒以内に1人を選んでください。時間切れは棄権です。"
+    },
+    {
+      "id": 17,
+      "day": 1,
+      "phase": "vote",
+      "at": 254500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "最多票が同数です。アオイ・シオンで決選投票を行います。"
+    },
+    {
+      "id": 18,
+      "day": 1,
+      "phase": "execution",
+      "at": 263250,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "アオイが投票で処刑されました。"
+    },
+    {
+      "id": 19,
+      "day": 2,
+      "phase": "night",
+      "at": 271250,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "2日目の夜です。能力を持つ人は対象を選んでください。全員同時進行です。"
+    },
+    {
+      "id": 20,
+      "day": 2,
+      "phase": "night",
+      "at": 274000,
+      "playerId": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "channel": "wolves",
+      "text": "レンを候補にしたい。占い師を名乗ってるから、村の情報源になりそう。"
+    },
+    {
+      "id": 21,
+      "day": 2,
+      "phase": "night",
+      "at": 278500,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "wolves",
+      "text": "テスターを噛みたい。霊媒師で出てるし、残すと情報が増えそう。護衛だけ少し気になる。"
+    },
+    {
+      "id": 22,
+      "day": 2,
+      "phase": "dawn",
+      "at": 280500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "朝、テスターが亡くなっているのが見つかりました。"
+    },
+    {
+      "id": 23,
+      "day": 2,
+      "phase": "discussion",
+      "at": 286750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "2日目の話し合いを開始します。制限時間は120秒です。終了すると自動で投票へ進みます。"
+    },
+    {
+      "id": 24,
+      "day": 2,
+      "phase": "discussion",
+      "at": 289500,
+      "playerId": "cpu-SIM1271-0-838016902",
+      "name": "アオイ",
+      "channel": "ghost",
+      "text": "アオイが処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。"
+    },
+    {
+      "id": 25,
+      "day": 2,
+      "phase": "discussion",
+      "at": 295250,
+      "playerId": "cpu-SIM1271-2-851020186",
+      "name": "ミオ",
+      "channel": "public",
+      "text": "カナタが気になる。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-5-206735207"
+      }
+    },
+    {
+      "id": 26,
+      "day": 2,
+      "phase": "discussion",
+      "at": 307250,
+      "playerId": "cpu-SIM1271-3-602282944",
+      "name": "レン",
+      "channel": "public",
+      "text": "ミオ、白だった。占い結果。 白でも狂人は残る。",
+      "meta": {
+        "kind": "report",
+        "role": "seer",
+        "target": "cpu-SIM1271-2-851020186",
+        "black": false
+      }
+    },
+    {
+      "id": 27,
+      "day": 2,
+      "phase": "discussion",
+      "at": 316000,
+      "playerId": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "channel": "public",
+      "text": "ユズさんをもう少し見たいです。 判定は材料にするけど、占いを出した人の動きも見たい。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-4-110851959"
+      }
+    },
+    {
+      "id": 28,
+      "day": 2,
+      "phase": "discussion",
+      "at": 327750,
+      "playerId": "cpu-SIM1271-5-206735207",
+      "name": "カナタ",
+      "channel": "public",
+      "text": "ユズ、そこどういう理由？",
+      "meta": {
+        "kind": "question",
+        "target": "cpu-SIM1271-4-110851959"
+      }
+    },
+    {
+      "id": 29,
+      "day": 2,
+      "phase": "discussion",
+      "at": 336500,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "public",
+      "text": "レン、どこが怪しい？",
+      "meta": {
+        "kind": "question",
+        "target": "cpu-SIM1271-3-602282944"
+      }
+    },
+    {
+      "id": 30,
+      "day": 2,
+      "phase": "discussion",
+      "at": 345250,
+      "playerId": "cpu-SIM1271-4-110851959",
+      "name": "ユズ",
+      "channel": "public",
+      "text": "ミオは今は白めかな。",
+      "meta": {
+        "kind": "trust",
+        "target": "cpu-SIM1271-2-851020186"
+      }
+    },
+    {
+      "id": 31,
+      "day": 2,
+      "phase": "vote",
+      "at": 406750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "投票を開始します。30秒以内に1人を選んでください。時間切れは棄権です。"
+    },
+    {
+      "id": 32,
+      "day": 2,
+      "phase": "execution",
+      "at": 413750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "ユズが投票で処刑されました。"
+    },
+    {
+      "id": 33,
+      "day": 3,
+      "phase": "night",
+      "at": 421750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "3日目の夜です。能力を持つ人は対象を選んでください。全員同時進行です。"
+    },
+    {
+      "id": 34,
+      "day": 3,
+      "phase": "night",
+      "at": 425000,
+      "playerId": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "channel": "wolves",
+      "text": "レンを噛みたい。占い師で出てるし、残すと情報が増えそう。護衛だけ少し気になる。"
+    },
+    {
+      "id": 35,
+      "day": 3,
+      "phase": "night",
+      "at": 429250,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "wolves",
+      "text": "レンを候補にしたい。占い師を名乗ってるから、村の情報源になりそう。"
+    },
+    {
+      "id": 36,
+      "day": 3,
+      "phase": "dawn",
+      "at": 430250,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "昨夜の犠牲者はいませんでした。"
+    },
+    {
+      "id": 37,
+      "day": 3,
+      "phase": "discussion",
+      "at": 438250,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "3日目の話し合いを開始します。制限時間は120秒です。終了すると自動で投票へ進みます。"
+    },
+    {
+      "id": 38,
+      "day": 3,
+      "phase": "discussion",
+      "at": 441750,
+      "playerId": "cpu-SIM1271-0-838016902",
+      "name": "アオイ",
+      "channel": "ghost",
+      "text": "ユズが処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。"
+    },
+    {
+      "id": 39,
+      "day": 3,
+      "phase": "discussion",
+      "at": 443500,
+      "playerId": "cpu-SIM1271-2-851020186",
+      "name": "ミオ",
+      "channel": "public",
+      "text": "カナタ、どこが怪しい？",
+      "meta": {
+        "kind": "question",
+        "target": "cpu-SIM1271-5-206735207"
+      }
+    },
+    {
+      "id": 40,
+      "day": 3,
+      "phase": "discussion",
+      "at": 446750,
+      "playerId": "cpu-SIM1271-4-110851959",
+      "name": "ユズ",
+      "channel": "ghost",
+      "text": "ユズが処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。"
+    },
+    {
+      "id": 41,
+      "day": 3,
+      "phase": "discussion",
+      "at": 452750,
+      "playerId": "cpu-SIM1271-3-602282944",
+      "name": "レン",
+      "channel": "public",
+      "text": "シオン、黒だった。占い結果。 ここは今日の投票候補に入れてほしい。",
+      "meta": {
+        "kind": "report",
+        "role": "seer",
+        "target": "cpu-SIM1271-1-446693820",
+        "black": true
+      }
+    },
+    {
+      "id": 42,
+      "day": 3,
+      "phase": "discussion",
+      "at": 462250,
+      "playerId": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "channel": "public",
+      "text": "カナタさんをもう少し見たいです。 占いだけで決める気はない。本人の発言と票も見たい。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-5-206735207"
+      }
+    },
+    {
+      "id": 43,
+      "day": 3,
+      "phase": "discussion",
+      "at": 473500,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "public",
+      "text": "シオンは後回しでいい。 占い結果が割れてるし、発言と投票も一緒に見たい。",
+      "meta": {
+        "kind": "trust",
+        "target": "cpu-SIM1271-1-446693820"
+      }
+    },
+    {
+      "id": 44,
+      "day": 3,
+      "phase": "discussion",
+      "at": 484500,
+      "playerId": "cpu-SIM1271-5-206735207",
+      "name": "カナタ",
+      "channel": "public",
+      "text": "自分はミオをいったん外して見てる。 レンの白判定は見てる。そこだけで決める気はない。",
+      "meta": {
+        "kind": "trust",
+        "target": "cpu-SIM1271-2-851020186"
+      }
+    },
+    {
+      "id": 45,
+      "day": 3,
+      "phase": "vote",
+      "at": 558250,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "投票を開始します。30秒以内に1人を選んでください。時間切れは棄権です。"
+    },
+    {
+      "id": 46,
+      "day": 3,
+      "phase": "execution",
+      "at": 567500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "シオンが投票で処刑されました。"
+    },
+    {
+      "id": 47,
+      "day": 4,
+      "phase": "night",
+      "at": 575500,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "4日目の夜です。能力を持つ人は対象を選んでください。全員同時進行です。"
+    },
+    {
+      "id": 48,
+      "day": 4,
+      "phase": "night",
+      "at": 578000,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "wolves",
+      "text": "レンを噛みたい。占い師で出てるし、残すと情報が増えそう。護衛だけ少し気になる。"
+    },
+    {
+      "id": 49,
+      "day": 4,
+      "phase": "dawn",
+      "at": 583000,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "昨夜の犠牲者はいませんでした。"
+    },
+    {
+      "id": 50,
+      "day": 4,
+      "phase": "discussion",
+      "at": 589750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "4日目の話し合いを開始します。制限時間は120秒です。終了すると自動で投票へ進みます。"
+    },
+    {
+      "id": 51,
+      "day": 4,
+      "phase": "discussion",
+      "at": 595250,
+      "playerId": "cpu-SIM1271-4-110851959",
+      "name": "ユズ",
+      "channel": "ghost",
+      "text": "シオンが処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。"
+    },
+    {
+      "id": 52,
+      "day": 4,
+      "phase": "discussion",
+      "at": 596250,
+      "playerId": "cpu-SIM1271-0-838016902",
+      "name": "アオイ",
+      "channel": "ghost",
+      "text": "シオンが処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。"
+    },
+    {
+      "id": 53,
+      "day": 4,
+      "phase": "discussion",
+      "at": 597000,
+      "playerId": "cpu-SIM1271-3-602282944",
+      "name": "レン",
+      "channel": "public",
+      "text": "占い。ナギは黒。 黒だった。",
+      "meta": {
+        "kind": "report",
+        "role": "seer",
+        "target": "cpu-SIM1271-6-516296041",
+        "black": true
+      }
+    },
+    {
+      "id": 54,
+      "day": 4,
+      "phase": "discussion",
+      "at": 597250,
+      "playerId": "cpu-SIM1271-1-446693820",
+      "name": "シオン",
+      "channel": "ghost",
+      "text": "シオンが処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。"
+    },
+    {
+      "id": 55,
+      "day": 4,
+      "phase": "discussion",
+      "at": 603000,
+      "playerId": "cpu-SIM1271-2-851020186",
+      "name": "ミオ",
+      "channel": "public",
+      "text": "ナギが気になる。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-6-516296041"
+      }
+    },
+    {
+      "id": 56,
+      "day": 4,
+      "phase": "discussion",
+      "at": 612500,
+      "playerId": "cpu-SIM1271-5-206735207",
+      "name": "カナタ",
+      "channel": "public",
+      "text": "自分はミオをいったん外して見てる。 レンが白を出してる。判定だけじゃなく、出した側の動きも見たい。",
+      "meta": {
+        "kind": "trust",
+        "target": "cpu-SIM1271-2-851020186"
+      }
+    },
+    {
+      "id": 57,
+      "day": 4,
+      "phase": "discussion",
+      "at": 624000,
+      "playerId": "cpu-SIM1271-6-516296041",
+      "name": "ナギ",
+      "channel": "public",
+      "text": "レンが気になる。 占い結果が割れてるし、発言と投票も一緒に見たい。 票を入れる前に本人の反応も見たい。",
+      "meta": {
+        "kind": "accuse",
+        "target": "cpu-SIM1271-3-602282944"
+      }
+    },
+    {
+      "id": 58,
+      "day": 4,
+      "phase": "vote",
+      "at": 709750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "投票を開始します。30秒以内に1人を選んでください。時間切れは棄権です。"
+    },
+    {
+      "id": 59,
+      "day": 4,
+      "phase": "execution",
+      "at": 716750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "ナギが投票で処刑されました。"
+    },
+    {
+      "id": 60,
+      "day": 4,
+      "phase": "ended",
+      "at": 724750,
+      "playerId": null,
+      "name": "村の記録",
+      "channel": "system",
+      "text": "村人陣営の勝利。全員の役職を公開します。"
+    }
+  ],
+  "reports": [
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "kind": "report",
+      "role": "seer",
+      "target": "human",
+      "black": false,
+      "day": 1
+    },
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "kind": "report",
+      "role": "seer",
+      "target": "cpu-SIM1271-2-851020186",
+      "black": false,
+      "day": 2
+    },
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "kind": "report",
+      "role": "seer",
+      "target": "cpu-SIM1271-1-446693820",
+      "black": true,
+      "day": 3
+    },
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "kind": "report",
+      "role": "seer",
+      "target": "cpu-SIM1271-6-516296041",
+      "black": true,
+      "day": 4
+    }
+  ],
+  "claims": [
+    {
+      "playerId": "human",
+      "role": "medium",
+      "day": 1
+    },
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "role": "seer",
+      "day": 1
+    },
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "role": "seer",
+      "day": 2
+    },
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "role": "seer",
+      "day": 3
+    },
+    {
+      "playerId": "cpu-SIM1271-3-602282944",
+      "role": "seer",
+      "day": 4
+    }
+  ],
+  "voteHistory": [
+    {
+      "day": 1,
+      "round": 0,
+      "ballots": [
+        {
+          "voter": "human",
+          "target": "cpu-SIM1271-0-838016902"
+        },
+        {
+          "voter": "cpu-SIM1271-0-838016902",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-1-446693820",
+          "target": "cpu-SIM1271-4-110851959"
+        },
+        {
+          "voter": "cpu-SIM1271-2-851020186",
+          "target": "cpu-SIM1271-5-206735207"
+        },
+        {
+          "voter": "cpu-SIM1271-3-602282944",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-4-110851959",
+          "target": "cpu-SIM1271-6-516296041"
+        },
+        {
+          "voter": "cpu-SIM1271-5-206735207",
+          "target": "cpu-SIM1271-0-838016902"
+        },
+        {
+          "voter": "cpu-SIM1271-6-516296041",
+          "target": "cpu-SIM1271-3-602282944"
+        }
+      ],
+      "count": {
+        "cpu-SIM1271-0-838016902": 2,
+        "cpu-SIM1271-1-446693820": 2,
+        "cpu-SIM1271-4-110851959": 1,
+        "cpu-SIM1271-5-206735207": 1,
+        "cpu-SIM1271-6-516296041": 1,
+        "cpu-SIM1271-3-602282944": 1
+      },
+      "executed": null
+    },
+    {
+      "day": 1,
+      "round": 1,
+      "ballots": [
+        {
+          "voter": "human",
+          "target": "cpu-SIM1271-0-838016902"
+        },
+        {
+          "voter": "cpu-SIM1271-0-838016902",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-1-446693820",
+          "target": "cpu-SIM1271-0-838016902"
+        },
+        {
+          "voter": "cpu-SIM1271-2-851020186",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-3-602282944",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-4-110851959",
+          "target": "cpu-SIM1271-0-838016902"
+        },
+        {
+          "voter": "cpu-SIM1271-5-206735207",
+          "target": "cpu-SIM1271-0-838016902"
+        },
+        {
+          "voter": "cpu-SIM1271-6-516296041",
+          "target": "cpu-SIM1271-0-838016902"
+        }
+      ],
+      "count": {
+        "cpu-SIM1271-0-838016902": 5,
+        "cpu-SIM1271-1-446693820": 3
+      },
+      "executed": "cpu-SIM1271-0-838016902"
+    },
+    {
+      "day": 2,
+      "round": 0,
+      "ballots": [
+        {
+          "voter": "cpu-SIM1271-1-446693820",
+          "target": "cpu-SIM1271-4-110851959"
+        },
+        {
+          "voter": "cpu-SIM1271-2-851020186",
+          "target": "cpu-SIM1271-5-206735207"
+        },
+        {
+          "voter": "cpu-SIM1271-3-602282944",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-4-110851959",
+          "target": "cpu-SIM1271-6-516296041"
+        },
+        {
+          "voter": "cpu-SIM1271-5-206735207",
+          "target": "cpu-SIM1271-4-110851959"
+        },
+        {
+          "voter": "cpu-SIM1271-6-516296041",
+          "target": "cpu-SIM1271-3-602282944"
+        }
+      ],
+      "count": {
+        "cpu-SIM1271-4-110851959": 2,
+        "cpu-SIM1271-5-206735207": 1,
+        "cpu-SIM1271-1-446693820": 1,
+        "cpu-SIM1271-6-516296041": 1,
+        "cpu-SIM1271-3-602282944": 1
+      },
+      "executed": "cpu-SIM1271-4-110851959"
+    },
+    {
+      "day": 3,
+      "round": 0,
+      "ballots": [
+        {
+          "voter": "cpu-SIM1271-1-446693820",
+          "target": "cpu-SIM1271-5-206735207"
+        },
+        {
+          "voter": "cpu-SIM1271-2-851020186",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-3-602282944",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-5-206735207",
+          "target": "cpu-SIM1271-1-446693820"
+        },
+        {
+          "voter": "cpu-SIM1271-6-516296041",
+          "target": "cpu-SIM1271-3-602282944"
+        }
+      ],
+      "count": {
+        "cpu-SIM1271-5-206735207": 1,
+        "cpu-SIM1271-1-446693820": 3,
+        "cpu-SIM1271-3-602282944": 1
+      },
+      "executed": "cpu-SIM1271-1-446693820"
+    },
+    {
+      "day": 4,
+      "round": 0,
+      "ballots": [
+        {
+          "voter": "cpu-SIM1271-2-851020186",
+          "target": "cpu-SIM1271-6-516296041"
+        },
+        {
+          "voter": "cpu-SIM1271-3-602282944",
+          "target": "cpu-SIM1271-6-516296041"
+        },
+        {
+          "voter": "cpu-SIM1271-5-206735207",
+          "target": "cpu-SIM1271-6-516296041"
+        },
+        {
+          "voter": "cpu-SIM1271-6-516296041",
+          "target": "cpu-SIM1271-3-602282944"
+        }
+      ],
+      "count": {
+        "cpu-SIM1271-6-516296041": 3,
+        "cpu-SIM1271-3-602282944": 1
+      },
+      "executed": "cpu-SIM1271-6-516296041"
+    }
+  ],
+  "winner": {
+    "kind": "village",
+    "label": "村人陣営の勝利",
+    "winners": [
+      "human",
+      "cpu-SIM1271-0-838016902",
+      "cpu-SIM1271-3-602282944",
+      "cpu-SIM1271-4-110851959",
+      "cpu-SIM1271-5-206735207"
+    ],
+    "day": 4
+  },
+  "lastScene": {
+    "id": 8,
+    "type": "execution",
+    "victims": [
+      {
+        "id": "cpu-SIM1271-6-516296041",
+        "name": "ナギ"
+      }
+    ],
+    "title": "投票が確定しました"
+  },
+  "kind": null,
+  "targets": [],
+  "actionDeadline": null,
+  "runoff": [],
+  "lastActive": 100000,
+  "validation": [],
+  "catalog": {
+    "roles": {
+      "villager": {
+        "name": "村人",
+        "team": "village",
+        "icon": "◇",
+        "text": "特別な夜能力はありません。発言・占いの主張・投票履歴から人狼を探します。",
+        "win": "人狼と黒狼を全滅させる。第三陣営の優先勝利に注意。"
+      },
+      "seer": {
+        "name": "占い師",
+        "team": "village",
+        "icon": "✧",
+        "text": "毎晩1人を占います。「人狼」か「人狼ではない」の二択。黒狼・狂人・狂信者は白。妖狐を占うと夜明けに呪殺します。",
+        "win": "村人陣営と同じ。"
+      },
+      "medium": {
+        "name": "霊媒師",
+        "team": "village",
+        "icon": "◉",
+        "text": "次の夜の開始時に、直前の投票で処刑された人の判定を自動で受け取ります。人狼・黒狼は黒、それ以外は白。対象選択はありません。",
+        "win": "村人陣営と同じ。"
+      },
+      "guard": {
+        "name": "騎士",
+        "team": "village",
+        "icon": "♜",
+        "text": "毎晩、自分以外の生存者1人を人狼の襲撃から守ります。連続護衛は可能。占いによる呪殺・道連れ・後追いは防げません。",
+        "win": "村人陣営と同じ。"
+      },
+      "baker": {
+        "name": "パン屋",
+        "team": "village",
+        "icon": "♧",
+        "text": "生存していれば朝に「パンが届きました」と告知されます。誰がパン屋かは公開されません。",
+        "win": "村人陣営と同じ。"
+      },
+      "cat": {
+        "name": "猫又",
+        "team": "village",
+        "icon": "♤",
+        "text": "人狼の襲撃で死ぬと襲撃先に投票した人狼1人を道連れにします。投票処刑なら生存者1人をランダムに道連れに。後追い・道連れでは能力は発動しません。",
+        "win": "村人陣営と同じ。"
+      },
+      "mason": {
+        "name": "共有者",
+        "team": "village",
+        "icon": "∞",
+        "text": "開始時に他の共有者を知ることができます。2人以上で設定します。恋人が付いた共有者は恋人勝利を目指します。",
+        "win": "村人陣営と同じ。恋人になった場合は恋人勝利。"
+      },
+      "wolf": {
+        "name": "人狼",
+        "team": "wolves",
+        "icon": "☾",
+        "text": "仲間の人狼・黒狼を知り、夜の専用チャットで相談できます。各自が襲撃先を確定し、多数決で毎晩1人を襲撃。同票はランダムです。",
+        "win": "生存する人狼＋黒狼が、それ以外の生存者以上になる。"
+      },
+      "darkwolf": {
+        "name": "黒狼",
+        "team": "wolves",
+        "icon": "☽",
+        "text": "占いでは「人狼ではない」と判定される人狼です。霊媒では人狼。人狼の人数・夜の会話・襲撃投票に含まれます。",
+        "win": "人狼陣営と同じ。"
+      },
+      "madman": {
+        "name": "狂人",
+        "team": "wolves",
+        "icon": "♢",
+        "text": "人狼の味方ですが、人狼が誰かは知りません。占い・霊媒とも白。襲撃能力はなく、勝敗の人数計算では人狼以外に数えます。",
+        "win": "人狼陣営の勝利。死亡していてもよい。"
+      },
+      "fanatic": {
+        "name": "狂信者",
+        "team": "wolves",
+        "icon": "♧",
+        "text": "人狼・黒狼の名前を最初から知っています。人狼側からは狂信者の正体は分かりません。夜の人狼チャットには入れません。判定は白。",
+        "win": "人狼陣営と同じ。"
+      },
+      "fox": {
+        "name": "妖狐",
+        "team": "third",
+        "icon": "♆",
+        "text": "人狼の襲撃では死にません。占われると夜明けに死亡します。占い・霊媒の表示は白。通常決着時に生存していれば勝利を奪います。",
+        "win": "通常決着時に生存。恋人ペアの優先勝利には負けます。"
+      },
+      "jester": {
+        "name": "てるてる坊主",
+        "team": "third",
+        "icon": "♙",
+        "text": "昼の投票で直接処刑されると、その場で単独勝利します。襲撃・道連れ・後追いでは勝てません。",
+        "win": "自分が投票で直接処刑される。"
+      },
+      "plague": {
+        "name": "疫病神",
+        "team": "third",
+        "icon": "✣",
+        "text": "毎晩、自分以外の未感染者1人を感染させます。感染は本人以外には見えず、能力を妨げません。",
+        "win": "自分が生きていて、他の生存者全員が感染した時に単独勝利。"
+      },
+      "survivor": {
+        "name": "生存者",
+        "team": "third",
+        "icon": "△",
+        "text": "夜能力はありません。村人や人狼に固執せず、生き残ることを目指します。",
+        "win": "通常決着・恋人勝利・妖狐勝利の時に生存していれば追加勝利。てるてる坊主・疫病神の単独勝利時は不可。"
+      },
+      "avenger": {
+        "name": "復讐者",
+        "team": "third",
+        "icon": "⚑",
+        "text": "開始時に復讐対象が1人指定されます。その人を昼の投票で直接処刑させることを目指します。対象が襲撃・道連れで死んでも達成にはなりません。",
+        "win": "対象の投票処刑を達成していれば通常決着時に追加勝利。達成後に自分が死んでも有効。単独勝利が発生した時は不可。"
+      }
+    },
+    "lover": {
+      "name": "恋人",
+      "icon": "♡",
+      "text": "基本役職とは別に2人へ付く追加状態です。相方の名前だけ分かり、能力は元の役職のまま。一方が死ぬともう一方も後追いします。元の陣営勝利を失い、通常決着時に2人とも生きていれば最優先で恋人勝利となります。"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "werewolf-game",
+  "version": "0.6.2",
+  "private": true,
+  "description": "Browser werewolf game with readable mobile board UI, personality-based CPU conversation, online rooms, and admin dashboard",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js",
+    "test:simulation": "node test/simulate.js",
+    "test:network": "node test/network.js",
+    "build:solo": "node build-solo.js",
+    "test:all": "npm test && npm run test:network && SIM_GAMES=40 npm run test:simulation"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "license": "UNLICENSED"
+}

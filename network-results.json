@@ -1,0 +1,14 @@
+{
+  "participants": 30,
+  "checks": [
+    "30 simultaneous streams receive the same participant roster",
+    "private roles delivered individually; foreign tokens absent; non-host config rejected",
+    "night actions resolve together and wolf messages never enter civilian streams",
+    "real fox death, ghost isolation and dead-player action rejection",
+    "reconnection preserves player identity and private role",
+    "cross-origin POST rejected",
+    "custom Unicode room codes are normalized, reusable for joining, and duplicate/invalid codes are rejected",
+    "admin server telemetry works; CPU-only room can be created and switched to 8x fast-forward"
+  ],
+  "ok": true
+}

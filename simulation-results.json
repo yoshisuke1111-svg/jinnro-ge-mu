@@ -1,0 +1,23 @@
+{
+  "games": 40,
+  "bySize": {
+    "4": 6,
+    "6": 6,
+    "8": 6,
+    "10": 6,
+    "12": 6,
+    "24": 5,
+    "30": 5
+  },
+  "winners": {
+    "wolves": 7,
+    "village": 18,
+    "fox": 4,
+    "jester": 10,
+    "plague": 1
+  },
+  "maxDay": 19,
+  "draws": 0,
+  "publicMessages": 1598,
+  "selfWolfReveals": 0
+}
