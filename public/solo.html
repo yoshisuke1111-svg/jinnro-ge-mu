@@ -1,0 +1,1669 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#121923">
+<meta name="description" content="友達とURLで集まる、軽量オンライン人狼。1人＋CPUの練習にも対応。">
+<title>人狼ゲーム — ひとり＋CPU練習</title>
+<style>/* No background images, downloaded fonts, canvas loop or video. */
+:root{color-scheme:dark;--bg:#101720;--panel:#18212d;--panel2:#1e2936;--line:#2b3847;--text:#e7e8e4;--muted:#9daab7;--accent:#d8bc83;--ink:#171b20;--green:#9dc6b1;--red:#e39795;--purple:#b4a6dd;--radius:14px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;font-size:14px;line-height:1.7}button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:9px 14px;color:var(--text);background:var(--panel2);transition:border-color .18s,background .18s,transform .18s}button:hover:not(:disabled){border-color:var(--accent);background:#293647}button:active:not(:disabled){transform:translateY(1px)}button:disabled{opacity:.45;cursor:not-allowed}input,select{color:var(--text);background:#111a24;border:1px solid #3b4958;border-radius:8px;padding:10px 12px;min-width:0}input:focus,select:focus{outline:2px solid var(--accent);outline-offset:2px}button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}input[type=number]{width:76px}input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);vertical-align:middle}label{display:block}h1,h2,h3,p{margin-top:0}h1{letter-spacing:.04em}h2{font-size:18px;line-height:1.5;margin-bottom:12px}h3{font-size:14px;margin-bottom:12px}p{margin-bottom:12px}a{color:var(--accent)}[hidden]{display:none!important}small{font-size:12px}code{font-family:ui-monospace,monospace}.site-header{height:84px;max-width:1440px;margin:auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:13px;font-weight:650;font-size:18px;letter-spacing:.08em}.brand small{display:block;font-size:9px;letter-spacing:.21em;color:var(--muted);font-weight:400}.brand-moon{width:26px;height:26px;border-radius:50%;box-shadow:6px 0 0 0 var(--accent);transform:translateX(-5px) rotate(-25deg)}.header-tools{display:flex;align-items:center;gap:10px}.connection{font-size:11px;color:var(--green);white-space:nowrap}.connection:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:7px}.connection.lost{color:var(--red)}main{max-width:1440px;margin:auto;padding:30px 32px 54px}.eyebrow{font-size:10px;letter-spacing:.19em;color:var(--accent);margin:0 0 9px;font-weight:650}.muted,.caption,.small-note{color:var(--muted)}.caption{font-size:12px;line-height:1.9}.small-note{font-size:11px;margin:18px 0 0}.tag,.intro-tags span{font-size:11px;padding:4px 9px;border:1px solid var(--line);border-radius:5px;color:var(--muted);white-space:nowrap}.mini-label{font-size:10px;letter-spacing:.06em;color:var(--muted)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}.quiet{background:transparent;border-color:transparent;font-size:12px;padding:7px 10px;color:var(--muted)}.primary{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:650}.primary:hover:not(:disabled){background:#ebd19c;color:var(--ink)}.secondary{background:transparent}.large{padding:14px 19px;font-size:14px}.full{width:100%}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}.section-heading h2{margin:0}.section-heading .eyebrow{margin-bottom:4px}.entrance{display:grid;grid-template-columns:1fr 410px;gap:80px;max-width:1060px;margin:38px auto 20px;align-items:center}.intro{position:relative}.intro h1{font-size:49px;line-height:1.55;letter-spacing:.07em;margin:18px 0 22px;font-weight:650}.intro h1 em{font-style:normal;color:var(--accent)}.intro-copy{color:var(--muted);line-height:2.1}.intro-tags{display:flex;gap:8px;margin-top:23px}.orbit{position:relative;width:285px;height:160px;margin-top:40px;border-top:1px solid #344050;border-radius:50% 50% 0 0}.moon{position:absolute;width:90px;height:90px;border-radius:50%;top:23px;left:95px;background:#cabb96;box-shadow:inset -17px -5px 0 #9e906e}.moon:before,.moon:after{content:"";position:absolute;border-radius:50%;background:#b3a583}.moon:before{width:21px;height:21px;left:17px;top:20px}.moon:after{width:12px;height:12px;left:30px;top:53px}.orbit-dot{position:absolute;width:5px;height:5px;left:22px;top:30px;background:var(--accent);border-radius:50%}.orbit p{font-size:8px;letter-spacing:.18em;color:#6e7e8d;position:absolute;bottom:0;left:34px}.entry-card{padding:32px}.entry-card h2{font-size:25px;margin:15px 0 23px}.entry-card label{font-size:12px;margin:17px 0 7px}.entry-card label span{float:right;font-size:10px}.entry-card input,.entry-card select{width:100%}.entry-card .large{margin-top:22px;width:100%;display:flex;justify-content:space-between}.entry-card .caption{margin:11px 0 18px}.divider{border-top:1px solid var(--line);text-align:center;margin:23px 0 18px;height:0}.divider span{position:relative;top:-12px;background:var(--panel);font-size:10px;color:var(--muted);padding:0 12px}.join-row{display:flex;gap:8px;margin-top:10px}.join-row input{width:0;flex:1}.entry-note{font-size:10px;color:var(--muted);margin:17px 0 0}.room-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.room-heading h1{font-size:26px;margin:0}.room-tools{display:flex;align-items:center;gap:10px}.room-tools code{color:var(--accent);letter-spacing:.12em;font-size:12px}.lobby-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px}.settings-panel{padding:25px}.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:23px}.cpu-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px}.cpu-row label{font-size:13px}.cpu-row small{font-size:10px}.setting-details{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}.setting-details summary{font-size:13px;font-weight:600;cursor:pointer;padding:5px 0}.setting-details summary span{font-size:11px;font-weight:400;color:var(--accent);float:right}.setting-details[open] summary{margin-bottom:15px}.role-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.role-setting{display:flex;align-items:center;justify-content:space-between;gap:7px;border:1px solid var(--line);padding:7px 9px;border-radius:8px;font-size:11px}.role-setting input{width:52px;padding:5px 6px}.role-dot{display:inline-block;width:5px;height:5px;background:var(--green);border-radius:50%;margin-right:5px}.role-dot.wolves{background:var(--red)}.role-dot.third{background:var(--purple)}.check-row{margin:15px 0;font-size:12px}.time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.time-grid label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}.time-grid input{margin-left:auto}.solo-role-label{font-size:12px;margin:18px 0 10px}.solo-role-label select{display:block;width:100%;margin-top:7px}.settings-footer{display:flex;align-items:center;gap:13px;margin-top:20px}.validation{color:var(--red);font-size:12px;white-space:pre-line;margin:14px 0}.settings-panel .large{width:100%;display:flex;justify-content:space-between}.lobby-members{padding:23px 18px;align-self:start}.lobby-members>.caption{margin-top:20px;font-size:11px}.player-list{display:grid;gap:4px}.player-row{display:flex;gap:10px;align-items:center;padding:9px 5px;border-radius:7px;position:relative;min-width:0}.player-row.me{background:#24313c}.player-row.dead .avatar{opacity:.4;filter:grayscale(1)}.player-row.dead .player-name{text-decoration:line-through;color:#9ca7b1}.avatar{width:32px;height:36px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;font-weight:600;color:#d2dce1;background:#334252;border:1px solid #415266;border-radius:15px 15px 8px 8px}.avatar.v1{background:#343e4e}.avatar.v2{background:#3d3e42}.avatar.v3{background:#303f3c}.avatar.v4{background:#403a4c}.player-meta{min-width:0;flex:1}.player-name{font-size:12px;overflow-wrap:anywhere}.player-sub{font-size:9px;color:var(--muted);display:flex;gap:5px}.win-mark{font-size:9px;color:var(--accent)}.warning{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#382c21;border:1px solid var(--accent);padding:12px 18px;border-radius:10px;margin-bottom:20px;font-size:13px}.phase-bar{display:flex;align-items:center;gap:22px;padding:17px 22px;margin-bottom:18px}.phase-info{display:flex;gap:17px;align-items:center;flex:1}.day-badge{font-size:11px;color:var(--accent);border-right:1px solid var(--line);padding-right:17px;white-space:pre-line;text-align:center;line-height:1.6}.phase-info h2{margin:0;font-size:19px}.phase-info p{font-size:11px;color:var(--muted);margin:3px 0 0}.clock-area{min-width:116px}.countdown{display:block;text-align:right;font-size:27px;line-height:1.3;letter-spacing:.06em;font-variant-numeric:tabular-nums}.time-track{height:3px;background:var(--line);margin-top:7px;border-radius:5px;overflow:hidden}.time-track div{height:100%;background:var(--accent);width:100%;transition:width .25s linear}.game-grid{display:grid;grid-template-columns:190px minmax(320px,1fr) 290px;gap:16px;align-items:start}.members-column{padding:19px 13px;max-height:800px;overflow:auto}.members-column h2{font-size:14px}.members-column .tag{font-size:10px;border:0;padding:0}.chat-column{overflow:hidden;min-width:0}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-bottom:1px solid var(--line);gap:5px}.chat-tabs{display:flex;gap:3px;flex-wrap:wrap}.chat-tab{border:0;font-size:11px;color:var(--muted);background:transparent;padding:7px 9px}.chat-tab.active{color:var(--accent);background:#28323d}.messages{height:440px;overflow-y:auto;padding:17px;scrollbar-width:thin;scrollbar-color:#445568 transparent}.message{margin:0 0 17px}.message-head{display:flex;align-items:baseline;gap:8px;font-size:11px;margin-bottom:4px;flex-wrap:wrap}.message-head strong{font-weight:600}.message-head small{font-size:9px;color:var(--muted)}.message-text{font-size:13px;white-space:pre-wrap;word-break:break-word;color:#d6dce0;line-height:1.85}.message.self .message-head strong{color:var(--accent)}.message.system{border-left:2px solid #4d5a67;padding:6px 12px;margin:12px 0 19px;background:#141d27}.message.system .message-text{font-size:11px;color:#a6b5c1}.message.structured .message-text{border-left:2px solid #796d54;padding-left:10px}.message.empty{font-size:12px;color:var(--muted);text-align:center;margin-top:100px}.statement-box{border-top:1px solid var(--line);padding:10px 16px}.statement-box summary{font-size:11px;color:var(--accent);cursor:pointer}.statement-box p{margin-top:10px}.statement-row{display:flex;gap:6px;margin:8px 0}.statement-row select{flex:1;width:0;padding:6px;font-size:11px}.statement-row button{padding:6px 10px;font-size:11px}.chat-form{display:flex;gap:8px;padding:12px 14px 4px}.chat-form input{flex:1;width:0;font-size:12px}.chat-form button{font-size:12px}.chat-hint{margin:4px 16px 12px;font-size:10px;color:var(--muted)}.action-column{display:grid;gap:14px}.identity-panel{padding:17px}.identity-panel .section-heading{margin-bottom:10px}.identity-card{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#141c27;border:1px solid #6a604e;border-radius:10px;padding:15px 10px;min-height:128px}.identity-card strong{font-size:21px;font-weight:550;letter-spacing:.08em}.identity-card small{font-size:9px;color:var(--muted);margin-top:3px}.role-symbol{font-size:25px;line-height:1.25;color:var(--accent);margin-bottom:5px}.identity-panel .caption{margin:11px 0 0;font-size:11px;line-height:1.8}.secret-note{font-size:11px;color:var(--purple);margin:9px 0 0}.actions-panel{padding:17px}.actions-panel h2{font-size:14px;margin-bottom:6px}.actions-panel .caption{font-size:11px;margin-bottom:10px}.actions-panel>.primary{width:100%;margin-top:10px}.actions-panel .quiet{padding-left:0}.target-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:285px;overflow:auto;padding:2px}.target{position:relative;padding:10px 5px;font-size:11px;overflow:hidden;background:#121d29;word-break:break-all}.target.selected{border-color:var(--accent);background:#34332d}.target.tarot-target{border:1px solid #5d5545;padding:14px 5px;min-height:67px}.tarot-target:before{content:"✧";display:block;color:var(--accent);font-size:17px;line-height:1.3}.target.selected.attack:after{content:"╱╱╱";position:absolute;right:6px;top:0;color:var(--red);font-size:27px;transform:rotate(9deg)}.target.selected.protect:before{content:"♜ ";color:var(--green)}.done-line{color:var(--green);font-size:12px}.ghost-notice{color:var(--purple)}.private-panel{padding:14px 17px}.private-panel summary{font-size:12px;cursor:pointer}.private-panel summary span{float:right;color:var(--accent)}.private-item{font-size:11px;border-top:1px solid var(--line);padding-top:9px;margin-top:9px}.private-item small{display:block;color:var(--muted);font-size:9px}.private-item .black{color:var(--red)}.private-item .white{color:var(--green)}.records-panel{margin-top:20px;padding:23px}.record-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px}.record-grid>div{min-width:0}.evidence-line{padding:7px 0;border-bottom:1px solid var(--line);font-size:11px}.evidence-line small{color:var(--muted);font-size:9px}.ballot-detail{font-size:11px;padding:9px 0}.ballot-detail summary{cursor:pointer;color:var(--muted)}.ballot-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:8px;font-size:10px}.result-banner{background:#2c302f;border:1px solid #6f674d;color:var(--accent);padding:21px;text-align:center;border-radius:12px;margin-bottom:19px}.result-banner h2{font-size:24px;margin-bottom:7px}.result-banner p{font-size:12px;margin:0}.end-controls{display:flex;justify-content:center;margin:25px 0}.site-footer{border-top:1px solid var(--line);max-width:1376px;margin:auto;padding:19px 0 26px;display:flex;justify-content:space-between;gap:15px;font-size:10px;color:#81909d}.toast{position:fixed;bottom:25px;left:50%;transform:translateX(-50%);z-index:100;width:max-content;max-width:calc(100% - 32px);padding:13px 21px;color:var(--text);background:#303e4c;border:1px solid #73818e;border-radius:10px;font-size:12px;white-space:pre-line;box-shadow:0 8px 20px #0003}.toast.error{border-color:var(--red)}dialog{color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:17px;box-shadow:0 24px 80px #0009}dialog::backdrop{background:#060b12bb}.help-dialog{max-width:820px;width:calc(100% - 32px);max-height:87vh;padding:26px}.dialog-head{display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:1px solid var(--line);margin-bottom:20px}.dialog-head h2{margin-bottom:16px}.help-intro{font-size:12px;line-height:1.9;color:var(--muted);margin-bottom:20px}.help-roles{display:grid;grid-template-columns:1fr 1fr;gap:12px}.role-help{padding:16px;background:#131d28;border:1px solid var(--line);border-radius:10px;scroll-margin:20px}.role-help h3{color:var(--accent);font-size:15px;margin-bottom:8px}.role-help h3 small{font-size:10px;font-weight:400;color:var(--muted);margin-left:8px}.role-help p{font-size:11px;line-height:1.9;margin:6px 0}.role-help .win{color:var(--green)}.rules-note{font-size:12px;line-height:1.9;background:#101a25;padding:15px;border-radius:10px;margin:16px 0}.tarot-dialog{width:330px;text-align:center;padding:25px 30px;overflow:visible}.tarot-dialog>p:not(.eyebrow){font-size:11px;color:var(--muted)}.tarot-card{height:280px;width:190px;margin:20px auto 25px;position:relative;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.2,.6,.2,1)}.tarot-card.flipped{transform:rotateY(180deg)}.tarot-front,.tarot-back{position:absolute;inset:0;border:1px solid var(--accent);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:19px;background:#111c2a;backface-visibility:hidden;box-shadow:inset 0 0 0 6px #111c2a,inset 0 0 0 7px #74674c}.tarot-front span,.tarot-back span{font-size:60px;color:var(--accent);font-weight:300}.tarot-front strong,.tarot-back strong{font-size:17px;font-weight:500}.tarot-back{transform:rotateY(180deg)}.tarot-back small{font-size:9px;color:var(--muted)}.tarot-card.black .tarot-back span,.tarot-card.black .tarot-back strong{color:var(--red)}.scene{position:fixed;inset:84px 0 0;z-index:30;pointer-events:none;display:flex;align-items:center;justify-content:center;background:#0b111bea;animation:scene-in 2.3s ease both}.scene-inner{text-align:center;max-width:85%;padding:35px}.scene-mark{font-size:65px;color:var(--accent)}.scene-inner p{color:var(--muted);font-size:12px;letter-spacing:.1em}.scene-inner h2{font-size:25px;letter-spacing:.06em;overflow-wrap:anywhere}.scene.death .scene-mark{color:var(--red);animation:dissolve 1.5s ease forwards}.scene.dawn .scene-mark{color:var(--accent);animation:rise 1.8s ease both}.scene.execution .scene-mark{color:var(--purple);animation:dissolve 1.8s ease both}.scene.win .scene-mark{color:var(--accent)}@keyframes scene-in{0%{opacity:0}14%,74%{opacity:1}100%{opacity:0}}@keyframes dissolve{0%,25%{transform:translateY(0);opacity:1}100%{transform:translateY(20px) scale(.75);opacity:0;filter:blur(4px)}}@keyframes rise{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.reduced-motion *{scroll-behavior:auto!important;transition:none!important;animation:none!important}.reduced-motion .scene{display:none!important}
+@media(min-width:1500px){.messages{height:520px}}
+@media(max-width:1150px){.game-grid{grid-template-columns:155px minmax(290px,1fr) 265px;gap:12px}main{padding:24px}.site-header{padding:0 24px}.role-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.chat-header .mini-label{display:none}.entrance{gap:40px}.intro h1{font-size:42px}.site-footer{margin:0 24px}}
+@media(max-width:950px){.game-grid{grid-template-columns:minmax(0,1fr) 270px}.members-column{grid-column:1/-1;max-height:140px;padding:12px}.members-column .section-heading{margin-bottom:7px}.members-column .player-list{display:flex;gap:9px;overflow:auto}.members-column .player-row{flex:0 0 115px}.members-column .avatar{height:30px;flex-basis:25px;width:25px}.chat-column{grid-column:1}.action-column{grid-column:2}.lobby-layout{grid-template-columns:minmax(0,1fr) 225px}.role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.entrance{grid-template-columns:1fr 360px;gap:25px}.intro h1{font-size:35px}.intro-copy{font-size:13px}.entry-card{padding:25px}.intro-tags{gap:5px;flex-wrap:wrap}.intro-tags span{font-size:10px}}
+@media(max-width:700px){body{font-size:13px}.site-header{height:69px;padding:0 17px}.brand{font-size:15px;gap:10px}.brand small{font-size:8px}.brand-moon{width:22px;height:22px}.header-tools{gap:3px}.header-tools .quiet{font-size:10px;padding:6px}.connection{font-size:0}.connection:before{font-size:10px;margin-right:5px}.entrance{display:block;margin:12px auto;max-width:450px}.intro .eyebrow{font-size:8px}.intro h1{font-size:31px;line-height:1.5;margin:13px 0 15px}.intro h1 br{display:none}.intro-copy{font-size:12px;line-height:1.8}.intro-tags{margin:15px 0 24px}.orbit{display:none}.entry-card{padding:24px}.entry-card h2{font-size:22px}.entry-card .large{font-size:13px}.site-footer{font-size:8px;flex-direction:column;gap:3px;margin:0 17px}main{padding:20px 14px 35px}.room-heading{margin-bottom:15px;align-items:flex-start}.room-heading h1{font-size:21px}.room-tools{gap:0;flex-wrap:wrap;justify-content:flex-end;max-width:190px}.room-tools .quiet{font-size:10px;padding:5px 7px}.room-tools code{font-size:10px}.lobby-layout{display:flex;flex-direction:column-reverse;gap:14px}.lobby-members{width:100%;padding:14px}.lobby-members .player-list{display:flex;overflow:auto;gap:8px}.lobby-members .player-row{flex:0 0 112px}.lobby-members>.caption{display:none}.lobby-members .section-heading{margin-bottom:8px}.settings-panel{padding:18px}.section-heading h2{font-size:16px}.preset-row{gap:6px;margin-bottom:15px}.preset-row button{font-size:11px;padding:7px 9px}.cpu-row{gap:8px}.cpu-row small{width:100%}.time-grid{grid-template-columns:1fr}.setting-details summary{font-size:12px}.setting-details summary span{font-size:10px}.role-setting{font-size:10px}.phase-bar{padding:13px;gap:9px;flex-wrap:wrap}.phase-info{gap:9px}.phase-info h2{font-size:16px}.phase-info p{font-size:10px;max-width:210px}.day-badge{padding-right:10px;font-size:9px}.clock-area{min-width:72px}.countdown{font-size:23px}.phase-bar>.quiet{font-size:10px;width:100%;text-align:right;padding:0;line-height:1}.game-grid{display:flex;flex-direction:column;gap:13px}.members-column{width:100%;max-height:112px;order:0}.chat-column{width:100%;order:2}.action-column{width:100%;order:1;display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px}.identity-panel{padding:10px}.identity-panel .section-heading{display:block}.identity-panel .eyebrow{font-size:7px}.identity-panel .mini-label{font-size:8px}.identity-card{padding:8px 4px;min-height:100px}.identity-card strong{font-size:15px}.identity-card small{font-size:8px}.identity-panel .caption{display:none}.identity-panel .secret-note{font-size:9px}.role-symbol{font-size:22px}.actions-panel{padding:13px}.target-grid{grid-template-columns:repeat(3,minmax(0,1fr));max-height:146px;gap:5px}.target{font-size:10px;padding:8px 3px}.target.tarot-target{min-height:48px;padding:6px 3px}.tarot-target:before{font-size:13px}.actions-panel h2{font-size:13px}.actions-panel .caption{font-size:10px}.actions-panel>.primary{font-size:12px;padding:8px;margin-top:7px}.private-panel{grid-column:1/-1;padding:10px 14px}.private-panel summary{font-size:11px}.private-panel #privateResults{display:flex;gap:13px;flex-wrap:wrap}.private-item{border:0;margin:5px 0 0;padding:0;font-size:10px}.messages{height:350px;padding:13px}.message-text{font-size:12px}.chat-form input{font-size:16px;padding:8px 10px}.chat-form button{font-size:11px;padding:8px 10px}.statement-row{flex-wrap:wrap}.statement-row select{min-width:65px}.record-grid{grid-template-columns:1fr;gap:20px}.records-panel{padding:17px}.records-panel .section-heading{gap:7px}.records-panel .section-heading h2{font-size:15px}.records-panel .quiet{font-size:10px;white-space:nowrap}.help-dialog{padding:18px}.help-roles{grid-template-columns:1fr}.help-dialog h2{font-size:18px}.warning{font-size:11px;padding:11px}.warning button{white-space:nowrap;font-size:11px}.scene{top:69px}.scene-inner h2{font-size:20px}.result-banner h2{font-size:20px}.result-banner p{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}.scene{display:none!important}}
+
+@media(max-width:700px){
+  body[data-phase]:not([data-phase=lobby]) .room-heading{align-items:stretch;flex-direction:column;gap:6px}
+  body[data-phase]:not([data-phase=lobby]) .room-heading .eyebrow{display:none}
+  body[data-phase]:not([data-phase=lobby]) .room-heading h1{font-size:18px}
+  body[data-phase]:not([data-phase=lobby]) .room-tools{max-width:none;justify-content:flex-end}
+  body[data-phase=discussion] .chat-column,body[data-phase=ended] .chat-column{order:1}
+  body[data-phase=discussion] .action-column,body[data-phase=ended] .action-column{order:2}
+}
+
+/* v0.6.2: mobile phase screens */
+.mobile-nav{display:none}.room-code-label{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:10px}.room-code-label code{color:var(--accent);font-size:13px;letter-spacing:.14em}
+@media(max-width:700px){
+  #play{padding-bottom:8px}
+  .mobile-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;position:sticky;bottom:8px;z-index:16;padding:7px;margin:10px 0 12px;background:#101720e8;border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+  .mobile-nav button{min-height:44px;padding:8px;font-size:12px;background:#131e29}.mobile-nav button.active{color:var(--accent);border-color:var(--accent);background:#25303b}
+  body[data-mobile-view="chat"] .members-column,body[data-mobile-view="chat"] .action-column,body[data-mobile-view="chat"] .records-panel{display:none!important}
+  body[data-mobile-view="people"] .chat-column,body[data-mobile-view="people"] .action-column,body[data-mobile-view="people"] .records-panel{display:none!important}
+  body[data-mobile-view="self"] .members-column,body[data-mobile-view="self"] .chat-column{display:none!important}
+  body[data-mobile-view="people"] .members-column{display:block!important;max-height:none;order:0;padding:15px}
+  body[data-mobile-view="people"] .members-column .player-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:8px}
+  body[data-mobile-view="people"] .members-column .player-row{width:auto;flex:auto}
+  body[data-mobile-view="chat"] .chat-column{display:block!important;order:0}
+  body[data-mobile-view="self"] .action-column{display:flex!important;flex-direction:column;order:0;gap:10px}
+  body[data-mobile-view="self"] .identity-panel,body[data-mobile-view="self"] .actions-panel,body[data-mobile-view="self"] .private-panel{width:100%}
+  body[data-mobile-view="self"] .identity-panel .caption{display:block}
+  body[data-mobile-view="self"] .identity-card{min-height:145px}
+  body[data-mobile-view="self"] .records-panel{display:block!important}
+  body[data-phase="night"] .phase-bar,body[data-phase="vote"] .phase-bar,body[data-phase="reveal"] .phase-bar{position:sticky;top:0;z-index:12;background:#18212df2}
+  .room-tools{max-width:230px!important}.room-code-label{width:100%;justify-content:flex-end;margin-bottom:2px}.room-code-label code{font-size:12px}
+  #shareInvite{display:inline-block}
+}
+
+/* v0.6.2: circular village board, relation arrows, temporary secret cards */
+:root{--arrow-suspect:#d8a28f;--arrow-trust:#9fc7ae;--arrow-question:#d8bc83;--arrow-seer:#79bdd7;--arrow-medium:#b49adb;--arrow-vote:#ee8f8a;--arrow-attack:#d66f6f;--arrow-protect:#8eb8a2;--arrow-infect:#a3be76}
+.play-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-areas:"board chat" "board self";gap:16px;align-items:start}.board-panel{grid-area:board;padding:16px;min-width:0}.chat-column{grid-area:chat}.action-column{grid-area:self;display:grid;gap:12px}.board-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}.board-head h2{margin:0}.board-head .eyebrow{margin-bottom:2px}.board-legend{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.legend{font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 7px}.legend:before{content:"";display:inline-block;width:12px;height:2px;margin-right:5px;vertical-align:middle;background:currentColor}.legend.relation{color:var(--arrow-suspect)}.legend.trust{color:var(--arrow-trust)}.legend.seer{color:var(--arrow-seer)}.legend.medium{color:var(--arrow-medium)}.legend.vote{color:var(--arrow-vote)}
+.village-board{position:relative;aspect-ratio:16/10;min-height:520px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:radial-gradient(ellipse at center,#1d2935 0,#151f2a 56%,#111923 100%)}.village-board:before{content:"";position:absolute;inset:12% 13%;border:1px dashed #354353;border-radius:50%;opacity:.45;pointer-events:none}.board-players,.bubble-layer,.relation-svg{position:absolute;inset:0}.relation-svg{width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2}.board-players{z-index:4}.bubble-layer{z-index:5;pointer-events:none}.board-player{position:absolute;transform:translate(-50%,-50%);width:72px;min-height:68px;padding:5px 4px 4px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:1px;z-index:4}.board-player:hover:not(:disabled){background:#263444;border-color:transparent}.board-player:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.board-avatar{width:34px;height:38px;border:1px solid #4a5d70;background:#334252;border-radius:17px 17px 9px 9px;display:flex;align-items:center;justify-content:center;font-weight:700}.board-player.me .board-avatar{border-color:var(--accent);box-shadow:0 0 0 2px #d8bc8326}.board-player.dead{opacity:.42}.board-player.dead .board-avatar{filter:grayscale(1)}.board-player.dead .board-name{text-decoration:line-through}.board-name{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;text-align:center}.board-player small{font-size:7px;line-height:1.1;color:var(--muted);white-space:nowrap}.board-player.dense{width:54px;min-height:50px}.board-player.dense .board-avatar{width:27px;height:30px;font-size:10px}.board-player.dense .board-name{font-size:8px}.board-player.dense small{display:none}
+.board-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;text-align:center;color:#647485;pointer-events:none}.board-center strong{display:block;font-size:17px;color:#8795a3;font-weight:500}.board-center span{display:block;font-size:9px;margin-top:3px}.board-bubble{position:absolute;transform:translate(-50%,-50%);width:min(195px,31%);padding:7px 9px;background:#eef1ef;color:#1a2026;border-radius:10px 10px 10px 3px;border:1px solid #cbd0cc;transition:opacity .5s;box-shadow:0 5px 16px #0004}.board-bubble.structured{border-color:var(--accent)}.board-bubble strong{display:block;font-size:8px;color:#58636b;margin-bottom:2px}.board-bubble span{display:block;font-size:10px;line-height:1.45;overflow-wrap:anywhere}
+.relation-line{fill:none;stroke-width:1.8;stroke:var(--arrow-suspect);transition:opacity .25s}.relation-line.strong{stroke-width:4}.relation-line.preview{stroke-dasharray:8 5}.relation-line.private{stroke-dasharray:4 4}.relation-line.accuse{stroke:var(--arrow-suspect)}.relation-line.trust{stroke:var(--arrow-trust)}.relation-line.question{stroke:var(--arrow-question);stroke-dasharray:4 4}.relation-line.seer{stroke:var(--arrow-seer);stroke-width:2.7}.relation-line.medium{stroke:var(--arrow-medium);stroke-width:2.7}.relation-line.vote{stroke:var(--arrow-vote)}.relation-line.attack{stroke:var(--arrow-attack)}.relation-line.protect{stroke:var(--arrow-protect)}.relation-line.infect{stroke:var(--arrow-infect)}.arrow-head.accuse{fill:var(--arrow-suspect)}.arrow-head.trust{fill:var(--arrow-trust)}.arrow-head.question{fill:var(--arrow-question)}.arrow-head.seer{fill:var(--arrow-seer)}.arrow-head.medium{fill:var(--arrow-medium)}.arrow-head.vote{fill:var(--arrow-vote)}.arrow-head.attack{fill:var(--arrow-attack)}.arrow-head.protect{fill:var(--arrow-protect)}.arrow-head.infect{fill:var(--arrow-infect)}.relation-label{font-size:9px;font-weight:700;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:#121a23;stroke-width:4px;stroke-linejoin:round}.relation-label.accuse{fill:var(--arrow-suspect)}.relation-label.trust{fill:var(--arrow-trust)}.relation-label.question{fill:var(--arrow-question)}.relation-label.seer{fill:var(--arrow-seer)}.relation-label.medium{fill:var(--arrow-medium)}.relation-label.vote{fill:var(--arrow-vote)}.relation-label.attack{fill:var(--arrow-attack)}.relation-label.protect{fill:var(--arrow-protect)}.relation-label.infect{fill:var(--arrow-infect)}
+.board-hint{font-size:10px;color:var(--muted);padding:9px 4px 0}.board-menu{border-top:1px solid var(--line);margin-top:11px;padding-top:11px}.board-menu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.board-menu-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.board-menu-grid button{font-size:10px;padding:7px 5px}.board-menu-grid [data-relation=accuse]{border-color:color-mix(in srgb,var(--arrow-suspect),transparent 45%)}.board-menu-grid [data-relation=trust]{border-color:color-mix(in srgb,var(--arrow-trust),transparent 45%)}.board-menu-grid [data-report^="seer"]{border-color:color-mix(in srgb,var(--arrow-seer),transparent 45%)}.board-menu-grid [data-report^="medium"]{border-color:color-mix(in srgb,var(--arrow-medium),transparent 45%)}.board-menu p{font-size:9px;color:var(--muted);margin:7px 0 0}.board-action-dock{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#121c26}.board-action-dock span{flex:1;font-size:11px}.board-action-dock button{font-size:10px;padding:7px 10px}
+.narration{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);z-index:9;width:min(430px,62%);padding:13px 18px;text-align:center;background:#111923f2;border:1px solid #778493;border-radius:5px;box-shadow:0 14px 45px #0008;animation:narration-in .28s ease both}.narration small{display:block;font-size:8px;letter-spacing:.18em;color:var(--muted);margin-bottom:3px}.narration strong{font-size:14px;font-weight:500}.narration.fade{opacity:0;transition:opacity .45s}.board-scene{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#0b111bdc;animation:board-scene-in .35s ease both;pointer-events:none}.board-scene .scene-inner{text-align:center;padding:25px;max-width:80%}.board-scene .scene-mark{font-size:58px;color:var(--accent)}.board-scene.death .scene-mark{color:var(--red)}.board-scene.execution .scene-mark{color:var(--purple)}.board-scene .scene-inner p{font-size:10px;color:var(--muted);letter-spacing:.1em}.board-scene .scene-inner h2{font-size:23px;overflow-wrap:anywhere}@keyframes narration-in{from{opacity:0;transform:translate(-50%,-46%) scale(.98)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}@keyframes board-scene-in{from{opacity:0}to{opacity:1}}
+.secret-dialog{transition:opacity .35s,transform .35s}.secret-dialog.fading{opacity:0;transform:scale(.96)}.secret-dialog::backdrop{background:#060a10d8;backdrop-filter:blur(3px)}.secret-dialog .tarot-card{display:block;border:0;padding:0;background:transparent;cursor:pointer;perspective:900px}.secret-dialog .tarot-card:hover{background:transparent;border:0}.secret-dialog .tarot-front,.secret-dialog .tarot-back{display:flex}.secret-dialog .tarot-front small{font-size:9px;color:var(--muted)}.secret-dialog .tarot-back strong{padding:0 8px;text-align:center}.secret-dialog .tarot-back small{padding:0 12px;max-height:68px;overflow:auto;line-height:1.45}.secret-dialog #tarotAuto{margin-top:-10px}.identity-card{min-height:116px}.private-panel:not([open]){padding-bottom:13px}
+
+@media(max-width:1100px){.play-layout{grid-template-columns:minmax(0,1fr) 310px}.village-board{min-height:470px}.board-menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:850px){.play-layout{grid-template-columns:1fr 1fr;grid-template-areas:"board board" "chat self"}.village-board{min-height:500px}}
+@media(max-width:700px){
+  .play-layout{display:block}.board-panel,.chat-column,.action-column{width:100%}.mobile-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;position:sticky;bottom:8px;z-index:16;padding:7px;margin:10px 0 12px;background:#101720e8;border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}.mobile-nav button{min-height:44px;padding:8px;font-size:12px;background:#131e29}.mobile-nav button.active{color:var(--accent);border-color:var(--accent);background:#25303b}
+  body[data-mobile-view=board] #chatPanel,body[data-mobile-view=board] #selfPanel,body[data-mobile-view=board] .records-panel{display:none!important}
+  body[data-mobile-view=chat] #boardPanel,body[data-mobile-view=chat] #selfPanel,body[data-mobile-view=chat] .records-panel{display:none!important}
+  body[data-mobile-view=self] #boardPanel,body[data-mobile-view=self] #chatPanel{display:none!important}
+  body[data-mobile-view=self] #selfPanel,body[data-mobile-view=self] .records-panel{display:grid!important}
+  .board-panel{padding:9px}.board-head{align-items:center;margin-bottom:7px}.board-head h2{font-size:14px}.board-head .eyebrow{display:none}.board-legend{gap:3px}.legend{font-size:7px;padding:1px 5px}.legend:before{width:7px;margin-right:3px}.village-board{aspect-ratio:4/5;min-height:0;max-height:none}.village-board:before{inset:13% 8%}.board-player{width:60px;min-height:55px}.board-avatar{width:30px;height:33px}.board-name{font-size:9px}.board-player.dense{width:43px}.board-player.dense .board-avatar{width:23px;height:25px}.board-player.dense .board-name{font-size:7px}.board-center strong{font-size:13px}.board-center span{font-size:7px;max-width:100px}.board-bubble{width:39%;padding:5px 7px}.board-bubble strong{font-size:7px}.board-bubble span{font-size:9px}.relation-label{font-size:7px}.board-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.board-menu-grid button{min-height:42px;font-size:10px}.board-action-dock{position:sticky;bottom:70px;z-index:11;box-shadow:0 -5px 18px #0006}.narration{width:72%;padding:10px 12px}.narration strong{font-size:12px}.board-scene .scene-mark{font-size:44px}.board-scene .scene-inner h2{font-size:18px}.chat-column .messages{height:55vh;max-height:520px}.action-column{display:flex;flex-direction:column}.secret-dialog{width:min(320px,92vw);padding:20px}.secret-dialog .tarot-card{width:170px;height:250px}
+}
+
+
+/* v0.6.2 readability pass: larger text/touch targets without changing the board model. */
+.secret-dialog #tarotHeading{font-size:15px;margin-bottom:12px}
+.secret-dialog .tarot-card{width:220px;height:320px}
+.secret-dialog .tarot-front>span,.secret-dialog .tarot-back>span{font-size:46px}
+.secret-dialog .tarot-front strong{font-size:20px}
+.secret-dialog .tarot-front small{font-size:11px}
+.secret-dialog .tarot-back strong{font-size:21px;line-height:1.45}
+.secret-dialog .tarot-back small{font-size:12px;max-height:102px;line-height:1.65}
+.secret-dialog #tarotAuto{font-size:12px;line-height:1.65;margin-top:-4px}
+.secret-dialog #tarotClose{min-height:44px;font-size:13px;padding:10px 18px}
+.board-avatar{width:39px;height:43px;font-size:15px}
+.board-player{width:82px;min-height:76px}
+.board-name{font-size:12px}
+.board-player small{font-size:8px}
+.board-bubble{width:min(225px,34%);padding:9px 11px}
+.board-bubble strong{font-size:10px}
+.board-bubble span{font-size:12px;line-height:1.55}
+.relation-label{font-size:10px;stroke-width:5px}
+.board-hint{font-size:12px;line-height:1.65}
+.board-menu-grid button{font-size:12px;min-height:42px}
+.board-action-dock span{font-size:13px}
+.board-action-dock button{font-size:12px;min-height:42px}
+.narration strong{font-size:16px}
+.narration small{font-size:9px}
+@media(max-width:700px){
+  body{font-size:16px;line-height:1.65}
+  .site-header{height:72px}.brand{font-size:17px}.brand small{font-size:9px}
+  main{padding:18px 12px 34px}
+  .room-heading h1{font-size:23px}.room-tools .quiet{font-size:12px;min-height:42px}.room-tools code{font-size:12px}
+  .phase-bar{padding:14px 13px}.phase-info h2{font-size:18px}.phase-info p{font-size:12px;max-width:230px}.day-badge{font-size:10px}.countdown{font-size:25px}
+  .mobile-nav{gap:8px;padding:8px}.mobile-nav button{min-height:50px;font-size:14px}
+  .board-panel{padding:11px}.board-head h2{font-size:17px}.legend{font-size:9px;padding:2px 6px}
+  .village-board{aspect-ratio:4/5}
+  .board-player{width:72px;min-height:67px;padding:5px 3px}.board-avatar{width:38px;height:42px;font-size:14px}.board-name{font-size:11px}.board-player small{font-size:8px}
+  .board-player.dense{width:48px;min-height:52px}.board-player.dense .board-avatar{width:28px;height:31px;font-size:11px}.board-player.dense .board-name{font-size:8px}
+  .board-center strong{font-size:15px}.board-center span{font-size:9px;max-width:125px}
+  .board-bubble{width:43%;padding:7px 9px}.board-bubble strong{font-size:9px}.board-bubble span{font-size:12px;line-height:1.5}
+  .relation-label{font-size:9px;stroke-width:5px}
+  .board-hint{font-size:12px}.board-menu-grid button{min-height:48px;font-size:13px}.board-menu p{font-size:11px}
+  .board-action-dock{padding:10px}.board-action-dock span{font-size:13px}.board-action-dock button{font-size:13px;min-height:46px}
+  .narration{width:82%;padding:13px 14px}.narration strong{font-size:15px}.narration small{font-size:9px}
+  .board-scene .scene-inner h2{font-size:21px}.board-scene .scene-inner p{font-size:12px}
+  .chat-column .messages{height:56vh}.message-head{font-size:13px}.message-head small{font-size:10px}.message-text{font-size:15px;line-height:1.75}
+  .chat-form input{font-size:16px;min-height:48px}.chat-form button{font-size:14px;min-height:48px}
+  .chat-tab{font-size:13px;min-height:44px}.caption{font-size:13px}
+  .action-column{grid-template-columns:1fr}.identity-panel,.actions-panel{padding:15px}.identity-card{min-height:132px}.identity-card strong{font-size:18px}.identity-card small{font-size:11px}.role-symbol{font-size:30px}
+  .actions-panel h2{font-size:17px}.actions-panel .caption{font-size:13px}.target{font-size:13px;min-height:44px}.target.tarot-target{min-height:58px}.actions-panel>.primary{font-size:14px;min-height:46px}
+  .secret-dialog{width:min(370px,94vw);padding:22px}.secret-dialog .tarot-card{width:min(230px,72vw);height:330px}.secret-dialog .tarot-back strong{font-size:22px}.secret-dialog .tarot-back small{font-size:13px;max-height:118px}.secret-dialog #tarotAuto{font-size:13px}
+}
+/* v0.6.2 custom room-code creation */
+.custom-code-label{font-size:12px;margin:14px 0 7px}.custom-code-label span{float:right;font-size:10px}.room-code-help{margin:7px 0 12px!important}.entry-card #customCode{width:100%}
+</style>
+<script>/* Shared authoritative rules. No DOM, sockets, timers or hidden-state access from bots.
+ * In online play this runs on the server. The standalone practice build uses the SAME engine.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.WW = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const ROLES = {
+    villager: { name:'村人', team:'village', icon:'◇', text:'特別な夜能力はありません。発言・占いの主張・投票履歴から人狼を探します。', win:'人狼と黒狼を全滅させる。第三陣営の優先勝利に注意。' },
+    seer: { name:'占い師', team:'village', icon:'✧', text:'毎晩1人を占います。「人狼」か「人狼ではない」の二択。黒狼・狂人・狂信者は白。妖狐を占うと夜明けに呪殺します。', win:'村人陣営と同じ。' },
+    medium: { name:'霊媒師', team:'village', icon:'◉', text:'次の夜の開始時に、直前の投票で処刑された人の判定を自動で受け取ります。人狼・黒狼は黒、それ以外は白。対象選択はありません。', win:'村人陣営と同じ。' },
+    guard: { name:'騎士', team:'village', icon:'♜', text:'毎晩、自分以外の生存者1人を人狼の襲撃から守ります。連続護衛は可能。占いによる呪殺・道連れ・後追いは防げません。', win:'村人陣営と同じ。' },
+    baker: { name:'パン屋', team:'village', icon:'♧', text:'生存していれば朝に「パンが届きました」と告知されます。誰がパン屋かは公開されません。', win:'村人陣営と同じ。' },
+    cat: { name:'猫又', team:'village', icon:'♤', text:'人狼の襲撃で死ぬと襲撃先に投票した人狼1人を道連れにします。投票処刑なら生存者1人をランダムに道連れに。後追い・道連れでは能力は発動しません。', win:'村人陣営と同じ。' },
+    mason: { name:'共有者', team:'village', icon:'∞', text:'開始時に他の共有者を知ることができます。2人以上で設定します。恋人が付いた共有者は恋人勝利を目指します。', win:'村人陣営と同じ。恋人になった場合は恋人勝利。' },
+    wolf: { name:'人狼', team:'wolves', icon:'☾', text:'仲間の人狼・黒狼を知り、夜の専用チャットで相談できます。各自が襲撃先を確定し、多数決で毎晩1人を襲撃。同票はランダムです。', win:'生存する人狼＋黒狼が、それ以外の生存者以上になる。' },
+    darkwolf: { name:'黒狼', team:'wolves', icon:'☽', text:'占いでは「人狼ではない」と判定される人狼です。霊媒では人狼。人狼の人数・夜の会話・襲撃投票に含まれます。', win:'人狼陣営と同じ。' },
+    madman: { name:'狂人', team:'wolves', icon:'♢', text:'人狼の味方ですが、人狼が誰かは知りません。占い・霊媒とも白。襲撃能力はなく、勝敗の人数計算では人狼以外に数えます。', win:'人狼陣営の勝利。死亡していてもよい。' },
+    fanatic: { name:'狂信者', team:'wolves', icon:'♧', text:'人狼・黒狼の名前を最初から知っています。人狼側からは狂信者の正体は分かりません。夜の人狼チャットには入れません。判定は白。', win:'人狼陣営と同じ。' },
+    fox: { name:'妖狐', team:'third', icon:'♆', text:'人狼の襲撃では死にません。占われると夜明けに死亡します。占い・霊媒の表示は白。通常決着時に生存していれば勝利を奪います。', win:'通常決着時に生存。恋人ペアの優先勝利には負けます。' },
+    jester: { name:'てるてる坊主', team:'third', icon:'♙', text:'昼の投票で直接処刑されると、その場で単独勝利します。襲撃・道連れ・後追いでは勝てません。', win:'自分が投票で直接処刑される。' },
+    plague: { name:'疫病神', team:'third', icon:'✣', text:'毎晩、自分以外の未感染者1人を感染させます。感染は本人以外には見えず、能力を妨げません。', win:'自分が生きていて、他の生存者全員が感染した時に単独勝利。' },
+    survivor: { name:'生存者', team:'third', icon:'△', text:'夜能力はありません。村人や人狼に固執せず、生き残ることを目指します。', win:'通常決着・恋人勝利・妖狐勝利の時に生存していれば追加勝利。てるてる坊主・疫病神の単独勝利時は不可。' },
+    avenger: { name:'復讐者', team:'third', icon:'⚑', text:'開始時に復讐対象が1人指定されます。その人を昼の投票で直接処刑させることを目指します。対象が襲撃・道連れで死んでも達成にはなりません。', win:'対象の投票処刑を達成していれば通常決着時に追加勝利。達成後に自分が死んでも有効。単独勝利が発生した時は不可。' }
+  };
+  const LOVER = { name:'恋人', icon:'♡', text:'基本役職とは別に2人へ付く追加状態です。相方の名前だけ分かり、能力は元の役職のまま。一方が死ぬともう一方も後追いします。元の陣営勝利を失い、通常決着時に2人とも生きていれば最優先で恋人勝利となります。' };
+  const WOLF = new Set(['wolf','darkwolf']);
+  const ROLE_IDS = Object.keys(ROLES);
+  const MAX_PLAYERS = 30;
+  const MIN_PLAYERS = 4;
+  const PHASES = {lobby:'待機室',reveal:'役職確認',night:'夜の行動',dawn:'夜明け',discussion:'昼の話し合い',vote:'投票',execution:'投票結果',ended:'ゲーム終了'};
+  const DEFAULT_TIMES = {reveal:20, night:30, other:20, dawn:8, discussion:120, vote:30, execution:8};
+  const BOT_NAMES = ['アオイ','シオン','ミオ','レン','ユズ','カナタ','ナギ','ハル','スイ','ツキ','アキ','リク','コハク','イオ','ソラ','ヒナ','トワ','アサヒ','サク','リン','ノア','カイ','セナ','メイ','イズミ','リオ','フウ','チセ','ルカ','ミナト'];
+  const emptyRoles = () => Object.fromEntries(ROLE_IDS.map(k=>[k,0]));
+  function preset(n, kind='basic') {
+    const r=emptyRoles(); r.wolf=Math.max(1,Math.floor(n/4)); r.seer=1;
+    if(n>=5)r.guard=1; if(n>=7)r.medium=1; if(n>=8)r.madman=1;
+    if(kind==='third' && n>=10) {r.fox=1;r.jester=1;r.baker=1;}
+    if(kind==='all' && n>=20) { for(const k of ROLE_IDS)r[k]=1; r.mason=2; r.wolf=Math.max(2,Math.floor(n/6)); }
+    r.villager += n-Object.values(r).reduce((a,b)=>a+b,0);
+    return r;
+  }
+  function checkConfig(config, n) {
+    const errors=[];
+    if(n<MIN_PLAYERS||n>MAX_PLAYERS)errors.push(`合計${MIN_PLAYERS}〜${MAX_PLAYERS}人にしてください。1人の場合はCPUを追加できます。`);
+    const r=config.roles||{};
+    for(const k of ROLE_IDS) if(!Number.isInteger(r[k])||r[k]<0||r[k]>MAX_PLAYERS)errors.push(`${ROLES[k].name}の人数が不正です。`);
+    if(Object.keys(r).some(k=>!ROLE_IDS.includes(k)))errors.push('不明な役職が含まれています。');
+    if(Object.values(r).reduce((a,b)=>a+b,0)!==n)errors.push('役職の合計と参加人数を一致させてください。');
+    const w=(r.wolf||0)+(r.darkwolf||0);
+    if(w<1)errors.push('人狼か黒狼を1人以上入れてください。');
+    if(w>=n-w)errors.push('開始直後に決着しないよう、人狼＋黒狼は半数未満にしてください。');
+    if(r.mason===1)errors.push('共有者は0人か2人以上にしてください。');
+    for(const k of ['fox','jester','plague','avenger'])if(r[k]>1)errors.push(`${ROLES[k].name}はこの版では1人までです。`);
+    if(config.lovers&&n<6)errors.push('恋人は合計6人以上の部屋で使えます。');
+    for(const [k,min,max] of [['reveal',3,60],['night',5,120],['other',3,120],['dawn',2,20],['discussion',10,600],['vote',5,120],['execution',2,20]]) {
+      const v=config.times?.[k];if(!Number.isInteger(v)||v<min||v>max)errors.push(`${PHASES[k]||'その他の能力'}の時間は${min}〜${max}秒です。`);
+    }
+    if(config.times?.other>config.times?.night)errors.push('その他の能力の締切は夜全体の締切以下にしてください。');
+    return errors;
+  }
+  function seeded(seed) {let s=seed>>>0;return ()=>{s+=0x6D2B79F5;let t=Math.imul(s^s>>>15,1|s);t^=t+Math.imul(t^t>>>7,61|t);return ((t^t>>>14)>>>0)/4294967296;};}
+  const clone=o=>JSON.parse(JSON.stringify(o));
+  const cleanName=s=>String(s||'').normalize('NFC').replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g,'').trim();
+  function validName(s) {s=cleanName(s);if([...s].length<1||[...s].length>16)throw Error('名前は1〜16文字で入力してください。');return s;}
+  function cleanText(s) {return String(s||'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g,'').trim().slice(0,400);}
+
+  const PERSONALITY_LABELS={casual:'くだけた話し方',soft:'やわらかい話し方',polite:'丁寧な話し方',blunt:'短く率直',analytical:'理屈っぽい'};
+
+  class Game {
+    constructor({code='SOLO',seed=Date.now(),random=null,now=()=>Date.now()}={}) {
+      this.code=code;this.random=random||seeded(seed);this.now=now;this.players=[];this.host=null;
+      this.config={roles:preset(8),times:{...DEFAULT_TIMES},lovers:false,firstNightSafe:true,testRole:''};
+      this.configVersion=1;this.phase='lobby';this.phaseId=0;this.day=0;this.startedAt=0;this.deadline=null;
+      this.messages=[];this.msgId=0;this.revision=0;this.actions={};this.votes={};this.ready=new Set();
+      this.reports=[];this.claims=[];this.voteHistory=[];this.winner=null;this.pendingWin=null;
+      this.lastScene=null;this.sceneId=0;this.lastExecuted=null;this.infected=new Set();this.round=0;
+      this.botTalkAt=0;this.botDiscussionTalks=0;this.wolfTalkAt=0;this.wolfTalkCount=0;this.wasBakerAlive=false;this.createdAt=now();this.changed();
+    }
+    changed(){this.revision++;}
+    pick(a){return a.length?a[Math.floor(this.random()*a.length)]:null;}
+    shuffled(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+    makePersonality(id='cpu'){
+      const tones=['casual','soft','soft','casual','blunt','analytical','polite'];
+      let h=2166136261;for(const c of String(id)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}h>>>=0;
+      const tone=tones[h%tones.length],sociability=(h>>>3)%3,confidence=(h>>>7)%3,verbosity=(h>>>11)%3;
+      const suspicion=(h>>>14)%3,reactivity=(h>>>17)%3,humor=(h>>>20)%3,tempo=(h>>>23)%3;
+      return {tone,label:PERSONALITY_LABELS[tone],sociability,confidence,verbosity,suspicion,reactivity,humor,tempo};
+    }
+    byId(id){return this.players.find(p=>p.id===id);}
+    living(){return this.players.filter(p=>p.alive);}
+    humans(){return this.players.filter(p=>!p.bot);}
+    isSolo(){return this.humans().length===1;}
+    name(id){return this.byId(id)?.name||'不明';}
+    system(text){this.message(null,text,'system');}
+    message(p,text,channel='public',meta=null) {
+      const m={id:++this.msgId,day:this.day,phase:this.phase,at:this.now(),playerId:p?.id||null,name:p?.name||'村の記録',channel,text:cleanText(text)};
+      if(meta)m.meta=clone(meta);
+      this.messages.push(m);if(this.messages.length>1800)this.messages.splice(0,200);
+      this.changed();return m;
+    }
+    addPlayer({id,name,bot=false}) {
+      if(this.phase!=='lobby')throw Error('対戦中は新規参加できません。');
+      if(this.players.length>=MAX_PLAYERS)throw Error('満員です。');
+      name=validName(name);if(this.players.some(p=>p.name===name))throw Error('同じ名前の人がいます。別の名前にしてください。');
+      if(!id||this.byId(id))throw Error('プレイヤーIDが不正です。');
+      const p={id,name,bot,connected:true,alive:true,role:null,lastActive:this.now(),disconnectedAt:null,auto:false,
+        privateResults:[],lover:null,revengeTarget:null,revengeDone:false,brain:bot?{personality:this.makePersonality(id)}:{},deathAt:null,claimed:null};
+      this.players.push(p);if(!this.host&&!bot)this.host=id;
+      if(this.humans().length>1)this.config.testRole='';
+      this.changed();return p;
+    }
+    removePlayer(id) {
+      const p=this.byId(id);if(!p)return;
+      if(this.phase!=='lobby')throw Error('ゲーム中の席は削除できません。');
+      this.players=this.players.filter(p=>p.id!==id);
+      if(this.host===id)this.host=this.humans().find(p=>p.connected)?.id||this.humans()[0]?.id||null;
+      this.configVersion++;this.system(`${p.name}が待機室を退出しました。`);
+    }
+    setBots(count) {
+      if(!Number.isInteger(count)||count<0||count>MAX_PLAYERS-this.humans().length)throw Error('CPUの人数が不正です。');
+      if(this.phase!=='lobby')throw Error('CPUの変更は待機室で行ってください。');
+      const old=this.players.filter(p=>p.bot);
+      if(old.length>count){const ids=new Set(old.slice(count).map(p=>p.id));this.players=this.players.filter(p=>!ids.has(p.id));}
+      for(let i=old.length;i<count;i++){
+        let name=BOT_NAMES[i]||`村人${i+1}`;let suffix=2;
+        while(this.players.some(p=>p.name===name))name=(BOT_NAMES[i]||'CPU')+suffix++;
+        this.addPlayer({id:`cpu-${this.code}-${i}-${Math.floor(this.random()*1e9)}`,name,bot:true});
+      }
+      if(this.players.length>=MIN_PLAYERS)this.config.roles=preset(this.players.length);
+      this.config.testRole='';this.configVersion++;this.changed();
+    }
+    applyConfig(input) {
+      if(this.phase!=='lobby')throw Error('設定は待機室で変更してください。');
+      const c={roles:{},times:{},lovers:input?.lovers===true,firstNightSafe:input?.firstNightSafe!==false,testRole:String(input?.testRole||'')};
+      for(const k of ROLE_IDS)c.roles[k]=Number(input?.roles?.[k]);
+      for(const k of Object.keys(DEFAULT_TIMES))c.times[k]=Number(input?.times?.[k]??DEFAULT_TIMES[k]);
+      const errors=checkConfig(c,this.players.length);
+      if(c.testRole&&!ROLE_IDS.includes(c.testRole)&&c.testRole!=='lover')errors.push('練習役職が不正です。');
+      if(c.testRole&&!this.isSolo())errors.push('役職を指定できるのは人間が1人の練習時だけです。');
+      if(c.testRole&&c.testRole!=='lover'&&!c.roles[c.testRole])errors.push('練習する役職を配役に入れてください。');
+      if(c.testRole==='lover'&&(!c.lovers||!c.roles.villager))errors.push('恋人の練習には恋人ONと村人1人以上が必要です。');
+      if(errors.length)throw Error(errors.join('\n'));
+      this.config=c;this.configVersion++;this.changed();
+    }
+    prepareSolo(role='seer',n=8) {
+      if(!this.isSolo()||this.phase!=='lobby')throw Error('ソロ練習用の操作です。');
+      if(!ROLE_IDS.includes(role)&&role!==''&&role!=='lover')throw Error('不明な練習役職です。');
+      this.setBots(n-1);
+      const r=preset(n);
+      if(role&&role!=='lover'&&!r[role]) {
+        if(role==='mason'){r.mason=2;r.villager-=2;}else{r[role]=1;r.villager--;}
+      }
+      this.applyConfig({...this.config,roles:r,lovers:role==='lover',testRole:role});
+    }
+    touch(id) {const p=this.byId(id);if(p){p.lastActive=this.now();if(this.phase==='lobby')this.changed();}}
+    connect(id) {
+      const p=this.byId(id);if(!p)throw Error('席が見つかりません。');
+      p.connected=true;p.disconnectedAt=null;p.lastActive=this.now();
+      if(this.phase==='lobby'||this.phase==='ended')p.auto=false;
+      // A proxy that already acted keeps its action. Control returns at the next phase boundary.
+      this.changed();
+    }
+    disconnect(id) {const p=this.byId(id);if(p&&!p.bot){p.connected=false;p.disconnectedAt=this.now();this.changed();}}
+    beginPhase(phase) {
+      this.phase=phase;this.phaseId++;this.startedAt=this.now();this.deadline=phase==='ended'||phase==='lobby'?null:this.startedAt+this.config.times[phase]*1000;
+      this.ready=new Set();
+      for(const p of this.players){
+        if(!p.bot&&p.connected)p.auto=false;
+        p.brain.phaseId=this.phaseId;p.brain.talks=0;p.brain.nightSaid=false;
+        p.brain.replyMessageId=null;p.brain.replyAt=0;p.brain.lastSeenPublicId=this.msgId;
+        const social=p.brain.personality?.sociability??1,tempo=p.brain.personality?.tempo??1;
+        p.brain.nextTalk=this.startedAt+3000+(2-social)*1900+(2-tempo)*900+Math.floor(this.random()*(6200+(2-social)*1700));
+        p.brain.actionAt=this.startedAt+2600+(2-tempo)*800+Math.floor(this.random()*5200);
+      }
+      this.botDiscussionTalks=0;this.botTalkAt=this.startedAt+4000+Math.floor(this.random()*2500);
+      this.wolfTalkCount=0;this.wolfTalkAt=this.startedAt+1800+Math.floor(this.random()*1800);
+      this.changed();
+    }
+    start({allowBotOnly=false}={}) {
+      if(this.phase!=='lobby')throw Error('すでに開始しています。');
+      const e=checkConfig(this.config,this.players.length);if(e.length)throw Error(e.join('\n'));
+      if(!this.humans().length&&!allowBotOnly)throw Error('人間が1人以上必要です。');
+      if(this.config.testRole&&!this.isSolo())throw Error('複数人では役職指定は使えません。');
+      this.messages=[];this.msgId=0;this.reports=[];this.claims=[];this.voteHistory=[];
+      this.infected=new Set();this.lastExecuted=null;this.winner=null;this.pendingWin=null;this.lastScene=null;
+      this.day=1;this.round=0;this.actions={};this.votes={};
+      let deck=ROLE_IDS.flatMap(k=>Array(this.config.roles[k]).fill(k));
+      const pinned=this.isSolo()?this.config.testRole:'';
+      const human=this.humans()[0];
+      if(pinned){const role=pinned==='lover'?'villager':pinned;const i=deck.indexOf(role);if(i<0)throw Error('指定した役職がありません。');deck.splice(i,1);human.role=role;}
+      deck=this.shuffled(deck);
+      for(const p of this.players){
+        if(!(pinned&&p.id===human.id))p.role=deck.pop();
+        p.alive=true;p.privateResults=[];p.lover=null;p.revengeTarget=null;p.revengeDone=false;p.auto=!p.connected;
+        const personality=p.bot?(p.brain?.personality||this.makePersonality(p.id)):null;p.brain=personality?{personality}:{};p.deathAt=null;p.claimed=null;
+      }
+      if(this.config.lovers){
+        const a=pinned==='lover'?human:this.pick(this.players);
+        const b=this.pick(this.players.filter(p=>p.id!==a.id));a.lover=b.id;b.lover=a.id;
+      }
+      for(const p of this.players.filter(p=>p.role==='avenger'))p.revengeTarget=this.pick(this.players.filter(x=>x.id!==p.id&&x.id!==p.lover))?.id||null;
+      this.wasBakerAlive=this.players.some(p=>p.role==='baker');
+      this.beginPhase('reveal');
+      this.system(`ゲームを開始します。役職を確認してください。${this.config.times.reveal}秒後に自動で夜へ進みます。`);
+      if(pinned)this.system('ソロ練習：あなたの役職を指定しています。複数人では役職指定は使えません。');
+    }
+    reset() {
+      if(this.phase!=='ended')throw Error('終了後に待機室へ戻れます。');
+      for(const p of this.players){p.role=null;p.alive=true;p.lover=null;p.brain={};p.auto=false;p.privateResults=[];p.lastActive=this.now();p.claimed=null;}
+      this.messages=[];this.msgId=0;this.day=0;this.winner=null;this.pendingWin=null;this.lastScene=null;this.actions={};this.votes={};this.reports=[];this.claims=[];this.voteHistory=[];
+      this.beginPhase('lobby');this.configVersion++;this.system('新しいゲームを準備できます。');
+    }
+    requireTurn(turn) {if(turn!==undefined&&turn!==this.phaseId)throw Error('画面が次のフェーズに進みました。表示を確認してください。');}
+    requirePlayer(id,alive=false) {const p=this.byId(id);if(!p)throw Error('参加してください。');if(alive&&!p.alive)throw Error('幽霊は行動できません。');return p;}
+    nightKind(p) {
+      if(!p.alive)return null;
+      if(WOLF.has(p.role))return this.day===1&&this.config.firstNightSafe?'meet':'attack';
+      return ({seer:'divine',guard:'protect',plague:'infect'})[p.role]||null;
+    }
+    actionDeadline(p) {
+      const kind=this.nightKind(p);
+      return this.startedAt+(kind==='protect'||kind==='infect'?this.config.times.other:this.config.times.night)*1000;
+    }
+    targets(p,kind=this.nightKind(p)) {
+      if(!kind||kind==='meet')return [];
+      return this.living().filter(t=>{
+        if(t.id===p.id)return false;
+        if(kind==='attack'&&WOLF.has(t.role))return false;
+        if(kind==='infect'&&this.infected.has(t.id))return false;
+        if(kind==='vote'&&this.round>0&&!this.runoff.includes(t.id))return false;
+        return true;
+      }).map(t=>t.id);
+    }
+    submitAction(id,target,turn,automatic=false) {
+      this.requireTurn(turn);const p=this.requirePlayer(id,true);
+      if(this.phase!=='night'||!this.nightKind(p))throw Error('今は夜の選択がありません。');
+      if(Object.hasOwn(this.actions,id))throw Error('行動は確定済みです。');
+      if(!automatic&&this.now()>this.actionDeadline(p))throw Error('選択時間が終了しました。');
+      const kind=this.nightKind(p),valid=this.targets(p,kind);
+      if(kind==='meet')target=null;
+      else if(!valid.includes(target)&&!(kind==='infect'&&valid.length===0&&target===null))throw Error('その相手は選択できません。');
+      if(kind==='divine'&&p.privateResults.some(r=>r.kind==='seer'&&r.day===this.day))throw Error('占いは1日に1回だけです。');
+      this.actions[id]=target;
+      if(kind==='divine'&&target){
+        const t=this.byId(target);
+        p.privateResults.push({id:`seer-${this.day}-${p.id}`,kind:'seer',day:this.day,target:t.id,name:t.name,black:t.role==='wolf'});
+      }
+      this.changed();
+    }
+    submitVote(id,target,turn,automatic=false) {
+      this.requireTurn(turn);const p=this.requirePlayer(id,true);
+      if(this.phase!=='vote')throw Error('投票時間ではありません。');
+      if(Object.hasOwn(this.votes,id))throw Error('投票は確定済みです。');
+      if(!automatic&&this.now()>this.deadline)throw Error('投票時間が終了しました。');
+      if(target!==null&&!this.targets(p,'vote').includes(target))throw Error('その相手には投票できません。');
+      this.votes[id]=target;this.changed();
+    }
+    markReady(id,turn) {
+      this.requireTurn(turn);const p=this.requirePlayer(id);
+      if(!['reveal','discussion','dawn','execution'].includes(this.phase))throw Error('このフェーズはスキップできません。');
+      if(this.phase==='discussion'&&!p.alive)throw Error('幽霊は議論を終了できません。');
+      this.ready.add(id);this.changed();
+    }
+    chat(id,text,channel='public',turn) {
+      this.requireTurn(turn);const p=this.requirePlayer(id);text=cleanText(text);
+      if(!text)throw Error('メッセージを入力してください。');
+      if(channel==='ghost'){
+        if(p.alive||['lobby','reveal','ended'].includes(this.phase))throw Error('幽霊だけの会話です。');
+      } else if(channel==='wolves'){
+        if(!p.alive||!WOLF.has(p.role)||this.phase!=='night')throw Error('夜の人狼だけの会話です。');
+      } else {
+        channel='public';
+        if(!['lobby','ended','discussion','vote','dawn','execution'].includes(this.phase)||(!p.alive&&!['lobby','ended'].includes(this.phase)))throw Error('生存者への発言は今はできません。');
+      }
+      if(channel==='public'&&this.phase==='discussion'&&p.alive){
+        const parsed=this.parseStatement(p,text);if(parsed){this.publish(id,parsed,turn,text);return;}
+      }
+      this.message(p,text,channel);
+    }
+    parseStatement(p,text) {
+      let claim=null;
+      for(const k of ['seer','medium','guard','mason','villager','baker','cat']){
+        const name=ROLES[k].name;
+        if(new RegExp(`(?:^|私は|自分は|CO[:：\\s]*)${name}(?:CO|ＣＯ|です|だよ|だ|をCO|$)|${name}(?:CO|ＣＯ)`).test(text)){claim=k;break;}
+      }
+      const knownClaim=claim||p.claimed;
+      if(['seer','medium'].includes(knownClaim)){
+        const target=this.players.filter(x=>x.id!==p.id).sort((a,b)=>b.name.length-a.name.length).find(x=>text.includes(x.name));
+        if(target) {
+          const after=text.slice(text.indexOf(target.name)+target.name.length);
+          const white=/白|人狼では(?:ない|ありません)|人狼じゃない/.test(after);
+          const black=!white&&/黒|人狼(?:です|だった|だ|でした|$)/.test(after);
+          if(white||black)return {kind:'report',role:knownClaim,target:target.id,black,claim:!!claim};
+        }
+      }
+      if(claim)return {kind:'claim',role:claim};
+      const target=this.players.find(x=>x.id!==p.id&&text.includes(x.name));
+      if(target&&/疑|怪し|黒寄り|投票/.test(text))return {kind:'accuse',target:target.id};
+      if(target&&/白寄り|村っぽ|信用|信じ/.test(text))return {kind:'trust',target:target.id};
+      if(target&&/[?？]|聞きたい|どうして|なぜ|理由/.test(text))return {kind:'question',target:target.id};
+      return null;
+    }
+    publish(id,statement,turn,customText=null) {
+      this.requireTurn(turn);const p=this.requirePlayer(id,true);
+      if(this.phase!=='discussion')throw Error('主張を出せるのは昼の議論中です。');
+      const s={kind:statement?.kind};let text;
+      if(s.kind==='claim'){
+        if(!ROLE_IDS.includes(statement.role))throw Error('役職を選んでください。');
+        s.role=statement.role;p.claimed=s.role;
+        this.claims.push({playerId:id,role:s.role,day:this.day});
+        text=`${ROLES[s.role].name}をCOします。`;
+      }else if(s.kind==='report'){
+        if(!['seer','medium'].includes(statement.role))throw Error('占いか霊媒を選んでください。');
+        if(!this.byId(statement.target))throw Error('対象が見つかりません。');
+        s.role=statement.role;s.target=statement.target;s.black=statement.black===true;
+        p.claimed=s.role;this.claims.push({playerId:id,role:s.role,day:this.day});
+        this.reports.push({playerId:id,...s,day:this.day});
+        text=`${ROLES[s.role].name}CO。${this.name(s.target)}は「${s.black?'人狼':'人狼ではない'}」でした。`;
+      }else if(['accuse','trust','question'].includes(s.kind)){
+        if(!this.byId(statement.target)||statement.target===id)throw Error('相手を選んでください。');
+        s.target=statement.target;
+        text=s.kind==='accuse'?`${this.name(s.target)}を疑っています。`:s.kind==='trust'?`${this.name(s.target)}は今のところ白寄りに見ています。`:`${this.name(s.target)}に理由を聞きたいです。`;
+      }else throw Error('不明な主張です。');
+      this.message(p,customText||text,'public',s);
+    }
+    startNight() {
+      this.actions={};this.beginPhase('night');
+      this.system(`${this.day}日目の夜です。能力を持つ人は対象を選んでください。全員同時進行です。${this.day===1&&this.config.firstNightSafe?'初夜は人狼の顔合わせのみで、襲撃はありません。':''}`);
+      if(this.lastExecuted){
+        const t=this.byId(this.lastExecuted);
+        for(const p of this.living().filter(p=>p.role==='medium'))
+          p.privateResults.push({id:`medium-${this.day}-${p.id}`,kind:'medium',day:this.day,target:t.id,name:t.name,black:WOLF.has(t.role)});
+      }
+      this.changed();
+    }
+    killMany(initial,attackers=[]) {
+      const queue=initial.slice(),deaths=[];
+      while(queue.length){
+        const {id,cause}=queue.shift();const p=this.byId(id);if(!p?.alive)continue;
+        p.alive=false;p.deathAt=this.msgId;p.deathCause=cause;deaths.push(p.id);
+        if(p.lover&&this.byId(p.lover)?.alive)queue.push({id:p.lover,cause:'lover'});
+        if(p.role==='cat'&&(cause==='attack'||cause==='execution')){
+          const pending=new Set(queue.map(x=>x.id));
+          const candidates=this.living().filter(t=>!pending.has(t.id)&&(cause!=='attack'||attackers.includes(t.id)));
+          const t=this.pick(candidates);if(t)queue.push({id:t.id,cause:'cat'});
+        }
+      }
+      this.changed();return deaths;
+    }
+    resolveNight() {
+      if(this.phase!=='night')return;
+      const initial=[],guards=new Set(),attackCount={};
+      const active=this.living().slice();
+      for(const p of active){
+        const t=this.actions[p.id];if(!t)continue;
+        if(p.role==='guard')guards.add(t);
+        if(p.role==='plague')this.infected.add(t);
+        if(p.role==='seer'&&this.byId(t)?.role==='fox')initial.push({id:t,cause:'divination'});
+        if(WOLF.has(p.role)&&!(this.day===1&&this.config.firstNightSafe))attackCount[t]=(attackCount[t]||0)+1;
+      }
+      const max=Math.max(0,...Object.values(attackCount));
+      const target=max?this.pick(Object.keys(attackCount).filter(k=>attackCount[k]===max)):null;
+      const attackers=active.filter(p=>WOLF.has(p.role)&&this.actions[p.id]===target).map(p=>p.id);
+      if(target&&!guards.has(target)&&this.byId(target)?.role!=='fox')initial.push({id:target,cause:'attack'});
+      const deaths=this.killMany(initial,attackers);
+      this.beginPhase('dawn');
+      this.lastScene={id:++this.sceneId,type:'dawn',victims:deaths.map(id=>({id,name:this.name(id)})),title:deaths.length?'夜が明けました':'穏やかな朝'};
+      this.system(deaths.length?`朝、${deaths.map(id=>this.name(id)).join('、')}が亡くなっているのが見つかりました。`:'昨夜の犠牲者はいませんでした。');
+      const baker=this.living().some(p=>p.role==='baker');
+      if(baker)this.system('パンが届きました。パン屋はまだ生きています。');
+      else if(this.wasBakerAlive)this.system('今日はパンが届きませんでした。');
+      this.wasBakerAlive=baker;
+      this.pendingWin=this.computeWin(null);this.changed();
+    }
+    startDiscussion() {this.beginPhase('discussion');this.system(`${this.day}日目の話し合いを開始します。制限時間は${this.config.times.discussion}秒です。終了すると自動で投票へ進みます。`);}
+    startVote(runoff=null) {
+      this.votes={};this.runoff=runoff||[];this.round=runoff?1:0;this.beginPhase('vote');
+      this.system(runoff?`最多票が同数です。${runoff.map(id=>this.name(id)).join('・')}で決選投票を行います。`:`投票を開始します。${this.config.times.vote}秒以内に1人を選んでください。時間切れは棄権です。`);
+    }
+    resolveVote() {
+      if(this.phase!=='vote')return;
+      const ballots=this.living().map(p=>({voter:p.id,target:this.votes[p.id]||null}));
+      const count={};for(const b of ballots)if(b.target)count[b.target]=(count[b.target]||0)+1;
+      const max=Math.max(0,...Object.values(count)),top=max?Object.keys(count).filter(k=>count[k]===max):[];
+      this.voteHistory.push({day:this.day,round:this.round,ballots,count:clone(count),executed:top.length===1?top[0]:null});
+      if(top.length>1&&this.round===0){this.startVote(top);return;}
+      let deaths=[];this.lastExecuted=null;
+      if(top.length===1){
+        this.lastExecuted=top[0];
+        for(const p of this.players)if(p.role==='avenger'&&p.revengeTarget===top[0])p.revengeDone=true;
+        deaths=this.killMany([{id:top[0],cause:'execution'}]);
+      }
+      this.beginPhase('execution');
+      this.lastScene={id:++this.sceneId,type:'execution',victims:deaths.map(id=>({id,name:this.name(id)})),title:this.lastExecuted?'投票が確定しました':'処刑なし'};
+      this.system(this.lastExecuted?`${this.name(this.lastExecuted)}が投票で処刑されました。${deaths.length>1?' 他にも死亡者が出ました：'+deaths.slice(1).map(id=>this.name(id)).join('、')+'。':''}`:'同票または全員棄権のため、今日は誰も処刑されません。');
+      this.pendingWin=this.computeWin(this.lastExecuted);this.changed();
+    }
+    computeWin(executed=null) {
+      const alive=this.living(),exe=this.byId(executed);
+      const result=(kind,label,ids,exclusive=false)=>{
+        const winners=new Set(ids);
+        if(!exclusive){
+          for(const p of this.players)if(!p.lover&&((p.role==='survivor'&&p.alive)||(p.role==='avenger'&&p.revengeDone)))winners.add(p.id);
+        }
+        return {kind,label,winners:[...winners],day:this.day};
+      };
+      if(exe?.role==='jester'&&!exe.lover)return result('jester','てるてる坊主の単独勝利',[exe.id],true);
+      const plague=alive.find(p=>p.role==='plague'&&!p.lover);
+      if(plague&&alive.filter(p=>p.id!==plague.id).every(p=>this.infected.has(p.id)))return result('plague','疫病神の単独勝利',[plague.id],true);
+      const wolves=alive.filter(p=>WOLF.has(p.role)).length;
+      const normal=wolves===0||wolves>=alive.length-wolves;
+      if(!normal)return null;
+      const lovers=alive.filter(p=>p.lover&&this.byId(p.lover)?.alive);
+      if(lovers.length===2)return result('lovers','恋人たちの勝利',lovers.map(p=>p.id));
+      const fox=alive.find(p=>p.role==='fox'&&!p.lover);
+      if(fox)return result('fox','妖狐の勝利',[fox.id]);
+      if(!alive.length)return {kind:'draw',label:'生存者なし・引き分け',winners:[],day:this.day};
+      const team=wolves?'wolves':'village';
+      return result(team,team==='wolves'?'人狼陣営の勝利':'村人陣営の勝利',this.players.filter(p=>!p.lover&&ROLES[p.role].team===team).map(p=>p.id));
+    }
+    finish(winner) {this.winner=winner;this.pendingWin=null;this.beginPhase('ended');this.system(winner.label+'。全員の役職を公開します。');}
+    advance() {
+      if(this.phase==='reveal')this.startNight();
+      else if(this.phase==='night')this.resolveNight();
+      else if(this.phase==='dawn'){if(this.pendingWin)this.finish(this.pendingWin);else this.startDiscussion();}
+      else if(this.phase==='discussion')this.startVote();
+      else if(this.phase==='vote')this.resolveVote();
+      else if(this.phase==='execution'){
+        if(this.pendingWin)this.finish(this.pendingWin);
+        else if(this.day>=30)this.finish({kind:'draw',label:'30日経過・引き分け',winners:[],day:this.day});
+        else {this.day++;this.startNight();}
+      }
+    }
+    isBot(p){return p.bot||p.auto;}
+    checkEarly() {
+      if(this.now()-this.startedAt<1800)return;
+      if(this.phase==='night'){
+        if(this.living().filter(p=>this.nightKind(p)).every(p=>Object.hasOwn(this.actions,p.id)))this.advance();
+      }else if(this.phase==='vote'){
+        if(this.living().every(p=>Object.hasOwn(this.votes,p.id)))this.advance();
+      }else if(['reveal','dawn','execution'].includes(this.phase)){
+        // The normal UI is announcer-driven and simply waits for the timer. `ready`
+        // remains for compatibility/testing, but the player is never asked to run the game.
+        const required=this.players.filter(p=>p.connected||p.auto);
+        if(required.length&&required.every(p=>this.ready.has(p.id)))this.advance();
+        else if(!required.length&&this.now()-this.startedAt>3000)this.advance();
+      }
+    }
+    forceAdvance(id,bot) {
+      if(id!==this.host||!this.isSolo()||['lobby','ended'].includes(this.phase))throw Error('早送りは1人練習時だけ使えます。');
+      if(this.phase==='night')this.fillActions(bot);
+      // In solo fast-forward, let CPU votes happen before ending the phase, without voting for the human.
+      if(this.phase==='vote')for(const p of this.living().filter(p=>this.isBot(p)&&!Object.hasOwn(this.votes,p.id))){
+        const choice=bot.decide(this.botView(p.id),p.brain,'vote');this.submitVote(p.id,choice.target??null,this.phaseId,true);
+      }
+      this.advance();
+    }
+    fillActions(bot,onlyExpired=false) {
+      if(this.phase!=='night')return;
+      for(const p of this.living().filter(p=>this.nightKind(p)&&!Object.hasOwn(this.actions,p.id))){
+        if(onlyExpired&&this.now()<this.actionDeadline(p))continue;
+        const choice=bot.decide(this.botView(p.id),p.brain,'night');
+        const targets=this.targets(p);
+        const t=this.nightKind(p)==='meet'?null:(targets.includes(choice?.target)?choice.target:targets[0]||null);
+        this.submitAction(p.id,t,this.phaseId,true);
+        if(!p.bot)p.privateResults.push({id:`auto-${this.phaseId}-${p.id}`,kind:'notice',day:this.day,text:'時間切れのため、この夜の行動はCPUが代行しました。'});
+      }
+    }
+    tick(bot) {
+      const now=this.now();
+      if(this.phase==='lobby'){
+        for(const p of this.humans().slice())if(now-p.lastActive>=75000)this.removePlayer(p.id);
+        return;
+      }
+      const oldHost=this.byId(this.host);
+      if(oldHost&&!oldHost.connected&&oldHost.disconnectedAt!==null&&now-oldHost.disconnectedAt>=15000){
+        const next=this.humans().find(p=>p.connected);
+        if(next){this.host=next.id;this.system(`部屋主を${next.name}に引き継ぎました。`);}
+      }
+      if(this.phase==='ended')return;
+      for(const p of this.humans())if(!p.connected&&p.disconnectedAt!==null&&now-p.disconnectedAt>=15000&&!p.auto){p.auto=true;this.changed();}
+      const bots=this.players.filter(p=>this.isBot(p));
+      const botWolves=bots.filter(p=>p.alive&&WOLF.has(p.role));
+      for(const p of bots){
+        const b=p.brain;
+        if(['reveal','dawn','execution'].includes(this.phase)&&now>=b.actionAt)this.ready.add(p.id);
+        if(!p.alive){
+          if(this.phase==='discussion'&&now>=b.actionAt&&b.ghostDay!==this.day){
+            const c=bot.decide(this.botView(p.id),b,'ghost');
+            if(c?.text)this.message(p,c.text,'ghost');
+            b.ghostDay=this.day;
+          }
+          continue;
+        }
+        if(this.phase==='night'){
+          if(WOLF.has(p.role)&&!b.nightSaid&&this.wolfTalkCount<Math.min(2,botWolves.length)&&now>=this.wolfTalkAt){
+            const msg=bot.decide(this.botView(p.id),b,'wolfChat');
+            if(msg?.text)this.message(p,msg.text,'wolves');
+            b.nightSaid=true;this.wolfTalkCount++;this.wolfTalkAt=now+3500+Math.floor(this.random()*2500);
+          }
+          if(this.nightKind(p)&&!Object.hasOwn(this.actions,p.id)&&now>=b.actionAt){
+            const c=bot.decide(this.botView(p.id),b,'night');
+            const valid=this.targets(p),target=this.nightKind(p)==='meet'?null:(valid.includes(c?.target)?c.target:valid[0]||null);
+            this.submitAction(p.id,target,this.phaseId,true);
+          }
+        }
+        if(this.phase==='vote'&&!Object.hasOwn(this.votes,p.id)&&now>=b.actionAt){
+          const c=bot.decide(this.botView(p.id),b,'vote');
+          this.submitVote(p.id,this.targets(p,'vote').includes(c?.target)?c.target:null,this.phaseId,true);
+        }
+      }
+      if(this.phase==='discussion'){
+        const aliveBots=bots.filter(p=>p.alive);
+        // A CPU only reacts when a public message actually points at it. The response is
+        // queued for a few seconds later so it does not look like an instant chatbot.
+        for(const p of aliveBots){
+          const b=p.brain;
+          const unseen=this.messages.filter(m=>m.channel==='public'&&m.day===this.day&&m.playerId&&m.playerId!==p.id&&m.id>(b.lastSeenPublicId||0));
+          for(const m of unseen){
+            const sender=this.byId(m.playerId);
+            // Avoid CPU-to-CPU reply chains. CPU opinions can still react to public evidence,
+            // but conversational replies are reserved for human messages so the chat stays readable.
+            if(sender&&!sender.bot&&(m.meta?.target===p.id||m.text.includes(p.name))&&m.id!==b.repliedTo){
+              const react=b.personality?.reactivity??1,tempo=b.personality?.tempo??1;
+              b.replyMessageId=m.id;b.replyAt=now+1800+(2-react)*1000+(2-tempo)*450+Math.floor(this.random()*3600);
+            }
+          }
+          if(unseen.length)b.lastSeenPublicId=Math.max(...unseen.map(m=>m.id));
+        }
+        if(now>=this.botTalkAt){
+          const replies=aliveBots.filter(p=>p.brain.replyMessageId&&now>=p.brain.replyAt&&p.brain.talks<2)
+            .sort((a,b)=>a.brain.replyAt-b.brain.replyAt||a.id.localeCompare(b.id));
+          if(replies.length){
+            const p=replies[0],b=p.brain,response=bot.decide(this.botView(p.id),b,'reply');
+            if(response?.statement)this.publish(p.id,response.statement,this.phaseId,response.text);
+            else if(response?.text)this.message(p,response.text,'public');
+            b.repliedTo=b.replyMessageId;b.replyMessageId=null;b.replyAt=0;
+            if(response?.text||response?.statement)b.talks++;
+            this.botTalkAt=now+6500+Math.floor(this.random()*5000);
+          }else{
+            const limit=Math.max(3,Math.min(9,Math.ceil(this.config.times.discussion/16)));
+            if(this.botDiscussionTalks<limit){
+              const candidates=aliveBots.filter(p=>now>=p.brain.nextTalk&&((p.brain.talks<1)||(bot.priority?.(this.botView(p.id),p.brain)>0&&p.brain.talks<2)))
+                .map(p=>({p,priority:bot.priority?.(this.botView(p.id),p.brain)||0}))
+                .sort((a,b)=>b.priority-a.priority||a.p.brain.nextTalk-b.p.brain.nextTalk||a.p.id.localeCompare(b.p.id));
+              if(candidates.length){
+                const p=candidates[0].p,b=p.brain,response=bot.decide(this.botView(p.id),b,'talk');
+                if(response?.statement)this.publish(p.id,response.statement,this.phaseId,response.text);
+                else if(response?.text)this.message(p,response.text,'public');
+                if(response?.text||response?.statement){b.talks++;this.botDiscussionTalks++;}
+                b.nextTalk=now+18000+Math.floor(this.random()*18000);
+                this.botTalkAt=now+(candidates[0].priority>=5?5500:8500)+Math.floor(this.random()*5000);
+              }else this.botTalkAt=now+2500;
+            }
+          }
+        }
+      }
+      this.fillActions(bot,true);
+      const before=this.phaseId;this.checkEarly();
+      if(before===this.phaseId&&this.deadline&&now>=this.deadline){if(this.phase==='night')this.fillActions(bot);this.advance();}
+    }
+    command(id,event,data={},bot=null) {
+      const p=this.requirePlayer(id);this.touch(id);
+      if(p.auto&&p.connected&&!['activity','chat'].includes(event)&&!['lobby','ended'].includes(this.phase))throw Error('このフェーズはCPU代行中です。次のフェーズから操作が戻ります。');
+      if(['bots','config','start','reset','preset','solo'].includes(event)&&id!==this.host)throw Error('部屋主だけが操作できます。');
+      switch(event){
+        case 'activity':break;
+        case 'bots':this.setBots(Number(data.count));break;
+        case 'config':this.applyConfig(data);break;
+        case 'solo':this.prepareSolo(data.role,Number(data.count)||8);break;
+        case 'preset':{
+          if(this.phase!=='lobby')throw Error('待機室で選んでください。');
+          const n=Number(data.count);if(!Number.isInteger(n)||n<4||n>30||n<this.humans().length)throw Error('人数が不正です。');
+          this.setBots(n-this.humans().length);
+          this.applyConfig({...this.config,roles:preset(n,String(data.kind)),lovers:data.kind==='all',testRole:''});break;
+        }
+        case 'start':this.start();break;
+        case 'reset':this.reset();break;
+        case 'ready':this.markReady(id,data.turn);break;
+        case 'act':this.submitAction(id,data.target??null,data.turn);break;
+        case 'vote':this.submitVote(id,data.target??null,data.turn);break;
+        case 'chat':this.chat(id,data.text,data.channel,data.turn);break;
+        case 'statement':this.publish(id,data,data.turn);break;
+        case 'speed':if(!bot)throw Error('CPUが利用できません。');this.forceAdvance(id,bot);break;
+        default:throw Error('不明な操作です。');
+      }
+      this.changed();
+    }
+    view(id,forBot=false) {
+      const p=this.requirePlayer(id);const ended=this.phase==='ended';
+      const knownWolves=WOLF.has(p.role)||p.role==='fanatic'?this.players.filter(t=>WOLF.has(t.role)).map(t=>t.id):[];
+      const knownMasons=p.role==='mason'?this.players.filter(t=>t.role==='mason'&&t.id!==p.id).map(t=>t.id):[];
+      const publicPlayers=this.players.map(t=>{
+        const row={id:t.id,name:t.name,bot:t.bot,connected:t.connected,alive:t.alive,auto:t.auto,host:t.id===this.host};
+        if(ended){row.role=t.role;row.lover=t.lover;row.won=this.winner?.winners.includes(t.id)||false;}
+        return row;
+      });
+      const messages=this.messages.filter(m=>{
+        if(m.channel==='public'||m.channel==='system')return true;
+        if(m.channel==='ghost')return !p.alive||ended;
+        if(m.channel==='wolves')return ended||(WOLF.has(p.role)&&(p.alive||m.id<=p.deathAt));
+        return false;
+      }).slice(-300);
+      const me={id:p.id,name:p.name,role:p.role,alive:p.alive,bot:p.bot,auto:p.auto,lover:p.lover,revengeTarget:p.revengeTarget,revengeDone:p.revengeDone,
+        privateResults:clone(p.privateResults),knownWolves,knownMasons,
+        infected:p.role==='plague'?[...this.infected]:[],
+        acted:Object.hasOwn(this.actions,p.id),actionTarget:this.actions[p.id]??null,
+        voted:Object.hasOwn(this.votes,p.id),voteTarget:this.votes[p.id]??null,ready:this.ready.has(p.id)};
+      const out={code:this.code,phase:this.phase,phaseId:this.phaseId,phaseLabel:PHASES[this.phase],day:this.day,host:this.host===id,solo:this.isSolo(),
+        now:this.now(),startedAt:this.startedAt,deadline:this.deadline,revision:this.revision,configVersion:this.configVersion,
+        config:clone(this.config),me,players:publicPlayers,messages:clone(messages),reports:clone(this.reports),claims:clone(this.claims),
+        voteHistory:clone(this.voteHistory),winner:clone(this.winner),lastScene:clone(this.lastScene),
+        kind:this.phase==='night'?this.nightKind(p):null,
+        targets:this.phase==='night'?this.targets(p):this.phase==='vote'?this.targets(p,'vote'):[],
+        actionDeadline:this.phase==='night'&&this.nightKind(p)?this.actionDeadline(p):null,
+        runoff:this.phase==='vote'?this.runoff||[]:[],
+        lastActive:p.lastActive,validation:this.phase==='lobby'?checkConfig(this.config,this.players.length):[]};
+      if(forBot||p.id!==this.host||this.phase!=='lobby')out.config.testRole='';
+      if(!forBot)out.catalog={roles:ROLES,lover:LOVER};
+      return out;
+    }
+    botView(id){return this.view(id,true);}
+  }
+  return {Game,ROLES,LOVER,ROLE_IDS,WOLF,MAX_PLAYERS,MIN_PLAYERS,PHASES,DEFAULT_TIMES,BOT_NAMES,preset,checkConfig,seeded,cleanName,validName,cleanText};
+});
+</script>
+<script>/* Information-limited CPU. Receives the SAME redacted view as a player, never a Game.
+ * No API, no language-model call, and no hidden-role lookup.
+ * Public claims are evidence, not truth. Only this player's private results are trusted.
+ */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory(require('./rules'));
+  else root.WWBots=factory(root.WW);
+})(typeof globalThis!=='undefined'?globalThis:this,function(WW){
+  'use strict';
+  const {ROLES,WOLF}=WW;
+  const hash=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
+  const name=(v,id)=>v.players.find(p=>p.id===id)?.name||'その人';
+  const live=v=>v.players.filter(p=>p.alive);
+  const last=(a)=>a[a.length-1];
+  function ownKnowledge(v,kind,target){
+    if(target===v.me.id)return kind==='medium'?WOLF.has(v.me.role):v.me.role==='wolf';
+    const a=v.me.privateResults.filter(r=>r.kind===kind&&r.target===target);
+    return a.length?last(a).black:undefined;
+  }
+  function reliability(v,who,kind='seer'){
+    if(who===v.me.id&&v.me.role===kind)return 2.2;
+    let r=1;
+    const reports=v.reports.filter(q=>q.playerId===who&&q.role===kind);
+    for(const a of reports){
+      const own=ownKnowledge(v,kind,a.target);
+      if(own!==undefined&&a.black!==own)r-=1.5;
+      if(reports.some(b=>b.target===a.target&&b.black!==a.black))r-=1;
+    }
+    if(v.me.role===kind&&v.config.roles[kind]===1&&who!==v.me.id)r-=1.2;
+    // Statements by known pack members are useful to wolves, but not objective truth.
+    return Math.max(-1,Math.min(2.2,r));
+  }
+  function evaluate(v){
+    const score={},reasons={};
+    for(const p of live(v)){
+      score[p.id]=(hash(v.me.id+'|'+p.id)%100)/25;
+      reasons[p.id]=[];
+    }
+    const add=(id,amount,reason)=>{
+      if(score[id]===undefined)return;
+      score[id]+=amount;if(reason)reasons[id].push({weight:Math.abs(amount),text:reason});
+    };
+    for(const r of new Map(v.reports.map(r=>[r.playerId+'|'+r.role+'|'+r.target,r])).values()){
+      const cred=reliability(v,r.playerId,r.role);
+      if(cred<0)add(r.playerId,45,'自分が確認した判定と食い違う主張がある');
+      if(r.role==='seer'&&cred>0){
+        add(r.target,(r.black?25:-11)*cred,`${name(v,r.playerId)}から${r.black?'黒':'白'}判定の主張がある`);
+      }
+    }
+    const latestClaims=[...new Map(v.claims.map(c=>[c.playerId,c])).values()];
+    for(const c of latestClaims){
+      if(!v.config.roles[c.role])add(c.playerId,100,'この配役にない役職を名乗っている');
+      if(['seer','medium'].includes(c.role)&&v.me.role===c.role&&v.config.roles[c.role]===1&&c.playerId!==v.me.id){
+        add(c.playerId,65,`私と同じ${ROLES[c.role].name}を名乗っているが、この配役では1人だけ`);
+      }
+    }
+    for(const r of v.me.privateResults){
+      if(r.kind==='seer')add(r.target,r.black?250:(v.config.roles.darkwolf?-28:-95),`自分の占いで${r.black?'人狼':'人狼ではない'}と確認した`);
+    }
+    for(const id of v.me.knownMasons)add(id,-75,'共有者の相方として知っている');
+    if(v.me.lover)add(v.me.lover,-1000,'相方を守りたい');
+    // Only public ballot records and privately known / publicly CLAIMED medium results.
+    const vote=last(v.voteHistory);
+    if(vote?.executed){
+      const personal=last(v.me.privateResults.filter(r=>r.kind==='medium'&&r.target===vote.executed));
+      const publicReport=last(v.reports.filter(r=>r.role==='medium'&&r.target===vote.executed&&reliability(v,r.playerId,'medium')>0));
+      const result=personal||publicReport;
+      if(result?.black){
+        for(const b of vote.ballots){
+          add(b.voter,b.target===vote.executed?-12:7,b.target===vote.executed?'黒判定が出た処刑先に投票していた':'黒判定が出た処刑先には投票していなかった');
+        }
+      }
+    }
+    const opinions=new Map();
+    for(const m of v.messages.filter(m=>m.channel==='public'&&m.day===v.day&&['accuse','trust'].includes(m.meta?.kind))){
+      if(m.playerId!==v.me.id)opinions.set(m.playerId+'|'+m.meta.kind,m);
+    }
+    const rumorWeights={};
+    for(const m of opinions.values()){
+      const k=m.meta.target+'|'+m.meta.kind;
+      if((rumorWeights[k]||0)<1){
+        add(m.meta.target,m.meta.kind==='accuse'?.25:-.12,m.meta.kind==='accuse'?`${m.name}も疑いを向けている`:`${m.name}は白寄りに見ている`);
+        rumorWeights[k]=(rumorWeights[k]||0)+1;
+      }
+    }
+    if(WOLF.has(v.me.role)||v.me.role==='fanatic'){
+      for(const id of v.me.knownWolves)add(id,-600,'仲間を外す');
+    }
+    if(v.me.role==='avenger'&&!v.me.lover&&!v.me.revengeDone)add(v.me.revengeTarget,75,'投票先として注目している');
+    return {score,reasons};
+  }
+  function ranked(v,targets=null){
+    const e=evaluate(v),ids=targets||live(v).filter(p=>p.id!==v.me.id).map(p=>p.id);
+    return ids.map(id=>({id,score:e.score[id]??0,reason:(e.reasons[id]||[]).sort((a,b)=>b.weight-a.weight)[0]?.text||null})).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+  }
+  function nightChoice(v,b){
+    const ids=['attack','divine'].includes(v.kind)?v.targets.filter(id=>id!==v.me.lover):v.targets.slice();
+    const choices=ids.length?ids:v.targets.slice();
+    if(v.kind==='meet'||!choices.length)return null;
+    if(v.kind==='attack'){
+      const s={};for(const id of choices)s[id]=(hash(`${id}:${v.day}:pack`)%100)/100;
+      for(const c of v.claims){
+        if(s[c.playerId]===undefined)continue;
+        s[c.playerId]+=({seer:35,medium:22,guard:26,mason:13,baker:4})[c.role]||0;
+      }
+      for(const r of v.reports)if(r.role==='seer'&&r.black&&v.me.knownWolves.includes(r.target)&&s[r.playerId]!==undefined)s[r.playerId]+=20;
+      const noDeath=v.messages.some(m=>m.channel==='system'&&m.day===v.day-1&&m.text==='昨夜の犠牲者はいませんでした。');
+      if(noDeath&&b.lastAttack&&s[b.lastAttack]!==undefined)s[b.lastAttack]-=30;
+      const target=choices.sort((a,c)=>s[c]-s[a])[0];b.lastAttack=target;return target;
+    }
+    if(v.kind==='divine'){
+      const examined=new Set(v.me.privateResults.filter(r=>r.kind==='seer').map(r=>r.target));
+      const unknown=choices.filter(id=>!examined.has(id));
+      const rs=ranked(v,unknown.length?unknown:choices);
+      const target=rs[0]?.id;
+      return target||choices[0];
+    }
+    if(v.kind==='protect'){
+      let best=null,bestScore=-Infinity;
+      for(const id of choices){
+        let score=hash(id+v.day)%10;
+        if(id===v.me.lover)score+=250;
+        if(v.me.knownMasons.includes(id))score+=12;
+        const claims=v.claims.filter(c=>c.playerId===id);
+        for(const c of claims)score+=({seer:40*reliability(v,id),medium:24,mason:16})[c.role]||0;
+        const evalScore=evaluate(v).score[id]||0;score-=Math.max(0,evalScore)*.3;
+        if(score>bestScore){bestScore=score;best=id;}
+      }
+      return best;
+    }
+    if(v.kind==='infect')return choices.sort((a,c)=>(hash(c+v.day)%100)-(hash(a+v.day)%100))[0];
+    return choices[0];
+  }
+  function whiteCaveat(v,b={}){
+    const uncertain=['darkwolf','madman','fanatic','fox','jester','plague','survivor','avenger'].filter(k=>v.config.roles[k]>0).map(k=>ROLES[k].name);
+    if(v.config.lovers)uncertain.push('恋人');
+    const roles=uncertain.slice(0,2).join('・')+(uncertain.length>2?'など':'');
+    if(!uncertain.length)return {casual:'白は手掛かりにするけど、発言と投票も見たい。',soft:'白は手掛かりにするけど、発言と投票も合わせて見たいかな。',polite:'白判定は手掛かりにしますが、発言と投票も合わせて見たいです。',blunt:'白は材料。発言と票も見る。',analytical:'白判定だけでは決めず、発言と投票も合わせて見る。'}[tone(b)];
+    return {casual:`白でも${roles}はあるから、村人陣営確定までは置かない。`,soft:`白でも${roles}はあり得るから、村人陣営確定とまでは見ないかな。`,polite:`白でも${roles}はあり得るので、村人陣営確定とは見ません。`,blunt:`白でも${roles}は残る。村確定では見ない。`,analytical:`白でも${roles}は残るので、陣営確定とは扱わない。`}[tone(b)];
+  }
+  function choose(v,key,items){return items[hash(v.me.id+'|'+v.day+'|'+key)%items.length];}
+  function tone(b){return b.personality?.tone||'soft';}
+  function spokenName(v,b,id){const n=name(v,id);return tone(b)==='polite'?`${n}さん`:n;}
+  function reportSentence(v,b,role,target,black){
+    const label=role==='seer'?'占い':'霊媒',result=black?'黒':'白',p=tone(b),n=p==='polite'?`${target}さん`:target;
+    const first={
+      casual:[`${label}出る。${n}は${result}だった。`,`${label}結果。${n}、${result}だったよ。`,`${n}を見た。結果は${result}。`],
+      soft:[`${label}結果出たよ。${n}は${result}だった。`,`${label}で${n}を見たんだけど、${result}だった。`,`${label}結果共有するね。${n}は${result}。`],
+      polite:[`${label}結果を出しますね。${n}は${result}でした。`,`${n}を${label==='占い'?'占いました':'見ました'}。結果は${result}です。`],
+      blunt:[`${label}。${n}は${result}。`,`${n}、${result}だった。${label}結果。`],
+      analytical:[`${label}結果を共有する。${n}は${result}。`,`${n}の判定は${result}。いったん材料にしてほしい。`]
+    }[p];
+    return choose(v,'report-'+role+'-'+target+'-'+(b.talks||0),first);
+  }
+  function claimSentence(v,b,role,detail=''){
+    const n=ROLES[role].name,p=tone(b);
+    const heads={
+      casual:[`${n}で出る。`,`${n}CO。`],soft:[`${n}で出るね。`,`${n}COしておくね。`],
+      polite:[`${n}で出ます。`,`${n}COしておきます。`],blunt:[`${n}CO。`,`${n}。出る。`],analytical:[`${n}で出る。情報は順に出す。`,`${n}CO。必要な情報だけ共有する。`]
+    }[p];
+    const head=choose(v,'claim-'+role+'-'+(b.talks||0),heads);
+    return (head+(detail?' '+detail:'')).trim();
+  }
+  function opinionSentence(v,b,target,kind,reason=''){
+    const id=target.id,n=spokenName(v,b,id),p=tone(b),conf=b.personality?.confidence??1,key=`op-${kind}-${id}-${b.talks||0}`;
+    let heads;
+    if(kind==='trust'){
+      heads={
+        casual:[`${n}は今のところそんなに疑ってない。`,`${n}は今は白めかな。`,`自分は${n}をいったん外して見てる。`],
+        soft:[`${n}は今のところ白寄りかな。`,`今は${n}をそこまで疑ってないよ。`,`${n}は一回置いて、ほかを見たいかな。`],
+        polite:[`${n}は今のところ白寄りで見ています。`,`今は${n}を強く疑ってはいません。`,`${n}はいったん候補から外して見ています。`],
+        blunt:[`${n}は今は白寄り。`,`${n}は後回しでいい。`,`今は${n}じゃない。`],
+        analytical:[`今の材料なら${n}の優先度は低め。`,`${n}は現時点では白寄りに置く。`,`${n}より先に見たい相手がいる。`]
+      }[p];
+    }else if(kind==='question'){
+      heads={
+        casual:[`${n}、そこどういう理由？`,`${n}、さっきの判断もう少し聞いていい？`,`${n}は何を一番怪しいと思ってる？`],
+        soft:[`${n}の考え、もう少し聞きたいな。`,`${n}、その判断の理由って何だった？`,`${n}は今どこを一番気にしてる？`],
+        polite:[`${n}、その判断の理由をもう少し聞いてもいいですか？`,`${n}は今、誰を一番気にしていますか？`,`${n}の考えをもう少し聞きたいです。`],
+        blunt:[`${n}、理由は？`,`${n}、どこが怪しい？`,`${n}、その判断の根拠は？`],
+        analytical:[`${n}に確認。いちばん大きい根拠は何？`,`${n}の判断材料を聞きたい。`,`${n}は今、何を重く見てる？`]
+      }[p];
+    }else{
+      heads={
+        casual:[`${n}がちょっと気になる。`,`今は${n}を見てる。`,`自分は${n}が少し怪しく見える。`],
+        soft:[`${n}が少し引っかかってるかな。`,`今のところ${n}が気になってる。`,`${n}をもう少し見たいかな。`],
+        polite:[`今は${n}が少し気になっています。`,`${n}をもう少し見たいです。`,`現時点では${n}を少し疑っています。`],
+        blunt:[`今は${n}を疑ってる。`,`${n}が気になる。`,`自分なら${n}を見る。`],
+        analytical:[`今の材料だと${n}を先に見たい。`,`${n}の動きが少し気になる。`,`現状は${n}を疑い寄りに置く。`]
+      }[p];
+    }
+    let head=choose(v,key,heads);
+    if(kind==='accuse'&&conf===0&&p!=='polite')head=choose(v,key+'-weak',[`まだ決め切ってないけど、${n}が気になる。`,`今のところは${n}かな。まだ変わるかも。`,head]);
+    if(kind==='accuse'&&conf===2&&p==='casual')head=choose(v,key+'-strong',[`${n}はかなり気になってる。`,`${n}にはちゃんと理由を聞きたい。`,head]);
+    if(kind==='question'||(b.personality?.verbosity??1)===0)return head;
+    return reason?`${head} ${reason}`:head;
+  }
+  function fakeReport(v,b){
+    const eligible=live(v).filter(p=>p.id!==v.me.id);
+    if(!eligible.length)return null;
+    b.fakeHistory=b.fakeHistory||[];
+    let choices=eligible.filter(p=>!b.fakeHistory.some(r=>r.target===p.id));
+    if(!choices.length)choices=eligible;
+    const allies=choices.filter(p=>v.me.knownWolves.includes(p.id));
+    let target;
+    if(allies.length&&v.day===1)target=allies[0];
+    else target=choices.sort((a,c)=>(hash(c.id+v.me.id+v.day)%100)-(hash(a.id+v.me.id+v.day)%100))[0];
+    const prior=b.fakeHistory.find(r=>r.target===target.id);
+    let black=prior?.black??(v.day>=2&&hash(v.me.id+v.day)%3!==0);
+    if(v.me.knownWolves.includes(target.id)||target.id===v.me.lover)black=false;
+    if(v.me.role==='madman'&&(evaluate(v).score[target.id]||0)>35)black=false;
+    const statement={kind:'report',role:'seer',target:target.id,black};
+    b.fakeHistory.push({...statement,day:v.day});b.reportDay=v.day;b.fakeRole='seer';
+    const follow=black?choose(v,'fake-black',['今日はここをちゃんと見てほしい。','自分はこの黒を投票材料にする。','対抗がいるなら結果も聞きたい。']):choose(v,'fake-white',['白だったから、いったん外して考える。','白。発言まで全部信用するわけじゃないけど、今日は別を見たい。','白だった。ほかの候補を見ようと思う。']);
+    return {statement,text:`${reportSentence(v,b,'seer',target.name,black)} ${follow}`};
+  }
+  function emotion(v,b){
+    const recent=v.messages.filter(m=>m.channel==='public'&&m.day===v.day&&m.playerId!==v.me.id);
+    const pressure=recent.filter(m=>m.meta?.kind==='accuse'&&m.meta.target===v.me.id).length+recent.filter(m=>m.meta?.kind==='report'&&m.meta.target===v.me.id&&m.meta.black).length*2;
+    if(!pressure)return '';
+    const p=tone(b),react=b.personality?.reactivity??1;
+    if(react===0)return '';
+    if(pressure>=3)return {casual:'だいぶ自分に集まってるな。',soft:'けっこう自分に疑い集まってるね。',polite:'かなり自分に疑いが集まっていますね。',blunt:'かなり疑われてるな。',analytical:'自分に疑いが集まってるのは分かった。'}[p];
+    return {casual:'自分が疑われてるのは分かってる。',soft:'自分が気にされてるのは分かってるよ。',polite:'自分が疑われているのは分かっています。',blunt:'疑われてるのは分かってる。',analytical:'自分への疑いは把握してる。'}[p];
+  }
+  function hasFreshReport(v,b){
+    if(!['seer','medium'].includes(v.me.role))return false;
+    return v.me.privateResults.some(r=>['seer','medium'].includes(r.kind)&&!(b.reported||[]).includes(r.id));
+  }
+  function shouldFake(v,b){
+    if(v.config.roles.seer<=0||b.reportDay===v.day)return false;
+    if(b.fakeRole==='seer')return true;
+    if(v.day!==1)return false;
+    const leader=v.me.knownWolves.slice().sort()[0];
+    let chance=0;
+    if(WOLF.has(v.me.role)&&v.me.id===leader)chance=55;
+    else if(v.me.role==='madman')chance=40;
+    else if(v.me.role==='fanatic')chance=30;
+    else if(v.me.role==='jester'&&!v.me.lover)chance=20;
+    return chance>0&&(hash(v.me.id+'|fake-seer')%100)<chance;
+  }
+  function priority(v,b){
+    if(b.replyMessageId)return 7;
+    if(hasFreshReport(v,b))return 8;
+    if(shouldFake(v,b))return 5;
+    if(v.me.role==='mason'&&!b.announcedRole)return 4;
+    if(v.me.role==='medium'&&!b.announcedRole)return 3;
+    return 0;
+  }
+  function speech(v,b){
+    const me=v.me,p=tone(b);
+    const reports=me.privateResults.filter(r=>['seer','medium'].includes(r.kind));
+    const fresh=reports.filter(r=>!(b.reported||[]).includes(r.id));
+    if(['seer','medium'].includes(me.role)&&fresh.length){
+      const r=last(fresh);b.reported=(b.reported||[]).concat(r.id);b.announcedRole=me.role;
+      const follow=r.black?choose(v,'real-black',['ここは今日の投票候補に入れてほしい。','黒だった。自分は今日はここを重く見る。','対抗の結果も聞きたいけど、この黒は無視しないでほしい。']):choose(v,'real-white',['白だったから、いったん疑いは下げる。','白。村確定とまでは言わないけど、今日は優先度を下げたい。',whiteCaveat(v,b)]);
+      return {statement:{kind:'report',role:r.kind,target:r.target,black:r.black},text:`${reportSentence(v,b,r.kind,r.name,r.black)} ${follow}`};
+    }
+    if(shouldFake(v,b))return fakeReport(v,b);
+    if(me.role==='mason'&&!b.announcedRole){
+      b.announcedRole='mason';
+      const mates=me.knownMasons.map(id=>name(v,id)).join('、');
+      return {statement:{kind:'claim',role:'mason'},text:claimSentence(v,b,'mason',`相方は${mates}。`)};
+    }
+    if(me.role==='medium'&&!b.announcedRole){
+      b.announcedRole='medium';
+      return {statement:{kind:'claim',role:'medium'},text:claimSentence(v,b,'medium',p==='polite'?'まだ結果は出ていません。':'まだ結果は出てない。')};
+    }
+    const accusations=v.messages.filter(m=>m.day===v.day&&m.channel==='public'&&m.meta?.kind==='accuse'&&m.meta.target===me.id);
+    if(['cat','guard','baker'].includes(me.role)&&!b.announcedRole&&accusations.length>=2){
+      b.announcedRole=me.role;
+      const detail={cat:'吊るなら道連れが出るから、それだけ覚えておいて。',guard:'護衛先はまだ伏せる。',baker:'朝のパンも一緒に見て判断してほしい。'}[me.role];
+      return {statement:{kind:'claim',role:me.role},text:claimSentence(v,b,me.role,detail)};
+    }
+    const list=ranked(v),target=list[0],safe=list.at(-1);
+    if(!target)return null;
+    const roll=hash(me.id+'|speech-kind|'+v.day+'|'+(b.talks||0))%100,suspicion=b.personality?.suspicion??1;
+    const trustCut=[30,19,9][suspicion],questionCut=[61,43,27][suspicion];
+    let kind='accuse',chosen=target;
+    if(roll<trustCut&&safe&&safe.id!==me.id&&safe.score<15){kind='trust';chosen=safe;}
+    else if(roll<questionCut&&target.score<70){kind='question';chosen=target;}
+    b.announcedTarget=kind==='accuse'?chosen.id:b.announcedTarget;
+    const reason=safeReason(v,chosen,b),prefix=emotion(v,b),body=opinionSentence(v,b,chosen,kind,reason);
+    return {statement:{kind,target:chosen.id},text:prefix?`${prefix} ${body}`:body};
+  }
+  function ownLastVote(v){
+    for(let i=v.voteHistory.length-1;i>=0;i--){const ballot=v.voteHistory[i].ballots?.find(x=>x.voter===v.me.id);if(ballot)return ballot.target||null;}
+    return null;
+  }
+  function replySpeech(v,b){
+    const me=v.me,msg=v.messages.find(m=>m.id===b.replyMessageId&&m.channel==='public');
+    if(!msg)return null;
+    const list=ranked(v),target=list[0],reason=target?safeReason(v,target,b):'',p=tone(b);
+    if(msg.meta?.kind==='report'&&msg.meta.target===me.id){
+      if(msg.meta.black){
+        const lead={casual:`${msg.name}の黒は違う。少なくとも自分視点では偽。`,soft:`${msg.name}の黒判定は違うよ。自分視点ではそこははっきりしてる。`,polite:`${msg.name}さんの黒判定は違います。少なくとも自分視点では偽です。`,blunt:`${msg.name}の黒は偽。`,analytical:`${msg.name}の黒判定は自分視点で成立しない。`}[p];
+        return {statement:target?{kind:'accuse',target:target.id}:undefined,text:target?`${lead} ${opinionSentence(v,b,target,'accuse',reason)}`:lead};
+      }
+      return {text:{casual:`${msg.name}の白は見た。でも、その占いまで真だとはまだ思ってない。`,soft:`${msg.name}の白判定は確認したよ。占い自体はもう少し見たいかな。`,polite:`${msg.name}さんの白判定は確認しました。ただ、その占いが真かどうかはもう少し見たいです。`,blunt:`${msg.name}の白は確認。占い真とはまだ決めない。`,analytical:`${msg.name}から白判定。判定と占い師の真偽は分けて考える。`}[p]};
+    }
+    if(msg.meta?.kind==='question'&&msg.meta.target===me.id){
+      const voted=ownLastVote(v);
+      if(voted&&/投票|票/.test(msg.text||'')){
+        const vt=ranked(v,[voted])[0],why=vt?safeReason(v,vt,b):'';
+        return {text:choose(v,'reply-vote-'+msg.id,[`昨日は${spokenName(v,b,voted)}に入れた。${why}`,`${spokenName(v,b,voted)}に投票したよ。理由は、${why}`,`票は${spokenName(v,b,voted)}。その時は${why}`])};
+      }
+      if(target)return {statement:{kind:'accuse',target:target.id},text:choose(v,'reply-question-'+msg.id,[`うん。今いちばん気になってるのは${spokenName(v,b,target.id)}。${reason}`,`今の考えなら${opinionSentence(v,b,target,'accuse',reason)}`,`まだ固めてないけど、${opinionSentence(v,b,target,'accuse',reason)}`])};
+      return {text:choose(v,'reply-question-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今はまだ保留かな。投票理由が出たら考えたい。','材料が少ないから、今の時点では決めてない。'])};
+    }
+    if(msg.meta?.kind==='accuse'&&msg.meta.target===me.id){
+      const lead={casual:'そこ疑われるのか。まあ理由は分かった。',soft:'そこを気にされてるのは分かったよ。',polite:'そこを疑われているのは分かりました。',blunt:'疑われてるのは分かった。',analytical:'自分への疑いは把握した。'}[p];
+      if(target)return {statement:{kind:'accuse',target:target.id},text:`${lead} ただ、自分は${spokenName(v,b,target.id)}の方を見てる。${reason}`};
+      return {text:`${lead} まだ返せる材料は少ない。`};
+    }
+    if(msg.meta?.kind==='trust'&&msg.meta.target===me.id){
+      return {text:choose(v,'reply-trust-'+msg.id,[`${msg.name}がそう見てるのは分かった。自分もまだ決め打ちはしない。`,`白く見てくれるのはありがたいけど、そこだけで固めなくていいと思う。`,`了解。自分は引き続き発言と投票を見てる。`])};
+    }
+    if(msg.text&&msg.text.includes(me.name)){
+      if(target){
+        const text=choose(v,'reply-name-'+msg.id,[`今のところは${spokenName(v,b,target.id)}が気になる。${reason}`,`${opinionSentence(v,b,target,'accuse',reason)}`,`まだ変わるかもしれないけど、今は${spokenName(v,b,target.id)}を見てる。${reason}`]);
+        return {statement:{kind:'accuse',target:target.id},text};
+      }
+      return {text:choose(v,'reply-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今は占い結果と投票理由を見てる。','材料が少ないから、まだ保留かな。'])};
+    }
+    return null;
+  }
+  function safeReason(v,target,b={}){
+    // NEVER expose pack/lover/revenge knowledge as a public rationale.
+    const p=tone(b),pick=(key,items)=>choose(v,'reason-'+key+'-'+target.id+'-'+(b.talks||0),items);
+    if(target.reason?.includes('疑いを向けている')){
+      return pick('rumor',{
+        casual:['何人か気にしてるけど、便乗だけでは決めたくない。本人の話も聞きたい。','疑いが集まってるのは見える。でも、それだけじゃまだ弱い。'],
+        soft:['何人か気にしてるみたいだけど、それだけで決めるのは早いかな。本人の話も聞きたい。','疑いが集まってるのは気になる。でも、もう少し理由がほしいかな。'],
+        polite:['何人かが気にしていますが、それだけで決めるのは早いと思います。本人の話も聞きたいです。','疑いが集まっているのは気になりますが、もう少し理由を確認したいです。'],
+        blunt:['疑いは集まってる。でもそれだけじゃ決めない。','周りも見てる。本人の説明待ち。'],
+        analytical:['疑いが集まってるのは事実だけど、それ自体を根拠にはしない。本人の説明を見たい。','周りの疑いは参考程度。本人の発言を見て決めたい。']
+      }[p]);
+    }
+    if(target.reason&&!/仲間|相方|共有者の相方|投票先として/.test(target.reason)){
+      if(target.reason.includes('自分が確認した判定と食い違う'))return pick('own-conflict',{casual:['自分の結果と食い違ってるのが気になる。','自分が持ってる結果と合わない。そこは見過ごせない。'],soft:['自分の結果と食い違ってるのが気になってる。','自分で確認した結果と合わないから、そこは気になるかな。'],polite:['自分で確認した結果と食い違っているのが気になります。','自分の結果と合わないので、そこは確認したいです。'],blunt:['自分の結果と合わない。そこが気になる。','自分の結果と矛盾してる。'],analytical:['自分の確認結果と矛盾してる。ここは重く見る。','自分の結果と整合しない。理由を確認したい。']}[p]);
+      if(target.reason.includes('この配役にない役職'))return pick('impossible-claim',{casual:['その役職、この配役にはいないはず。そこはおかしい。'],soft:['その役職はこの配役にいないはずだから、そこが気になる。'],polite:['その役職はこの配役にいないはずなので、そこが気になります。'],blunt:['その役職はいない。そこはおかしい。'],analytical:['配役に存在しない役職CO。ここは明確な矛盾。']}[p]);
+      if(target.reason.includes('私と同じ')&&target.reason.includes('1人だけ'))return pick('counter-role',{casual:['自分と同じ役職で出てるけど、この配役だと1人だけ。対抗として見てる。'],soft:['自分と同じ役職で出てるけど、1人配役だから対抗になるね。'],polite:['自分と同じ役職で出ていますが、1人配役なので対抗として見ています。'],blunt:['同役職の対抗。1人配役だから両方はない。'],analytical:['同役職COが重複してる。1人配役なので対抗関係。']}[p]);
+      if(target.reason.startsWith('自分の占い')&&v.me.role==='seer')return pick('own-seer',{casual:['自分で占った結果がある。ここはかなり重く見てる。'],soft:['自分の占い結果があるから、ここはかなり重く見てるよ。'],polite:['自分の占い結果があるので、ここはかなり重く見ています。'],blunt:['自分の占い結果。ここは重い。'],analytical:['自分の占いで確認済み。最優先で見る。']}[p]);
+      if(target.reason.startsWith('自分の占い')&&v.me.role!=='seer')return pick('claim',['公開されている占い主張と、その後の発言がつながってるか見たい。','占い主張だけじゃなく、その後の発言も見たい。']);
+      const publicMatch=target.reason.match(/^(.+?)から(黒|白)判定の主張がある$/);
+      if(publicMatch){const who=publicMatch[1],color=publicMatch[2];return pick('public-report',{casual:[`${who}が${color}を出してる。判定だけじゃなく、出した側の動きも見たい。`,`${who}の${color}判定は見てる。そこだけで決める気はない。`],soft:[`${who}が${color}を出してるね。判定と一緒に、出した人の動きも見たいかな。`,`${who}の${color}判定は確認したよ。まだそれだけでは決めない。`],polite:[`${who}さんが${color}判定を出しています。判定だけでなく、出した側の動きも見たいです。`,`${who}さんの${color}判定は確認していますが、それだけでは決めません。`],blunt:[`${who}の${color}は見てる。でも判定だけでは決めない。`,`${who}が${color}出し。出した側も見る。`],analytical:[`${who}の${color}判定は材料にする。ただし発言と投票も合わせて見る。`,`${who}が${color}判定。判定元の動きも評価する。`]}[p]);}
+      let base=target.reason.replace(/からです。$/,'').replace(/から$/,'').replace(/^自分の占いで/,'自分の占いでは');
+      if(p!=='polite')base=base.replace(/しています/g,'してる').replace(/ありません/g,'ない');
+      const tails=target.score<50?{
+        casual:['。まだ決め打ちはしない。','。今は材料の一つって感じ。'],soft:['。まだ断定まではしないかな。','。今のところはそれが気になってる。'],polite:['。まだ断定はしません。','。今のところは判断材料の一つです。'],blunt:['。まだ確定じゃない。','。今はそこが気になる。'],analytical:['。まだ仮置き。','。これだけで決めるつもりはない。']
+      }[p]:{
+        casual:['。ここは一回説明ほしい。','。反応を見たい。'],soft:['。ここは少し説明を聞きたいかな。','。本人の反応も見ておきたい。'],polite:['。ここは少し説明を聞きたいです。','。本人の反応も確認したいです。'],blunt:['。説明は聞きたい。','。反応を見る。'],analytical:['。追加の説明を聞きたい。','。次の反応まで見て判断する。']
+      }[p];
+      return base+pick('tail',tails);
+    }
+    const seerReports=v.reports.filter(r=>r.role==='seer');
+    if(seerReports.length)return pick('seer',['占い結果が割れてるし、発言と投票も一緒に見たい。','占いだけで決める気はない。本人の発言と票も見たい。','判定は材料にするけど、占いを出した人の動きも見たい。']);
+    return pick('open',['まだ決め手はない。発言が増えたら変わるかも。','今は仮置き。投票理由が出たら見直したい。','材料が薄いから、まだ様子見寄り。','今のところの候補。本人の反応を見てから決めたい。']);
+  }
+  function voiced(v,b,out){
+    if(!out?.text)return out;
+    const p=b.personality||{tone:'soft',sociability:1,confidence:1,verbosity:1,humor:0};
+    let t=String(out.text).replace(/\s+/g,' ').replace(/。\s*。/g,'。').trim();
+    // Keep each personality's own sentence templates. Do not mechanically convert every line to です/ます.
+    if(p.tone==='blunt'||p.verbosity===0){
+      const sentences=t.match(/[^。！？]+[。！？]?/g)||[t];t=sentences.slice(0,p.verbosity===0?2:3).join('');
+    }
+    if(p.verbosity===2&&out.statement?.kind==='accuse'&&t.length<125){
+      const extra=choose(v,'extra-detail-'+(b.talks||0),[' 票を入れる前に本人の反応も見たい。',' 昨日の投票も合わせて考えたい。',' ほかの人がどう見てるかも聞きたい。']);t+=extra;
+    }
+    if(p.humor===2&&p.tone==='casual'&&out.statement?.kind==='question'&&t.length<105)t+=' 深い意味はなくて、そこだけ気になった。';
+    return {...out,text:t.trim()};
+  }
+
+  function decide(v,b,mode){
+    if(!v?.me)throw Error('A redacted player view is required.');
+    if(mode==='night')return {target:nightChoice(v,b)};
+    if(mode==='vote'){
+      const r=ranked(v,v.targets);
+      if(!r.length)return {target:null};
+      const announced=r.find(x=>x.id===b.announcedTarget);
+      return {target:announced&&announced.score>=r[0].score-8?announced.id:r[0].id};
+    }
+    if(mode==='wolfChat'){
+      if(v.kind==='meet')return {text:choose(v,'wolf-meet',{casual:['初夜は顔合わせだけだね。明日、占いの出方を見てから噛み先決めよう。'],soft:['今日は顔合わせだけだね。明日の占いと投票の流れを見て、噛み先を決めよう。'],polite:['今夜は顔合わせだけですね。明日の占いと投票の流れを見て、襲撃先を決めましょう。'],blunt:['今日は顔合わせだけ。明日、占いを見て噛み先決めよう。'],analytical:['初夜は襲撃なし。明日は占いの出方と投票理由を見てから噛み先を決める。']}[tone(b)])};
+      const target=nightChoice(v,b);if(!target)return null;
+      const claim=last(v.claims.filter(c=>c.playerId===target));
+      return {text:claim?choose(v,'wolf-attack-claim',[`${name(v,target)}を噛みたい。${ROLES[claim.role].name}で出てるし、残すと情報が増えそう。護衛だけ少し気になる。`,`${name(v,target)}を候補にしたい。${ROLES[claim.role].name}を名乗ってるから、村の情報源になりそう。`]):choose(v,'wolf-attack-open',[`今夜は${name(v,target)}を噛みたい。発言と投票の流れを見ると、ここを残したくない。`,`自分は${name(v,target)}を候補にする。昨日の流れだと、ここを消すのがよさそう。`])};
+    }
+    if(mode==='ghost'){
+      const result=last(v.me.privateResults.filter(r=>['seer','medium'].includes(r.kind)));
+      if(result)return {text:`生きてる間に見た${result.kind==='seer'?'占い':'霊媒'}だと、${result.name}は${result.black?'人狼':'人狼ではなかった'}。あとは村がどう見るかだね。`};
+      const vote=last(v.voteHistory);
+      if(vote?.executed)return {text:`${name(v,vote.executed)}が処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。`};
+      return {text:'ここからは観戦だね。占い結果と投票の流れを見ながら、最後まで見てる。'};
+    }
+    if(mode==='talk')return voiced(v,b,speech(v,b));
+    if(mode==='reply')return voiced(v,b,replySpeech(v,b));
+    return null;
+  }
+  return {decide,evaluate,ranked,reliability,priority};
+});
+</script>
+<script>/* Offline adapter. All state remains in this tab. Same rules and CPU as the server. */
+window.WWTransport = {
+  offline:true,
+  create(handlers){
+    let game=null,pid='you',timer=null,lastRevision=-1;
+    function emit(){
+      if(game?.byId(pid)){lastRevision=game.revision;handlers.onState(game.view(pid));}
+    }
+    function stop(){clearInterval(timer);timer=null;}
+    return {
+      async request(event,data={}){
+        if(event==='join')throw Error('このHTMLはソロ練習専用です。友達との対戦はオンライン版を起動してください。');
+        if(event==='create'){
+          stop();
+          const seed=crypto.getRandomValues(new Uint32Array(1))[0];
+          game=new WW.Game({code:'SOLO',seed});game.addPlayer({id:pid,name:data.name});
+          game.prepareSolo(data.role??'seer',8);emit();handlers.onStatus('offline');
+          timer=setInterval(()=>{
+            try{
+              game.tick(WWBots);
+              if(!game.byId(pid)){stop();handlers.onRemoved('待機室で75秒間操作がなかったため退出しました。入り直せます。');return;}
+              if(lastRevision!==game.revision)emit();
+            }catch(e){console.error(e);handlers.onError(e.message);}
+          },250);
+          return {ok:true,code:'SOLO',token:'local-only',playerId:pid};
+        }
+        if(!game)throw Error('まず名前を入力して参加してください。');
+        game.command(pid,event,data,WWBots);emit();return {ok:true};
+      },
+      stop
+    };
+  }
+};
+</script>
+
+</head>
+<body>
+<header class="site-header">
+  <div class="brand"><span class="brand-moon" aria-hidden="true"></span><div>人狼ゲーム<small>WEREWOLF · 0.6.2</small></div></div>
+  <div class="header-tools"><span id="connection" class="connection">準備完了</span><button id="motionToggle" class="quiet" aria-pressed="false">演出 ON</button><button id="helpOpen" class="quiet">遊び方・役職</button></div>
+</header>
+<main>
+  <section id="entrance" class="entrance">
+    <div class="intro">
+      <p class="eyebrow">人狼ゲーム</p>
+      <h1>ゲームを始める</h1>
+      <p class="intro-copy">名前を入力して、CPUとの練習またはオンライン対戦を始められます。<br>待機室では参加人数・CPU人数・役職・制限時間を変更できます。</p>
+      <div class="intro-tags"><span>1人＋CPU対応</span><span>最大30人</span><span>ブラウザでプレイ</span></div>
+      <div class="orbit" aria-hidden="true"><div class="moon"></div><span class="orbit-dot"></span></div>
+    </div>
+    <div class="entry-card panel">
+      <p class="eyebrow">プレイヤー設定</p><h2>名前を入力</h2>
+      <label for="name">プレイヤー名 <span class="muted">1〜16文字</span></label>
+      <input id="name" maxlength="32" placeholder="名前を入力" autocomplete="nickname">
+      <label for="practiceRole">ソロ練習で試す役職</label>
+      <select id="practiceRole"></select>
+      <button id="practice" class="primary large">ひとり＋CPUで練習する <span>→</span></button>
+      <p class="caption">あなた＋CPU7人で準備します。<br>待機室で人数・配役を変更できます。</p>
+      <div id="onlineEntry">
+        <div class="divider"><span>友達と遊ぶ</span></div>
+        <label for="customCode" class="custom-code-label">作る部屋のコード <span class="muted">空欄なら自動生成</span></label>
+        <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off">
+        <button id="create" class="secondary full">オンラインの部屋を作る</button>
+        <p class="caption room-code-help">3〜16文字。文字・数字・「-」「_」が使えます。同じコードの部屋がある場合は作成できません。</p>
+        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加する部屋コード" maxlength="16"><button id="join" class="secondary">参加</button></div>
+      </div>
+      <p id="entryNote" class="entry-note">招待URLを開くと、部屋コードが自動で入ります。</p>
+    </div>
+  </section>
+
+  <section id="room" hidden>
+    <div class="room-heading">
+      <div><p id="roomEyebrow" class="eyebrow">PRIVATE VILLAGE</p><h1 id="roomTitle">待機室</h1></div>
+      <div class="room-tools"><span class="room-code-label">部屋コード <code id="roomCode"></code></span><button id="copy" class="quiet">招待リンクをコピー</button><button id="shareInvite" class="quiet" hidden>招待を共有</button><button id="leave" class="quiet">退出</button></div>
+    </div>
+    <div id="idleWarning" class="warning" hidden><span id="idleText"></span><button id="stillHere" class="secondary">ここにいます</button></div>
+
+    <section id="lobby" class="lobby-layout">
+      <div class="panel settings-panel">
+        <div class="section-heading"><div><p class="eyebrow">SET THE TABLE</p><h2>村の準備</h2></div><span id="playerSummary" class="tag"></span></div>
+        <div id="hostControls">
+          <p class="caption">プリセットを選ぶか、配役設定から役職を変更できます。</p>
+          <div class="preset-row"><button data-preset="basic:6" class="secondary">基本 6人</button><button data-preset="basic:8" class="secondary">基本 8人</button><button data-preset="third:12" class="secondary">第三陣営 12人</button><button data-preset="all:24" class="secondary">全役職 24人</button></div>
+          <div class="cpu-row"><label for="cpuCount">CPU人数</label><input id="cpuCount" type="number" min="0" max="29" value="7"><button id="setBots" class="secondary">人数を変更</button><small class="muted">変更すると基本配役に戻ります。</small></div>
+          <details id="roleSettings" class="setting-details">
+            <summary>配役を自由に設定 <span id="roleSum"></span></summary>
+            <p class="caption">16の基本役職＋追加状態「恋人」。第三陣営の配役は勝利条件も確認してください。</p>
+            <div id="roleInputs" class="role-grid"></div>
+            <button id="fillVillagers" class="quiet">残りを村人で埋める</button>
+            <div class="check-row"><label><input id="lovers" type="checkbox"> 恋人を1組追加（2人・元の役職に重ねる）</label></div>
+          </details>
+          <details class="setting-details">
+            <summary>時間・練習の設定</summary>
+            <div class="time-grid">
+              <label>昼の話し合い <input id="time-discussion" type="number" min="10" max="600">秒</label>
+              <label>人狼・占い師／夜全体 <input id="time-night" type="number" min="5" max="120">秒</label>
+              <label>騎士・疫病神 <input id="time-other" type="number" min="3" max="120">秒</label>
+              <label>投票 <input id="time-vote" type="number" min="5" max="120">秒</label>
+            </div>
+            <p class="caption">夜は全員同時進行。選択がそろえば早く終わります。役職確認20秒、朝・投票結果は各8秒です。</p>
+            <div class="check-row"><label><input id="firstNightSafe" type="checkbox" checked> 初夜は人狼の顔合わせのみ（占い・感染・呪殺は有効）</label></div>
+            <label id="soloRoleLabel" class="solo-role-label">あなたの練習役職（人間が1人の時だけ）<select id="soloRole"></select></label>
+            <button id="shortTimes" class="quiet">テスト用に短縮する（昼20秒・夜10秒）</button>
+          </details>
+          <div class="settings-footer"><button id="saveSettings" class="secondary">設定を保存</button><span id="dirtyHint" class="caption"></span></div>
+          <p id="configErrors" class="validation" aria-live="polite"></p>
+          <button id="start" class="primary large">この配役でゲームを始める <span>→</span></button>
+        </div>
+        <div id="guestControls" hidden><p>部屋主が配役を準備しています。右の参加者を確認してお待ちください。</p><div id="guestConfig" class="caption"></div><button id="guestActive" class="secondary">準備できています</button></div>
+        <p class="small-note">待機室は60秒無操作で警告、75秒で退出。対戦中の無言・選択時間切れでは追放しません。</p>
+      </div>
+      <aside class="panel lobby-members"><div class="section-heading"><h2>参加者</h2><span class="mini-label">HUMAN + CPU</span></div><div id="lobbyPlayers" class="player-list"></div><p class="caption">CPUは公開情報と自分の能力結果だけを使います。ほかの人の役職をこっそり読むことはしません。</p></aside>
+    </section>
+
+    <section id="play" hidden>
+      <div class="phase-bar panel">
+        <div class="phase-info"><span id="dayBadge" class="day-badge"></span><div><h2 id="phaseName"></h2><p id="phaseHint"></p></div></div>
+        <div class="clock-area"><span id="countdown" class="countdown" aria-label="残り時間">00:00</span><div class="time-track"><div id="timeFill"></div></div></div>
+        <button id="speed" class="quiet" hidden aria-hidden="true">早送り ≫</button>
+      </div>
+      <div id="resultBanner" class="result-banner" hidden></div>
+
+      <div class="play-layout">
+        <section id="boardPanel" class="panel board-panel">
+          <div class="board-head">
+            <div><p class="eyebrow">VILLAGE TABLE</p><h2>村の盤面</h2></div>
+            <div class="board-legend" aria-label="矢印の意味">
+              <span class="legend relation">疑い</span><span class="legend trust">白寄り</span><span class="legend seer">占い</span><span class="legend medium">霊媒</span><span class="legend vote">投票</span>
+            </div>
+          </div>
+          <div id="board" class="village-board" aria-label="プレイヤーと会話の盤面">
+            <svg id="relationSvg" class="relation-svg" aria-hidden="true"></svg>
+            <div id="boardPlayers" class="board-players"></div>
+            <div id="bubbleLayer" class="bubble-layer" aria-live="polite"></div>
+            <div id="boardCenter" class="board-center"><strong id="boardPhase">議論</strong><span id="boardSub">発言と関係がここに見えます</span></div>
+            <div id="narration" class="narration" aria-live="assertive" hidden><small id="narrationKicker">SYSTEM</small><strong id="narrationText"></strong></div>
+            <div id="scene" class="board-scene" aria-live="assertive" hidden><div class="scene-inner"><div id="sceneMark" class="scene-mark">☾</div><p id="sceneTitle"></p><h2 id="sceneNames"></h2></div></div>
+          </div>
+          <div id="boardHint" class="board-hint">プレイヤーをタップすると、その人への主張を矢印で出せます。</div>
+          <div id="boardActionDock" class="board-action-dock" hidden><span id="boardActionText"></span><button id="boardConfirm" class="primary" type="button">確定</button><button id="boardAbstain" class="quiet" type="button" hidden>棄権</button></div>
+          <div id="boardMenu" class="board-menu" hidden>
+            <div class="board-menu-head"><strong id="boardMenuName"></strong><button id="boardMenuClose" class="quiet" type="button">閉じる ×</button></div>
+            <div class="board-menu-grid">
+              <button type="button" data-relation="accuse">怪しい</button><button type="button" data-relation="trust">白寄り</button><button type="button" data-relation="question">質問</button>
+              <button type="button" data-report="seer:false">占い：白</button><button type="button" data-report="seer:true">占い：黒</button>
+              <button type="button" data-report="medium:false">霊媒：白</button><button type="button" data-report="medium:true">霊媒：黒</button>
+            </div>
+            <p>これは「あなたの主張」として公開されます。本物の役職でなくても使えるので、騙りにも使えます。</p>
+          </div>
+        </section>
+
+        <section id="chatPanel" class="chat-column panel">
+          <div class="chat-header"><div class="chat-tabs"><button data-channel="public" class="chat-tab active">村の会話</button><button data-channel="wolves" class="chat-tab" hidden>人狼の会話</button><button data-channel="ghost" class="chat-tab" hidden>幽霊チャット</button></div><span id="chatScope" class="mini-label">PUBLIC</span></div>
+          <div id="messages" class="messages" role="log" aria-live="polite" aria-label="チャット履歴"></div>
+          <details id="statementBox" class="statement-box"><summary>役職を名乗る・判定を報告（CO）</summary>
+            <p class="caption">盤面からも同じ主張を出せます。嘘の主張も可能です。</p>
+            <div class="statement-row"><select id="claimRole" aria-label="名乗る役職"></select><button id="claim" class="secondary">COする</button></div>
+            <div class="statement-row"><select id="reportKind" aria-label="判定の種類"><option value="seer">占い</option><option value="medium">霊媒</option></select><select id="reportTarget" aria-label="判定対象"></select><select id="reportColor" aria-label="判定"><option value="false">白</option><option value="true">黒</option></select><button id="report" class="secondary">報告</button></div>
+          </details>
+          <form id="chatForm" class="chat-form"><label class="sr-only" for="chatInput">メッセージ</label><input id="chatInput" maxlength="400" placeholder="発言を入力…" autocomplete="off"><button id="send" class="primary" type="submit">送信</button></form>
+          <p id="chatHint" class="chat-hint"></p>
+        </section>
+
+        <aside id="selfPanel" class="action-column">
+          <section class="panel identity-panel"><div class="section-heading"><span class="eyebrow">YOUR SECRET</span><span id="aliveStatus" class="mini-label"></span></div>
+            <button id="identityCard" class="identity-card" title="自分の役職カードを見る"><span id="roleSymbol" class="role-symbol">☾</span><strong id="myRole">役職カードを見る</strong><small id="myRoleTeam">ゆっくり確認できます</small></button>
+            <p id="roleText" class="caption">役職は常時表示しません。必要な時だけカードを開けます。</p><p id="allies" class="secret-note"></p>
+          </section>
+          <section id="actions" class="panel actions-panel" aria-label="あなたの行動"></section>
+          <details class="panel private-panel"><summary>自分だけの記録 <span id="recordCount"></span></summary><div id="privateResults"></div></details>
+        </aside>
+      </div>
+
+      <nav id="mobileNav" class="mobile-nav" aria-label="スマホ用画面切り替え">
+        <button type="button" data-mobile-view="board" class="active">盤面</button>
+        <button type="button" data-mobile-view="chat">会話</button>
+        <button type="button" data-mobile-view="self">自分</button>
+      </nav>
+      <section class="panel records-panel"><div class="section-heading"><div><p class="eyebrow">FOLLOW THE EVIDENCE</p><h2>公開された主張と投票</h2></div><button id="exportLog" class="quiet">ログを保存</button></div>
+        <p class="caption">色付き矢印は「発言者がそう主張した」ことを表します。占い・霊媒の矢印も真実とは限りません。</p>
+        <div class="record-grid"><div><h3>CO・判定の主張</h3><div id="publicClaims"></div></div><div><h3>投票履歴</h3><div id="voteRecords"></div></div></div>
+      </section>
+      <div id="endControls" class="end-controls" hidden><button id="again" class="primary large">もう一戦・待機室へ</button></div>
+    </section>
+  </section>
+</main>
+<footer class="site-footer"><span>人狼ゲーム · v0.6.2</span><span>画像・動画・外部フォントなし。</span></footer>
+<div id="toast" class="toast" role="status" hidden></div>
+<dialog id="helpDialog" class="help-dialog"><div class="dialog-head"><div><p class="eyebrow">VILLAGE HANDBOOK</p><h2>遊び方と役職</h2></div><button id="helpClose" class="quiet">閉じる ×</button></div><div id="helpContent"></div></dialog>
+<dialog id="tarotDialog" class="tarot-dialog secret-dialog">
+  <p class="eyebrow" id="tarotEyebrow">SECRET CARD</p><p id="tarotHeading">あなただけに公開</p>
+  <button id="tarotCard" class="tarot-card" type="button" aria-label="カードをめくる">
+    <span class="tarot-front"><span>☾</span><strong id="tarotName">カードをタップ</strong><small>タップで確認</small></span>
+    <span class="tarot-back"><span id="tarotSymbol">✧</span><strong id="tarotResult"></strong><small id="tarotDetail"></small></span>
+  </button>
+  <p id="tarotAuto" class="caption">タップで確認できます。表になってからしばらく表示します。</p><button id="tarotClose" class="secondary">閉じる</button>
+</dialog>
+<script>/* v0.6.2 browser UI: circular village board + arrows + longer secret cards + natural CPU conversation. */
+'use strict';
+(()=>{
+  const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
+  const offline=WWTransport.offline;
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const teams={village:'村人陣営',wolves:'人狼陣営',third:'第三陣営'};
+  const storage=(type,method,key,value)=>{try{return window[type][method](key,value);}catch{return null;}};
+  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  let state=null,channel='public',selected=null,settingsDirty=false,settingsVersion=-1,mobileView='board',boardMenuTarget=null;
+  let actionSignature='',chatSignature='',recordSignature='',playerSignature='',privateSignature='';
+  let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
+  let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null;
+  const SECRET_ROLE_AUTO_FLIP=4200,SECRET_ROLE_VISIBLE=10500,SECRET_RESULT_AUTO_FLIP=1800,SECRET_RESULT_VISIBLE=7200,SECRET_FADE=720;
+  const reducedPref=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+  let reduced=storage('localStorage','getItem','ww-motion')==='off'||reducedPref;
+  document.body.classList.toggle('reduced-motion',reduced);
+  $('motionToggle').textContent=reduced?'演出 OFF':'演出 ON';$('motionToggle').setAttribute('aria-pressed',String(reduced));
+
+  function toast(message,error=false){
+    $('toast').textContent=message;$('toast').classList.toggle('error',error);$('toast').hidden=false;
+    clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,error?6500:4200);
+  }
+  const transport=WWTransport.create({
+    onState:render,
+    onStatus(status){
+      $('connection').textContent=({connected:'接続中',reconnecting:'再接続中',disconnected:'切断中',offline:'ソロ・通信なし'})[status]||status;
+      $('connection').classList.toggle('lost',['reconnecting','disconnected'].includes(status));
+    },
+    onError(message){toast(message,true);},
+    onRemoved(message){
+      if(session)storage('sessionStorage','removeItem','ww3-'+session.code);
+      session=null;state=null;$('room').hidden=true;$('entrance').hidden=false;toast(message,true);
+    }
+  });
+  async function call(event,data={},throwError=false){
+    try{return await transport.request(event,{...data,turn:state?.phaseId});}
+    catch(e){toast(e.message,true);if(throwError)throw e;return null;}
+  }
+  function enter(res){
+    if(!res)return;
+    session={code:res.code,token:res.token};
+    storage('sessionStorage','setItem','ww3-'+res.code,res.token);
+    storage('localStorage','setItem','ww3-name',$('name').value.trim());
+    if(!offline){const url=new URL(location.href);url.search='?room='+encodeURIComponent(res.code);history.replaceState(null,'',url);}
+    $('entrance').hidden=true;$('room').hidden=false;
+  }
+
+  const roleOptions=ROLE_IDS.map(k=>`<option value="${k}">${esc(ROLES[k].name)}</option>`).join('');
+  $('practiceRole').innerHTML='<option value="">ランダム</option>'+roleOptions+'<option value="lover">恋人（村人＋恋人）</option>';
+  $('practiceRole').value='seer';$('soloRole').innerHTML=$('practiceRole').innerHTML;
+  $('claimRole').innerHTML=roleOptions;$('claimRole').value='seer';
+  $('name').value=storage('localStorage','getItem','ww3-name')||'';
+  const urlRoom=new URLSearchParams(location.search).get('room')||'';$('code').value=urlRoom.toUpperCase();
+  if(offline){
+    $('onlineEntry').hidden=true;$('connection').textContent='ソロ・通信なし';
+    $('entryNote').textContent='このファイルはソロ専用です。外部通信はありません。再読み込みすると対戦は最初からになります。';
+    $('copy').hidden=true;
+  }
+  $('practice').onclick=async()=>enter(await call('create',{name:$('name').value,solo:true,role:$('practiceRole').value}));
+  $('create').onclick=async()=>enter(await call('create',{name:$('name').value,roomCode:$('customCode').value.trim()}));
+  $('join').onclick=async()=>enter(await call('join',{name:$('name').value,code:$('code').value.trim().toUpperCase()}));
+  $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('practice').click();});
+  function inviteUrl(){const url=new URL(location.href);if(state?.code)url.search='?room='+encodeURIComponent(state.code);return url.toString();}
+  $('copy').onclick=async()=>{const url=inviteUrl();try{await navigator.clipboard.writeText(url);toast('招待URLをコピーしました。');}catch{window.prompt('この招待URLをコピーしてください。',url);}};
+  if(navigator.share)$('shareInvite').hidden=false;
+  $('shareInvite').onclick=async()=>{try{await navigator.share({title:'人狼ゲーム',text:`部屋コード ${state?.code||''} に参加`,url:inviteUrl()});}catch(e){if(e?.name!=='AbortError')toast('共有できませんでした。',true);}};
+
+  function setMobileView(view){
+    mobileView=['board','chat','self'].includes(view)?view:'board';
+    document.body.dataset.mobileView=mobileView;
+    document.querySelectorAll('[data-mobile-view]').forEach(b=>b.classList.toggle('active',b.dataset.mobileView===mobileView));
+    requestAnimationFrame(()=>state&&renderBoard(state));
+  }
+  document.querySelectorAll('[data-mobile-view]').forEach(b=>b.addEventListener('click',()=>setMobileView(b.dataset.mobileView)));
+  setMobileView('board');
+  $('leave').onclick=()=>{
+    if(state&&!['lobby','ended'].includes(state.phase)&&!confirm(offline?'練習を終了しますか？':'退出しますか？切断後はCPUが代行します。'))return;
+    transport.stop();if(offline){state=null;$('room').hidden=true;$('entrance').hidden=false;}else location.assign(location.pathname);
+  };
+  $('motionToggle').onclick=()=>{
+    reduced=!reduced;document.body.classList.toggle('reduced-motion',reduced);storage('localStorage','setItem','ww-motion',reduced?'off':'on');
+    $('motionToggle').textContent=reduced?'演出 OFF':'演出 ON';$('motionToggle').setAttribute('aria-pressed',String(reduced));
+  };
+  $('helpOpen').onclick=()=>$('helpDialog').showModal();$('helpClose').onclick=()=>$('helpDialog').close();
+  for(const id of ['helpDialog','tarotDialog'])$(id).addEventListener('click',e=>{if(e.target===$(id))$(id).close();});
+  $('helpContent').innerHTML=`
+    <p class="help-intro">人間1人からCPU込み4〜30人で遊べます。盤面では発言を吹き出し、疑い・判定・投票を矢印で表示します。</p>
+    <div class="rules-note"><strong>盤面の矢印</strong><br>「怪しい」「白寄り」「質問」は全員が使えます。占い・霊媒の判定矢印も全員が出せるため、騙りも可能です。矢印はあくまで発言者の主張です。投票先は投票中には他人へ公開せず、結果発表時に濃い矢印で一斉表示します。</div>
+    <div class="rules-note"><strong>秘密カード</strong><br>役職・占い結果・霊媒結果は本人だけにカードで表示されます。カードはタップでめくれ、放置時も自動で確認して閉じます。必要なら「自分」画面から役職カードを再確認できます。</div>
+    <div class="rules-note"><strong>CPU</strong><br>CPUは公開情報と自分の能力結果だけを使います。性格ごとに口調・発言量・慎重さ・反応速度・疑い方が異なり、質問、白寄り評価、直接返信も行います。CPU同士の返信連鎖は抑えています。</div>
+    <div class="help-roles">${ROLE_IDS.map(k=>`<article class="role-help"><h3>${esc(ROLES[k].icon)} ${esc(ROLES[k].name)}<small>${teams[ROLES[k].team]}</small></h3><p>${esc(ROLES[k].text)}</p><p class="win">勝利：${esc(ROLES[k].win)}</p></article>`).join('')}<article class="role-help"><h3>♡ 恋人<small>追加状態・第三陣営</small></h3><p>${esc(LOVER.text)}</p></article></div>`;
+
+  function markDirty(){settingsDirty=true;$('dirtyHint').textContent='未保存の変更があります';updateSum();if(state)$('start').disabled=false;}
+  $('roleInputs').innerHTML=ROLE_IDS.map(k=>`<label class="role-setting"><span><i class="role-dot ${ROLES[k].team}"></i>${esc(ROLES[k].name)}</span><input id="count-${k}" type="number" min="0" max="${['fox','jester','plague','avenger'].includes(k)?1:30}" aria-label="${esc(ROLES[k].name)}の人数"></label>`).join('');
+  for(const k of ROLE_IDS)$('count-'+k).addEventListener('input',markDirty);
+  for(const id of ['lovers','firstNightSafe','time-discussion','time-night','time-other','time-vote'])$(id).addEventListener('input',markDirty);
+  function updateSum(){if(!state)return;const n=ROLE_IDS.reduce((a,k)=>a+(Number($('count-'+k).value)||0),0);$('roleSum').textContent=`${n} / ${state.players.length}人`;$('roleSum').style.color=n===state.players.length?'var(--accent)':'var(--red)';}
+  function draft(){const roles=Object.fromEntries(ROLE_IDS.map(k=>[k,Number($('count-'+k).value)]));const times={...(state?.config.times||DEFAULT_TIMES)};for(const k of ['discussion','night','other','vote'])times[k]=Number($('time-'+k).value);return {roles,times,lovers:$('lovers').checked,firstNightSafe:$('firstNightSafe').checked,testRole:state?.solo?$('soloRole').value:''};}
+  async function saveDraft(){const res=await call('config',draft());if(!res)return false;settingsDirty=false;settingsVersion=-1;$('dirtyHint').textContent='保存しました';if(state)renderSettings(state);return true;}
+  $('saveSettings').onclick=saveDraft;$('start').onclick=async()=>{if(settingsDirty&&!(await saveDraft()))return;await call('start');};
+  $('fillVillagers').onclick=()=>{const other=ROLE_IDS.filter(k=>k!=='villager').reduce((a,k)=>a+(Number($('count-'+k).value)||0),0);$('count-villager').value=Math.max(0,state.players.length-other);markDirty();};
+  $('setBots').onclick=async()=>{settingsDirty=false;settingsVersion=-1;await call('bots',{count:Number($('cpuCount').value)});};
+  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=async()=>{const [kind,n]=b.dataset.preset.split(':');settingsDirty=false;settingsVersion=-1;await call('preset',{kind,count:Number(n)});});
+  $('soloRole').onchange=async()=>{settingsDirty=false;settingsVersion=-1;const role=$('soloRole').value;const n=Math.max(role==='lover'?6:4,state.players.length);const res=await call('solo',{role,count:n});if(res)toast('練習役職に合わせた基本配役に変更しました。');};
+  $('shortTimes').onclick=()=>{$('time-discussion').value=20;$('time-night').value=10;$('time-other').value=8;$('time-vote').value=10;markDirty();};
+  $('guestActive').onclick=()=>call('activity');$('stillHere').onclick=()=>{lastActivity=Date.now();call('activity');};$('speed').onclick=()=>{};
+  $('again').onclick=async()=>{settingsVersion=-1;await call('reset');};
+
+  $('chatForm').onsubmit=async e=>{e.preventDefault();const text=$('chatInput').value.trim();if(!text)return;const res=await call('chat',{text,channel});if(res)$('chatInput').value='';};
+  $('claim').onclick=()=>call('statement',{kind:'claim',role:$('claimRole').value});
+  $('report').onclick=()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'});
+  document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
+  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.6.2',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
+
+  function renderSettings(s){
+    $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;
+    $('guestConfig').textContent=ROLE_IDS.filter(k=>s.config.roles[k]).map(k=>`${ROLES[k].name} ${s.config.roles[k]}`).join(' / ');$('cpuCount').max=30-s.players.filter(p=>!p.bot).length;
+    if(!settingsDirty&&settingsVersion!==s.configVersion){for(const k of ROLE_IDS)$('count-'+k).value=s.config.roles[k];for(const k of ['discussion','night','other','vote'])$('time-'+k).value=s.config.times[k];$('lovers').checked=s.config.lovers;$('firstNightSafe').checked=s.config.firstNightSafe;$('soloRole').value=s.config.testRole||'';$('cpuCount').value=s.players.filter(p=>p.bot).length;$('dirtyHint').textContent='保存済み';settingsVersion=s.configVersion;}
+    $('soloRoleLabel').hidden=!s.solo;$('configErrors').textContent=s.validation.join('\n');$('start').disabled=!settingsDirty&&s.validation.length>0;updateSum();
+  }
+  function playerHtml(p,s){
+    const sub=[p.bot?'CPU':'HUMAN',p.id===s.me.id?'あなた':'',p.host?'部屋主':'',!p.connected&&!p.bot?'切断中':'',p.auto?'代行中':'',!p.alive?'幽霊':''].filter(Boolean).join(' · '),index=s.players.findIndex(t=>t.id===p.id)%5;
+    const role=p.role?`<div class="player-sub">${esc(ROLES[p.role]?.name||p.role)}${p.lover?' ♡':''}${p.won?' <span class="win-mark">WIN</span>':''}</div>`:'';
+    return `<div class="player-row ${p.id===s.me.id?'me':''} ${p.alive?'':'dead'}"><span class="avatar v${index}" aria-hidden="true">${esc([...p.name][0])}</span><div class="player-meta"><div class="player-name">${esc(p.name)}</div><div class="player-sub">${esc(sub)}</div>${role}</div></div>`;
+  }
+  function renderPlayers(s){
+    const signature=JSON.stringify(s.players)+s.phase;
+    if(playerSignature!==signature){$('lobbyPlayers').innerHTML=s.players.map(p=>playerHtml(p,s)).join('');playerSignature=signature;const target=$('reportTarget').value;$('reportTarget').innerHTML=s.players.filter(p=>p.id!==s.me.id).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}${p.alive?'':'（死亡）'}</option>`).join('');if(s.players.some(p=>p.id===target))$('reportTarget').value=target;}
+  }
+  const playerName=id=>state?.players.find(p=>p.id===id)?.name||'不明';
+
+  function roleSecrets(s){
+    const bits=[];
+    if(s.me.knownWolves.length){const allies=s.me.knownWolves.filter(id=>id!==s.me.id).map(playerName);bits.push(allies.length?'人狼の仲間：'+allies.join('、'):'人狼の仲間はいません');}
+    if(s.me.knownMasons.length)bits.push('共有者の相方：'+s.me.knownMasons.map(playerName).join('、'));
+    if(s.me.lover)bits.push('恋人：'+playerName(s.me.lover));
+    if(s.me.revengeTarget)bits.push('復讐対象：'+playerName(s.me.revengeTarget)+(s.me.revengeDone?'（達成）':''));
+    if(s.me.role==='plague')bits.push('感染済み：'+(s.me.infected.length?s.me.infected.map(playerName).join('、'):'まだいません'));
+    return bits;
+  }
+  function renderIdentity(s){
+    const r=ROLES[s.me.role];$('aliveStatus').textContent=s.me.auto?'CPU代行中':s.me.alive?'生存':'幽霊';
+    if(s.phase==='ended'&&r){$('myRole').textContent=r.name;$('roleSymbol').textContent=r.icon;$('myRoleTeam').textContent=s.me.lover?'恋人陣営':teams[r.team];$('roleText').textContent=r.text;$('allies').textContent=roleSecrets(s).join('\n');}
+    else{$('myRole').textContent='役職カードを見る';$('roleSymbol').textContent='☾';$('myRoleTeam').textContent='ゆっくり確認できます';$('roleText').textContent='役職は常時表示しません。必要な時だけカードを開けます。';$('allies').textContent='';}
+  }
+
+  function clearSecretTimers(){clearTimeout(secretFlipTimer);clearTimeout(secretCloseTimer);clearTimeout(secretFadeTimer);secretFlipTimer=secretCloseTimer=secretFadeTimer=null;}
+  function scheduleSecretClose(ms){clearTimeout(secretCloseTimer);secretCloseTimer=setTimeout(closeSecret,ms);}
+  function flipSecret(){if(!$('tarotDialog').open)return;if(secretFlipped){closeSecret();return;}secretFlipped=true;$('tarotCard').classList.add('flipped');clearTimeout(secretFlipTimer);scheduleSecretClose(Number($('tarotDialog').dataset.visibleMs)||SECRET_ROLE_VISIBLE);}
+  function closeSecret(){
+    clearTimeout(secretCloseTimer);if(!$('tarotDialog').open)return;
+    $('tarotCard').classList.remove('flipped');$('tarotDialog').classList.add('fading');
+    secretFadeTimer=setTimeout(()=>{if($('tarotDialog').open)$('tarotDialog').close();$('tarotDialog').classList.remove('fading');clearSecretTimers();},reduced?0:SECRET_FADE);
+  }
+  function showSecretCard({eyebrow='SECRET CARD',heading='あなただけに公開',name='カードをタップ',symbol='✧',result='',detail='',black=false,autoFlipMs=SECRET_ROLE_AUTO_FLIP,visibleMs=SECRET_ROLE_VISIBLE}){
+    if($('helpDialog').open){toast(`${heading}。自分だけの記録から確認できます。`);return;}
+    clearSecretTimers();secretFlipped=false;$('tarotDialog').dataset.visibleMs=String(visibleMs);$('tarotDialog').classList.remove('fading');$('tarotCard').className='tarot-card'+(black?' black':'');
+    $('tarotEyebrow').textContent=eyebrow;$('tarotHeading').textContent=heading;$('tarotName').textContent=name;$('tarotSymbol').textContent=symbol;$('tarotResult').textContent=result;$('tarotDetail').textContent=detail;
+    $('tarotAuto').textContent=`タップで確認できます。表になった後は約${Math.round(visibleMs/1000)}秒表示し、もう一度タップするとすぐ閉じます。`;
+    if(!$('tarotDialog').open)$('tarotDialog').showModal();
+    secretFlipTimer=setTimeout(flipSecret,autoFlipMs);
+  }
+  function showRoleCard(s){
+    const r=ROLES[s.me.role];if(!r)return;const secrets=roleSecrets(s);showSecretCard({eyebrow:'YOUR ROLE',heading:'あなたの役職',name:'タップして役職を確認',symbol:r.icon,result:r.name,detail:[s.me.lover?'恋人陣営（能力は元のまま）':teams[r.team],r.text,...secrets].join(' / '),black:ROLES[s.me.role].team==='wolves',autoFlipMs:SECRET_ROLE_AUTO_FLIP,visibleMs:SECRET_ROLE_VISIBLE});
+  }
+  $('identityCard').onclick=()=>state&&showRoleCard(state);$('tarotCard').onclick=flipSecret;$('tarotClose').onclick=closeSecret;
+
+  function actionButton(label,fn,kind='primary'){const b=document.createElement('button');b.textContent=label;b.className=kind;b.onclick=fn;$('actions').append(b);return b;}
+  function currentActionInfo(s){
+    const vote=s.phase==='vote',kind=vote?'vote':s.kind,done=vote?s.me.voted:s.me.acted;
+    return {vote,kind,done,target:vote?s.me.voteTarget:s.me.actionTarget,targets:s.targets||[]};
+  }
+  function confirmCurrentAction(){if(!state)return;const {vote,kind}=currentActionInfo(state);if(vote)return call('vote',{target:selected});return call('act',{target:kind==='meet'?null:selected});}
+  $('boardConfirm').onclick=confirmCurrentAction;$('boardAbstain').onclick=()=>call('vote',{target:null});
+
+  function renderActions(s){
+    const sig=JSON.stringify([s.phase,s.phaseId,s.me.acted,s.me.voted,s.me.alive,s.me.auto,s.targets,s.me.actionTarget,s.me.voteTarget,selected]);if(actionSignature===sig)return;actionSignature=sig;
+    const a=$('actions');a.innerHTML='';const text=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=value;if(cls)e.className=cls;a.append(e);};
+    if(s.phase==='ended'){text('h2','対戦終了');text('p','全員の役職が公開されています。','caption');return;}
+    if(!s.me.alive){text('h2','幽霊として観戦中');text('p','盤面と幽霊チャットで最後まで見られます。','caption ghost-notice');return;}
+    if(s.me.auto){text('h2','CPUが代行しています');text('p','次のフェーズで操作が戻ります。','caption');return;}
+    if(s.phase==='reveal'){text('h2','役職カード');text('p','カードは自動表示されます。見逃した場合は上の「役職カードを見る」から再確認できます。','caption');return;}
+    if(s.phase==='discussion'){text('h2','話し合い');text('p','盤面の相手をタップすると、疑い・白寄り・質問・判定主張を矢印で出せます。','caption');return;}
+    if(['dawn','execution'].includes(s.phase)){text('h2',s.phase==='dawn'?'朝の発表':'投票結果');text('p','中央のナレーションと盤面を確認してください。','caption');return;}
+    if(s.phase==='night'&&!s.kind){text('h2','夜の行動待ち');text('p',s.me.role==='medium'?'霊媒結果は秘密カードと自分だけの記録へ届きます。':'今夜は対象を選ぶ能力がありません。','caption');return;}
+    const {vote,kind,done,target,targets}=currentActionInfo(s);const labels={vote:'処刑先への投票',divine:'占う相手',attack:'襲撃する相手',protect:'護衛する相手',infect:'感染させる相手',meet:'人狼の顔合わせ'};
+    text('h2',labels[kind]||'行動');
+    if(done){text('p','✓ '+(target?playerName(target)+'で確定':kind==='meet'?'顔合わせを確認済み':'確定しました'),'done-line');text('p','ほかの人の選択を待っています。','caption');return;}
+    if(kind==='meet'){text('p','初夜は襲撃なしです。仲間を確認したら確定してください。','caption');actionButton('仲間を確認した',()=>call('act',{target:null}));return;}
+    text('p','盤面または下の一覧から対象を選び、確定してください。','caption');
+    const grid=document.createElement('div');grid.className='target-grid';a.append(grid);
+    for(const id of targets){const b=document.createElement('button');b.className=`target ${kind==='divine'?'tarot-target':''} ${kind} ${selected===id?'selected':''}`;b.textContent=playerName(id);b.setAttribute('aria-pressed',String(selected===id));b.onclick=()=>{selected=id;actionSignature='';renderActions(state);renderBoard(state);};grid.append(b);}
+    if(!targets.length){actionButton('対象なしで確定',()=>call(vote?'vote':'act',{target:null}));return;}
+    const b=actionButton(vote?'投票を確定':kind==='divine'?'この相手を占う':'対象を確定',confirmCurrentAction);b.disabled=!targets.includes(selected);if(vote)actionButton('棄権する',()=>call('vote',{target:null}),'quiet');
+  }
+
+  function renderChat(s){
+    const ghost=!s.me.alive||s.phase==='ended',wolf=['wolf','darkwolf'].includes(s.me.role)||s.phase==='ended';
+    document.querySelector('[data-channel="ghost"]').hidden=!ghost;document.querySelector('[data-channel="wolves"]').hidden=!wolf;
+    if(channel==='ghost'&&!ghost||channel==='wolves'&&!wolf)channel='public';document.querySelectorAll('[data-channel]').forEach(b=>b.classList.toggle('active',b.dataset.channel===channel));$('chatScope').textContent=({public:'PUBLIC',wolves:'PACK ONLY',ghost:'GHOSTS ONLY'})[channel];
+    const msgs=s.messages.filter(m=>m.channel==='system'||m.channel===channel).slice(-180),sig=channel+':'+msgs.map(m=>m.id).join(',');
+    if(chatSignature!==sig){const box=$('messages'),bottom=box.scrollHeight-box.scrollTop-box.clientHeight<80,changed=!chatSignature.startsWith(channel+':');box.innerHTML=msgs.length?msgs.map(m=>`<div class="message ${m.channel==='system'?'system':''} ${m.playerId===s.me.id?'self':''} ${m.meta?'structured':''}">${m.channel!=='system'?`<div class="message-head"><strong>${esc(m.name)}</strong><small>${s.players.find(p=>p.id===m.playerId)?.bot?'CPU · ':''}${m.day?m.day+'日目':'待機室'}${m.meta?' · 矢印':''}</small></div>`:''}<div class="message-text">${esc(m.text)}</div></div>`).join(''):'<p class="message empty">まだ発言はありません。</p>';if(bottom||changed)box.scrollTop=box.scrollHeight;chatSignature=sig;}
+    let can=false,hint='';
+    if(channel==='ghost'){can=!s.me.alive&&!['lobby','reveal','ended'].includes(s.phase);hint='死亡者だけに届きます。';}
+    else if(channel==='wolves'){can=s.me.alive&&['wolf','darkwolf'].includes(s.me.role)&&s.phase==='night';hint='夜の人狼だけが見られます。';}
+    else{can=['lobby','ended','discussion','vote','dawn','execution'].includes(s.phase)&&(s.me.alive||s.phase==='ended');hint=can?'公開チャットです。盤面の矢印と合わせて話せます。':'今は公開チャットに発言できません。';}
+    if(s.phase==='ended')hint='試合終了。公開チャットで感想を話せます。';$('chatInput').disabled=!can;$('send').disabled=!can;$('chatHint').textContent=hint;$('chatInput').placeholder=can?(channel==='ghost'?'幽霊だけに話す…':channel==='wolves'?'仲間と相談…':'発言を入力…'):'この時間は読むだけです';$('statementBox').hidden=!(s.phase==='discussion'&&s.me.alive&&channel==='public');
+  }
+
+  function renderPrivate(s){
+    const sig=JSON.stringify(s.me.privateResults);if(sig===privateSignature)return;privateSignature=sig;$('recordCount').textContent=s.me.privateResults.length;
+    $('privateResults').innerHTML=s.me.privateResults.length?s.me.privateResults.slice().reverse().map(r=>{if(r.kind==='notice')return `<div class="private-item">${esc(r.text)}</div>`;return `<div class="private-item"><small>${r.day}日目 · ${r.kind==='seer'?'占い':'霊媒'}</small>${esc(r.name)}：<strong class="${r.black?'black':'white'}">${r.black?'人狼':'人狼ではない'}</strong></div>`;}).join(''):'<p class="caption" style="margin:8px 0 0">能力結果はここに残ります。</p>';
+    const latest=s.me.privateResults.filter(r=>['seer','medium'].includes(r.kind)).at(-1);
+    if(latest&&latest.id!==lastPrivateId){lastPrivateId=latest.id;if(['night','dawn'].includes(s.phase))showResultCard(latest);}
+  }
+  function showResultCard(r){const label=r.kind==='seer'?'占い結果':'霊媒結果';showSecretCard({eyebrow:r.kind==='seer'?'DIVINATION':'MEDIUM RESULT',heading:`${label} · あなたにだけ公開`,name:'タップして結果を確認',symbol:r.black?'☾':'✧',result:`${r.name}：${r.black?'人狼':'人狼ではない'}`,detail:r.kind==='seer'?'役職名そのものは分かりません':'処刑された人の判定です',black:r.black,autoFlipMs:SECRET_RESULT_AUTO_FLIP,visibleMs:SECRET_RESULT_VISIBLE});}
+
+  function renderRecords(s){
+    const sig=JSON.stringify([s.claims,s.reports,s.voteHistory]);if(recordSignature===sig)return;recordSignature=sig;
+    const claims=new Map(s.claims.map(c=>[c.playerId,c])),lines=[...claims.values()].map(c=>`<div class="evidence-line">${esc(playerName(c.playerId))} <span class="tag">${esc(ROLES[c.role]?.name)} CO</span> <small>${c.day}日目</small></div>`);
+    lines.push(...s.reports.slice(-30).map(r=>`<div class="evidence-line"><small>${r.day}日目 · ${esc(playerName(r.playerId))}の${r.role==='seer'?'占い':'霊媒'}主張</small><br>${esc(playerName(r.target))} → <strong>${r.black?'黒（人狼）':'白（人狼ではない）'}</strong></div>`));$('publicClaims').innerHTML=lines.join('')||'<p class="caption">まだCOや判定の主張はありません。</p>';
+    $('voteRecords').innerHTML=s.voteHistory.slice().reverse().map(v=>`<details class="ballot-detail"><summary>${v.day}日目${v.round?' 決選':''} · ${v.executed?esc(playerName(v.executed))+'を処刑':'同票・処刑なし'}</summary><div class="ballot-grid">${v.ballots.map(b=>`<span>${esc(playerName(b.voter))} → ${b.target?esc(playerName(b.target)):'棄権'}</span>`).join('')}</div></details>`).join('')||'<p class="caption">投票結果のあとに全員の投票先が公開されます。</p>';
+  }
+
+  function boardPoint(index,n){const a=-Math.PI/2+index*(Math.PI*2/n),mobile=matchMedia('(max-width:700px)').matches;const rx=mobile?(n>18?42:39):(n>20?46:44),ry=mobile?(n>18?42:40):(n>20?43:40);return {x:50+Math.cos(a)*rx,y:50+Math.sin(a)*ry};}
+  function renderBoardPlayers(s){
+    const box=$('boardPlayers');box.innerHTML='';const n=s.players.length;
+    s.players.forEach((p,i)=>{const pos=boardPoint(i,n),b=document.createElement('button');b.type='button';b.className=`board-player ${p.alive?'':'dead'} ${p.id===s.me.id?'me':''} ${p.bot?'bot':''} ${n>18?'dense':''}`;b.style.left=pos.x+'%';b.style.top=pos.y+'%';b.dataset.playerId=p.id;b.innerHTML=`<span class="board-avatar">${esc([...p.name][0])}</span><span class="board-name">${esc(p.name)}</span><small>${p.bot?'CPU':''}${p.host?(p.bot?' · ':'')+'HOST':''}${!p.alive?' · 死亡':''}</small>`;b.onclick=()=>handleBoardPlayer(p.id);box.append(b);});
+  }
+  function handleBoardPlayer(id){
+    if(!state||id===state.me.id)return;
+    if((state.phase==='vote'||state.phase==='night')&&state.me.alive&&!state.me.auto&&state.targets.includes(id)){selected=id;actionSignature='';renderActions(state);renderBoard(state);return;}
+    if(state.phase==='discussion'&&state.me.alive&&!state.me.auto){boardMenuTarget=id;$('boardMenuName').textContent=playerName(id)+'について';$('boardMenu').hidden=false;$('boardMenu').scrollIntoView({block:'nearest',behavior:reduced?'auto':'smooth'});}
+  }
+  $('boardMenuClose').onclick=()=>{$('boardMenu').hidden=true;boardMenuTarget=null;};
+  document.querySelectorAll('[data-relation]').forEach(b=>b.onclick=async()=>{if(!boardMenuTarget)return;const ok=await call('statement',{kind:b.dataset.relation,target:boardMenuTarget});if(ok){$('boardMenu').hidden=true;boardMenuTarget=null;}});
+  document.querySelectorAll('[data-report]').forEach(b=>b.onclick=async()=>{if(!boardMenuTarget)return;const [role,flag]=b.dataset.report.split(':');const ok=await call('statement',{kind:'report',role,target:boardMenuTarget,black:flag==='true'});if(ok){$('boardMenu').hidden=true;boardMenuTarget=null;}});
+
+  function svgEl(tag,attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e;}
+  function arrowData(s){
+    const out=[],now=Date.now()+timeOffset,seen=new Set();
+    const msgs=s.messages.filter(m=>m.channel==='public'&&m.day===s.day&&m.playerId&&m.meta&&['accuse','trust','question','report'].includes(m.meta.kind)).slice().reverse();
+    for(const m of msgs){const meta=m.meta,key=meta.kind==='report'?`${m.playerId}|${meta.role}|${meta.target}`:`${m.playerId}|${meta.kind}`;if(seen.has(key))continue;seen.add(key);if(meta.kind!=='report'&&now-m.at>50000)continue;const type=meta.kind==='report'?meta.role:meta.kind,label=meta.kind==='report'?(meta.black?'黒':'白'):meta.kind==='accuse'?'怪':meta.kind==='trust'?'白寄':'?';out.push({from:m.playerId,to:meta.target,type,label,opacity:meta.kind==='report'?0.9:clamp(1-(now-m.at)/65000,.2,.72),strong:false});if(out.length>=18)break;}
+    if(['execution','ended'].includes(s.phase)){const v=[...s.voteHistory].reverse().find(x=>x.day===s.day)||s.voteHistory.at(-1);if(v)for(const b of v.ballots)if(b.target)out.push({from:b.voter,to:b.target,type:'vote',label:'投票',opacity:.95,strong:true});}
+    if(s.phase==='vote'&&s.me.alive){const t=s.me.voted?s.me.voteTarget:selected;if(t)out.push({from:s.me.id,to:t,type:'vote',label:s.me.voted?'投票':'予定',opacity:.95,strong:true,preview:!s.me.voted});}
+    if(s.phase==='night'&&s.me.alive&&!s.me.acted&&selected&&s.targets.includes(selected)){const type={divine:'seer',attack:'attack',protect:'protect',infect:'infect'}[s.kind]||'question';out.push({from:s.me.id,to:selected,type,label:{divine:'占う',attack:'襲撃',protect:'護衛',infect:'感染'}[s.kind]||'',opacity:.9,strong:true,private:true});}
+    return out.filter(a=>a.from&&a.to&&a.from!==a.to);
+  }
+  function drawArrows(s){
+    const svg=$('relationSvg'),board=$('board'),br=board.getBoundingClientRect();if(br.width<10||br.height<10)return;svg.setAttribute('viewBox',`0 0 ${br.width} ${br.height}`);svg.innerHTML='';
+    const defs=svgEl('defs');for(const type of ['accuse','trust','question','seer','medium','vote','attack','protect','infect']){const m=svgEl('marker',{id:'arrow-'+type,viewBox:'0 0 10 10',refX:'8.5',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'}),p=svgEl('path',{d:'M 0 0 L 10 5 L 0 10 z',class:`arrow-head ${type}`});m.append(p);defs.append(m);}svg.append(defs);
+    const nodes=Object.fromEntries([...$('boardPlayers').querySelectorAll('.board-player')].map(n=>[n.dataset.playerId,n]));const pairCount={};
+    for(const a of arrowData(s)){const A=nodes[a.from],B=nodes[a.to];if(!A||!B)continue;const ar=A.getBoundingClientRect(),bb=B.getBoundingClientRect(),x1=ar.left-br.left+ar.width/2,y1=ar.top-br.top+ar.height/2,x2=bb.left-br.left+bb.width/2,y2=bb.top-br.top+bb.height/2,dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,r1=Math.min(ar.width,ar.height)*.43+5,r2=Math.min(bb.width,bb.height)*.43+7,sx=x1+ux*r1,sy=y1+uy*r1,ex=x2-ux*r2,ey=y2-uy*r2;
+      const key=[a.from,a.to].sort().join('|'),idx=pairCount[key]||0;pairCount[key]=idx+1;const bend=(idx%2?1:-1)*(10+Math.floor(idx/2)*8),mx=(sx+ex)/2-uy*bend,my=(sy+ey)/2+ux*bend;
+      const path=svgEl('path',{d:`M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`,class:`relation-line ${a.type}${a.strong?' strong':''}${a.preview?' preview':''}${a.private?' private':''}`,'marker-end':`url(#arrow-${a.type})`});path.style.opacity=a.opacity;svg.append(path);
+      if(a.label){const tx=(sx+2*mx+ex)/4,ty=(sy+2*my+ey)/4,text=svgEl('text',{x:tx,y:ty,class:`relation-label ${a.type}`});text.textContent=a.label;svg.append(text);}
+    }
+  }
+  function renderBubbles(s){
+    const box=$('bubbleLayer'),now=Date.now()+timeOffset,latest=[];const seen=new Set();
+    for(const m of s.messages.slice().reverse()){if(m.channel!=='public'||m.day!==s.day||!m.playerId||now-m.at>22000||seen.has(m.playerId))continue;seen.add(m.playerId);latest.push(m);if(latest.length>=3)break;}
+    box.innerHTML='';const n=s.players.length;
+    for(const m of latest.reverse()){const idx=s.players.findIndex(p=>p.id===m.playerId);if(idx<0)continue;const p=boardPoint(idx,n),age=now-m.at,bx=clamp(p.x+(50-p.x)*.38,18,82),by=clamp(p.y+(50-p.y)*.38,18,82),d=document.createElement('div');d.className='board-bubble'+(m.meta?' structured':'');d.style.left=bx+'%';d.style.top=by+'%';d.style.opacity=String(clamp(1-age/26000,.18,1));const short=m.text.length>82?m.text.slice(0,81)+'…':m.text;d.innerHTML=`<strong>${esc(m.name)}</strong><span>${esc(short)}</span>`;box.append(d);}
+  }
+  function updateBoardDock(s){
+    const dock=$('boardActionDock'),info=currentActionInfo(s);dock.hidden=true;$('boardAbstain').hidden=true;
+    if(!s.me.alive||s.me.auto||!['vote','night'].includes(s.phase)||info.done||info.kind==='meet'||!info.kind)return;
+    dock.hidden=false;const labels={vote:'投票',divine:'占い',attack:'襲撃',protect:'護衛',infect:'感染'};$('boardActionText').textContent=selected?`${playerName(selected)}を${labels[info.kind]}対象に選択中`:`盤面から${labels[info.kind]}対象を選んでください`;$('boardConfirm').disabled=!s.targets.includes(selected);$('boardConfirm').textContent=info.vote?'この人に投票':'この対象で確定';$('boardAbstain').hidden=!info.vote;
+  }
+  function renderBoard(s){
+    renderBoardPlayers(s);$('boardPhase').textContent=s.phaseLabel||PHASES[s.phase]||s.phase;$('boardSub').textContent=s.phase==='discussion'?'吹き出しと薄い矢印で会議を表示':s.phase==='vote'?'自分の投票候補だけ先に表示します':s.phase==='execution'?'投票矢印を一斉公開':s.phase==='night'?'夜の秘密行動は自分にだけ表示':'進行を確認してください';
+    $('boardHint').textContent=s.phase==='discussion'&&s.me.alive?'相手をタップ → 怪しい・白寄り・質問・占い/霊媒の主張':s.phase==='vote'?'相手をタップして投票先を選択。ほかの人の票は結果まで見えません。':s.phase==='night'&&s.kind?'対象をタップして夜行動を選択できます。':'公開された発言と関係を盤面で確認できます。';
+    renderBubbles(s);updateBoardDock(s);requestAnimationFrame(()=>drawArrows(s));
+  }
+  window.addEventListener('resize',()=>state&&requestAnimationFrame(()=>drawArrows(state)));
+
+  function narrate(text,kicker='SYSTEM',duration=3000){clearTimeout(narrationTimer);$('narrationKicker').textContent=kicker;$('narrationText').textContent=text;$('narration').hidden=false;$('narration').classList.remove('fade');narrationTimer=setTimeout(()=>{$('narration').classList.add('fade');setTimeout(()=>$('narration').hidden=true,reduced?0:450);},reduced?900:duration);}
+  function playScene(scene){
+    if(!scene||scene.id===lastSceneId)return;lastSceneId=scene.id;clearTimeout(sceneTimer);const box=$('scene');$('sceneTitle').textContent=scene.title;$('sceneNames').textContent=scene.victims.length?scene.victims.map(v=>v.name).join('、'):'犠牲者はいませんでした';$('sceneMark').textContent=scene.type==='execution'?'◇':scene.victims.length?'╱╱╱':'☀';box.className='board-scene '+(scene.type==='execution'?'execution':scene.victims.length?'death':'dawn');box.hidden=false;setMobileView('board');sceneTimer=setTimeout(()=>box.hidden=true,reduced?1000:3300);
+  }
+
+  function phaseAnnouncement(s){const m=[...s.messages].reverse().find(x=>x.channel==='system'&&x.phase===s.phase&&x.day===s.day);return m?.text||({reveal:'役職を確認してください。',night:'夜になりました。',dawn:'朝になりました。',discussion:'話し合いを始めます。',vote:'投票を開始します。',execution:'投票結果です。',ended:'ゲーム終了です。'})[s.phase]||'';}
+  function render(s){
+    const old=state;state=s;document.body.dataset.phase=s.phase;timeOffset=s.now-Date.now();
+    if(s.phaseId!==old?.phaseId){selected=null;actionSignature='';boardMenuTarget=null;$('boardMenu').hidden=true;
+      if(s.phase==='reveal'){lastSceneId=null;lastPrivateId=null;lastWinner=null;privateSignature='';secretShownPhase=null;}
+      if(s.phase==='night'&&['wolf','darkwolf'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
+      if(['discussion','dawn','execution','ended'].includes(s.phase))setMobileView('board');else if(['reveal','night'].includes(s.phase))setMobileView('self');else if(s.phase==='vote')setMobileView('board');
+      const announcement=phaseAnnouncement(s);if(announcement)narrate(announcement,s.phase==='night'?'NIGHT':s.phase==='dawn'?'MORNING':s.phase==='vote'?'VOTE':'SYSTEM',s.phase==='discussion'?2200:3000);
+    }
+    $('entrance').hidden=true;$('room').hidden=false;$('roomCode').textContent=offline?'LOCAL':s.code;$('roomEyebrow').textContent=offline?'SOLO PRACTICE':'PRIVATE ROOM';$('roomTitle').textContent=s.phase==='lobby'?'ゲーム設定':s.phase==='ended'?'対戦終了':'人狼ゲーム';$('lobby').hidden=s.phase!=='lobby';$('play').hidden=s.phase==='lobby';$('speed').hidden=true;
+    if(s.phase==='lobby')renderSettings(s);renderPlayers(s);
+    if(s.phase!=='lobby'){
+      $('phaseName').textContent=s.phaseLabel;$('dayBadge').textContent=`DAY\n${String(s.day).padStart(2,'0')}`;$('phaseHint').textContent=phaseAnnouncement(s);
+      renderIdentity(s);renderActions(s);renderChat(s);renderPrivate(s);renderRecords(s);renderBoard(s);
+      if(s.phase==='reveal'&&secretShownPhase!==s.phaseId){secretShownPhase=s.phaseId;setTimeout(()=>state?.phaseId===s.phaseId&&showRoleCard(state),reduced?100:450);}
+      if(s.lastScene&&s.lastScene.id!==lastSceneId)playScene(s.lastScene);
+      $('resultBanner').hidden=!s.winner;$('endControls').hidden=!(s.phase==='ended'&&s.host);
+      if(s.winner){$('resultBanner').innerHTML=`<h2>${esc(s.winner.label)}</h2><p>${s.winner.winners.includes(s.me.id)?'あなたも勝利しました。':'今回は勝利条件を満たせませんでした。'} ${s.winner.winners.length?'勝者：'+s.winner.winners.map(playerName).map(esc).join('、'):''}</p>`;if(lastWinner!==s.winner.label){lastWinner=s.winner.label;toast(s.winner.label);}}
+    }
+    tick();
+  }
+  function tick(){
+    if(!state)return;const now=Date.now()+timeOffset,left=state.deadline===null?null:Math.max(0,Math.ceil((state.deadline-now)/1000));$('countdown').textContent=left===null?'—':`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;$('timeFill').style.width=state.deadline?`${clamp((state.deadline-now)/(state.deadline-state.startedAt)*100,0,100)}%`:'0%';
+    if(state.phase==='night'&&state.kind&&!state.me.acted){const own=Math.max(0,Math.ceil((state.actionDeadline-now)/1000));$('phaseHint').textContent=`あなたの選択期限まで ${own}秒`;}
+    const idle=(now-state.lastActive)/1000;$('idleWarning').hidden=state.phase!=='lobby'||idle<60;if(state.phase==='lobby'&&idle>=60)$('idleText').textContent=`操作がないため、あと${Math.max(0,Math.ceil(75-idle))}秒で待機室を退出します。`;
+    if(!state.play&&state.phase!=='lobby'){};if(['discussion','vote','execution','dawn','night'].includes(state.phase)){renderBubbles(state);requestAnimationFrame(()=>drawArrows(state));}
+  }
+  setInterval(tick,500);
+  const activity=()=>{if(state?.phase==='lobby'&&Date.now()-lastActivity>8000){lastActivity=Date.now();call('activity');}};
+  document.addEventListener('pointerdown',activity,{passive:true});document.addEventListener('keydown',activity,{passive:true});document.addEventListener('scroll',activity,{passive:true,capture:true});
+  if(!offline&&urlRoom){const oldToken=storage('sessionStorage','getItem','ww3-'+urlRoom.toUpperCase());if(oldToken)call('join',{code:urlRoom,token:oldToken,name:$('name').value}).then(res=>{if(res)enter(res);else storage('sessionStorage','removeItem','ww3-'+urlRoom.toUpperCase());});}
+})();
+</script>
+</body>
+</html>
