@@ -523,14 +523,20 @@
       const result=(kind,label,ids,exclusive=false)=>{
         const winners=new Set(ids);
         if(!exclusive){
-          for(const p of this.players)if(!p.lover&&((p.role==='survivor'&&p.alive)||(p.role==='avenger'&&p.revengeDone)))winners.add(p.id);
+          for(const p of this.players)if(!p.lover&&((p.role==='survivor'&&p.alive)||(p.role==='avenger'&&p.revengeDone)||(p.role==='resetter'&&p.alive)))winners.add(p.id);
         }
         return {kind,label,winners:[...winners],day:this.day};
       };
       if(exe?.role==='jester'&&!exe.lover)return result('jester','てるてる坊主の単独勝利',[exe.id],true);
       const plague=alive.find(p=>p.role==='plague'&&!p.lover);
       if(plague&&alive.filter(p=>p.id!==plague.id).every(p=>this.infected.has(p.id)))return result('plague','疫病神の単独勝利',[plague.id],true);
-      const wolves=alive.filter(p=>WOLF.has(p.role)).length;
+      const cheater=alive.find(p=>p.role==='cheater'&&!p.lover);
+      if(cheater){
+        const remainingNonWolves=alive.filter(p=>p.id!==cheater.id&&ROLES[p.role]?.team!=='wolves');
+        if(!remainingNonWolves.length)return result('cheater','チーターの勝利',[cheater.id],true);
+        return null;
+      }
+      const wolves=alive.filter(p=>PACK.has(p.role)).length;
       const normal=wolves===0||wolves>=alive.length-wolves;
       if(!normal)return null;
       const lovers=alive.filter(p=>p.lover&&this.byId(p.lover)?.alive);
@@ -555,10 +561,21 @@
       }
     }
     isBot(p){return p.bot||p.auto;}
+    specialDone(p){
+      for(const kind of this.specialKinds(p)){
+        if(kind==='reset')continue;
+        if(kind==='priest'){
+          const any=Object.keys(this.specialActions[p.id]||{}).some(k=>k.startsWith('priest_'));if(!any)return false;continue;
+        }
+        const targets=this.specialTargets(p,kind);if(!targets.length)continue;
+        if(this.specialCount(p.id,kind)<this.specialLimit(p,kind))return false;
+      }
+      return true;
+    }
     checkEarly() {
       if(this.now()-this.startedAt<1800)return;
       if(this.phase==='night'){
-        if(this.living().filter(p=>this.nightKind(p)).every(p=>Object.hasOwn(this.actions,p.id)))this.advance();
+        if(this.living().every(p=>(!this.nightKind(p)||Object.hasOwn(this.actions,p.id))&&this.specialDone(p)))this.advance();
       }else if(this.phase==='vote'){
         if(this.living().every(p=>Object.hasOwn(this.votes,p.id)))this.advance();
       }else if(['reveal','dawn','execution'].includes(this.phase)){
@@ -578,6 +595,20 @@
       }
       this.advance();
     }
+    autoSpecial(p){
+      const used=this.specialActions[p.id]||{};
+      for(const kind of this.specialKinds(p)){
+        if(kind==='reset'||kind==='priest')continue;
+        const limit=this.specialLimit(p,kind),valid=this.specialTargets(p,kind).filter(id=>!(used[kind]||[]).includes(id));
+        while(this.specialCount(p.id,kind)<limit&&valid.length){const idx=Math.floor(this.random()*valid.length),target=valid.splice(idx,1)[0];this.submitSpecialAction(p.id,kind,target,null,this.phaseId);}
+      }
+      if(this.specialKinds(p).includes('priest')&&!Object.keys(this.specialActions[p.id]||{}).some(k=>k.startsWith('priest_'))){
+        const revive=this.specialTargets(p,'priest_revive'),purify=this.specialTargets(p,'priest_purify'),protect=this.specialTargets(p,'priest_protect');
+        if(revive.length)this.submitSpecialAction(p.id,'priest',this.pick(revive),'priest_revive',this.phaseId);
+        else if(purify.length)this.submitSpecialAction(p.id,'priest',this.pick(purify),'priest_purify',this.phaseId);
+        else if(protect.length)this.submitSpecialAction(p.id,'priest',this.pick(protect),'priest_protect',this.phaseId);
+      }
+    }
     fillActions(bot,onlyExpired=false) {
       if(this.phase!=='night')return;
       for(const p of this.living().filter(p=>this.nightKind(p)&&!Object.hasOwn(this.actions,p.id))){
@@ -588,6 +619,7 @@
         this.submitAction(p.id,t,this.phaseId,true);
         if(!p.bot)p.privateResults.push({id:`auto-${this.phaseId}-${p.id}`,kind:'notice',day:this.day,text:'時間切れのため、この夜の行動はCPUが代行しました。'});
       }
+      for(const p of this.living().filter(p=>this.isBot(p)))this.autoSpecial(p);
     }
     tick(bot) {
       const now=this.now();
@@ -626,6 +658,7 @@
             const valid=this.targets(p),target=this.nightKind(p)==='meet'?null:(valid.includes(c?.target)?c.target:valid[0]||null);
             this.submitAction(p.id,target,this.phaseId,true);
           }
+          if(now>=b.actionAt)this.autoSpecial(p);
         }
         if(this.phase==='vote'&&!Object.hasOwn(this.votes,p.id)&&now>=b.actionAt){
           const c=bot.decide(this.botView(p.id),b,'vote');
@@ -701,6 +734,7 @@
         case 'reset':this.reset();break;
         case 'ready':this.markReady(id,data.turn);break;
         case 'act':this.submitAction(id,data.target??null,data.turn);break;
+        case 'special_act':this.submitSpecialAction(id,String(data.kind||''),data.target??null,data.mode??null,data.turn);break;
         case 'vote':this.submitVote(id,data.target??null,data.turn);break;
         case 'chat':this.chat(id,data.text,data.channel,data.turn);break;
         case 'statement':this.publish(id,data,data.turn);break;
@@ -744,5 +778,5 @@
     }
     botView(id){return this.view(id,true);}
   }
-  return {Game,ROLES,LOVER,ROLE_IDS,WOLF,MAX_PLAYERS,MIN_PLAYERS,PHASES,DEFAULT_TIMES,BOT_NAMES,preset,checkConfig,seeded,cleanName,validName,cleanText};
+  return {Game,ROLES,LOVER,ROLE_IDS,WOLF,PACK,LEVELER,MAX_PLAYERS,MIN_PLAYERS,PHASES,DEFAULT_TIMES,BOT_NAMES,preset,checkConfig,seeded,cleanName,validName,cleanText};
 });
