@@ -254,6 +254,54 @@
       if(WOLF.has(p.role))return this.day===1&&this.config.firstNightSafe?'meet':'attack';
       return ({seer:'divine',guard:'protect',plague:'infect'})[p.role]||null;
     }
+    specialKinds(p){
+      if(!p?.alive)return [];const out=[];
+      if(p.role==='thief')out.push('steal_live');
+      if(p.role==='grave_robber')out.push('steal_dead');
+      if(p.role==='cheater')out.push('cheat_kill');
+      if(p.role==='resetter'&&!p.resetUsed&&this.dawnSnapshot)out.push('reset');
+      if(p.role==='white_leveler'){
+        const lv=p.levelerLevel||1;if(lv>=2)out.push('leveler_divine');if(lv>=3)out.push('priest');
+      }
+      if(p.role==='black_leveler'){
+        const lv=p.levelerLevel||1;if(lv>=2)out.push('hide_wolf');if(lv>=3)out.push('implant_wolf');if(lv>=4)out.push('leveler_kill');
+      }
+      return out;
+    }
+    specialLimit(p,kind){
+      if(kind==='leveler_divine')return (p.levelerLevel||1)>=4?2:1;
+      if(kind==='leveler_kill')return 2;
+      return 1;
+    }
+    specialTargets(p,kind){
+      if(kind==='reset')return [];
+      if(kind==='steal_dead')return this.players.filter(t=>!t.alive&&t.id!==p.id).map(t=>t.id);
+      if(kind==='priest_revive')return this.players.filter(t=>!t.alive).map(t=>t.id);
+      return this.living().filter(t=>{
+        if(t.id===p.id)return false;
+        if(kind==='hide_wolf')return PACK.has(t.role);
+        if(kind==='implant_wolf')return ROLES[t.role]?.team!=='wolves'&&t.role!=='cheater';
+        if(kind==='cheat_kill')return ROLES[t.role]?.team!=='wolves';
+        if(kind==='priest_purify')return t.role!=='black_leveler'&&(!!t.implantedFrom||WOLF.has(t.role));
+        return true;
+      }).map(t=>t.id);
+    }
+    specialCount(id,kind){return (this.specialActions[id]?.[kind]||[]).length;}
+    submitSpecialAction(id,kind,target=null,mode=null,turn){
+      this.requireTurn(turn);const p=this.requirePlayer(id,true);
+      if(this.phase!=='night')throw Error('特殊能力は夜だけ使えます。');
+      const available=this.specialKinds(p);
+      if(kind==='priest'){
+        if(!available.includes('priest'))throw Error('聖職者能力はまだ使えません。');
+        kind=String(mode||'');if(!['priest_protect','priest_revive','priest_purify'].includes(kind))throw Error('聖職者能力を選んでください。');
+        if(Object.keys(this.specialActions[id]||{}).some(k=>k.startsWith('priest_')))throw Error('聖職者能力は一晩に1つです。');
+      }else if(!available.includes(kind))throw Error('今夜はその能力を使えません。');
+      const arr=(this.specialActions[id]||(this.specialActions[id]={}))[kind]||(this.specialActions[id][kind]=[]);
+      if(arr.length>=this.specialLimit(p,kind))throw Error('この能力は今夜の上限まで使っています。');
+      if(kind==='reset'){arr.push(null);this.changed();return;}
+      const valid=this.specialTargets(p,kind);if(!valid.includes(target))throw Error('その相手は選べません。');
+      if(arr.includes(target))throw Error('同じ相手は選べません。');arr.push(target);this.changed();
+    }
     actionDeadline(p) {
       const kind=this.nightKind(p);
       return this.startedAt+(kind==='protect'||kind==='infect'?this.config.times.other:this.config.times.night)*1000;
@@ -262,7 +310,7 @@
       if(!kind||kind==='meet')return [];
       return this.living().filter(t=>{
         if(t.id===p.id)return false;
-        if(kind==='attack'&&WOLF.has(t.role))return false;
+        if(kind==='attack'&&PACK.has(t.role))return false;
         if(kind==='infect'&&this.infected.has(t.id))return false;
         if(kind==='vote'&&this.round>0&&!this.runoff.includes(t.id))return false;
         return true;
@@ -277,12 +325,7 @@
       if(kind==='meet')target=null;
       else if(!valid.includes(target)&&!(kind==='infect'&&valid.length===0&&target===null))throw Error('その相手は選択できません。');
       if(kind==='divine'&&p.privateResults.some(r=>r.kind==='seer'&&r.day===this.day))throw Error('占いは1日に1回だけです。');
-      this.actions[id]=target;
-      if(kind==='divine'&&target){
-        const t=this.byId(target);
-        p.privateResults.push({id:`seer-${this.day}-${p.id}`,kind:'seer',day:this.day,target:t.id,name:t.name,black:t.role==='wolf'});
-      }
-      this.changed();
+      this.actions[id]=target;this.changed();
     }
     submitVote(id,target,turn,automatic=false) {
       this.requireTurn(turn);const p=this.requirePlayer(id,true);
@@ -361,7 +404,7 @@
       this.message(p,customText||text,'public',s);
     }
     startNight() {
-      this.actions={};this.beginPhase('night');
+      this.actions={};this.specialActions={};this.hiddenWolves=new Set();this.beginPhase('night');
       this.system(`${this.day}日目の夜です。能力を持つ人は対象を選んでください。全員同時進行です。${this.day===1&&this.config.firstNightSafe?'初夜は人狼の顔合わせのみで、襲撃はありません。':''}`);
       if(this.lastExecuted){
         const t=this.byId(this.lastExecuted);
