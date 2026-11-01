@@ -9,7 +9,7 @@ const crypto=require('node:crypto');
 const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF}=require('./shared/rules');
 const Bots=require('./shared/bots');
-const VERSION='0.7.1';
+const VERSION='0.7.2';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
   const code=String(value||'').normalize('NFKC').trim().replace(/\s+/g,'').toUpperCase();
@@ -23,7 +23,7 @@ function makeClock(){
   return {now(){return gameBase+(Date.now()-realBase)*speed;},setSpeed(next){const current=this.now();realBase=Date.now();gameBase=current;speed=next;},getSpeed(){return speed;}};
 }
 
-function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch}={}) {
+function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}) {
   const rooms=new Map(),tickets=new Map(),rates=new Map(),chatRates=new Map(),adminSessions=new Map();
   const startedReal=Date.now(),recentErrors=[];let requestCount=0,apiCount=0;
   const recordError=(scope,error)=>{recentErrors.push({at:Date.now(),scope,message:String(error?.message||error)});if(recentErrors.length>40)recentErrors.splice(0,recentErrors.length-40);};
@@ -47,9 +47,24 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         timestamp:new Date().toISOString()
       }]
     };
-    const response=await fetchImpl(discordWebhook,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
-    if(!response.ok)throw Error('Discord通知に失敗しました ('+response.status+')');
-    return true;
+    for(let attempt=1;attempt<=4;attempt++){
+      const response=await fetchImpl(discordWebhook,{method:'POST',headers:{'content-type':'application/json','user-agent':'NAIST-STELLA-Werewolf/0.7.2'},body:JSON.stringify(payload)});
+      if(response.ok)return true;
+      if(response.status!==429)throw Error('Discord通知に失敗しました ('+response.status+')');
+      let retryMs=0;
+      try{
+        const body=await response.clone().json();
+        retryMs=Number(body?.retry_after)||0; // Discord's JSON retry_after is milliseconds.
+      }catch{}
+      const resetAfter=Number(response.headers?.get?.('x-ratelimit-reset-after'));
+      const retryAfter=Number(response.headers?.get?.('retry-after'));
+      if(!retryMs&&Number.isFinite(resetAfter)&&resetAfter>0)retryMs=resetAfter*1000;
+      if(!retryMs&&Number.isFinite(retryAfter)&&retryAfter>0)retryMs=retryAfter*1000;
+      retryMs=Math.max(250,Math.min(120000,retryMs||1000));
+      if(attempt===4)throw Error('Discord通知に失敗しました (429: 再試行上限)');
+      await sleepImpl(retryMs+100);
+    }
+    return false;
   }
   const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'};
   const allowed={
