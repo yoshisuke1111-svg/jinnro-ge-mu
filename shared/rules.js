@@ -212,7 +212,7 @@
       this.wolfTalkCount=0;this.wolfTalkAt=this.startedAt+1800+Math.floor(this.random()*1800);
       this.changed();
     }
-    start({allowBotOnly=false}={}) {
+    start({allowBotOnly=false,roleOrder=null}={}) {
       if(this.phase!=='lobby')throw Error('すでに開始しています。');
       const e=checkConfig(this.config,this.players.length);if(e.length)throw Error(e.join('\n'));
       if(!this.humans().length&&!allowBotOnly)throw Error('人間が1人以上必要です。');
@@ -220,13 +220,19 @@
       this.messages=[];this.msgId=0;this.reports=[];this.claims=[];this.voteHistory=[];
       this.infected=new Set();this.lastExecuted=null;this.winner=null;this.pendingWin=null;this.lastScene=null;
       this.day=1;this.round=0;this.actions={};this.specialActions={};this.votes={};this.dawnSnapshot=null;this.hiddenWolves=new Set();
+      if(roleOrder){
+        if(!Array.isArray(roleOrder)||roleOrder.length!==this.players.length||roleOrder.some(r=>!ROLE_IDS.includes(r)))throw Error('手動配役が不正です。');
+        const counts=Object.fromEntries(ROLE_IDS.map(k=>[k,0]));for(const r of roleOrder)counts[r]++;
+        const e2=checkConfig({...this.config,roles:counts},this.players.length);if(e2.length)throw Error(e2.join('\n'));
+        this.config.roles=counts;this.configVersion++;
+      }
       let deck=ROLE_IDS.flatMap(k=>Array(this.config.roles[k]).fill(k));
       const pinned=this.isSolo()?this.config.testRole:'';
       const human=this.humans()[0];
       if(pinned){const role=pinned==='lover'?'villager':pinned;const i=deck.indexOf(role);if(i<0)throw Error('指定した役職がありません。');deck.splice(i,1);human.role=role;}
       deck=this.shuffled(deck);
-      for(const p of this.players){
-        if(!(pinned&&p.id===human.id))p.role=deck.pop();
+      for(let pi=0;pi<this.players.length;pi++){const p=this.players[pi];
+        if(roleOrder)p.role=roleOrder[pi];else if(!(pinned&&p.id===human.id))p.role=deck.pop();
         p.alive=true;p.privateResults=[];p.lover=null;p.revengeTarget=null;p.revengeDone=false;p.auto=!p.connected;
         const personality=p.bot?(p.brain?.personality||this.makePersonality(p.id)):null;p.brain=personality?{personality}:{};p.deathAt=null;p.claimed=null;p.implantedFrom=null;
         p.levelerLevel=LEVELER.has(p.role)?1:0;p.cheaterExecutionHit=false;p.cheaterAttackHit=false;p.resetUsed=false;
@@ -745,21 +751,22 @@
     }
     view(id,forBot=false) {
       const p=this.requirePlayer(id);const ended=this.phase==='ended';
-      const knownWolves=WOLF.has(p.role)||p.role==='fanatic'?this.players.filter(t=>WOLF.has(t.role)).map(t=>t.id):[];
+      const knownWolves=PACK.has(p.role)||p.role==='fanatic'?this.players.filter(t=>PACK.has(t.role)).map(t=>t.id):[];
       const knownMasons=p.role==='mason'?this.players.filter(t=>t.role==='mason'&&t.id!==p.id).map(t=>t.id):[];
+      const cheaterSight=p.role==='cheater'&&p.alive;
       const publicPlayers=this.players.map(t=>{
-        const row={id:t.id,name:t.name,bot:t.bot,connected:t.connected,alive:t.alive,auto:t.auto,host:t.id===this.host};
-        if(ended){row.role=t.role;row.lover=t.lover;row.won=this.winner?.winners.includes(t.id)||false;}
+        const row={id:t.id,name:this.name(t.id),bot:t.bot,connected:t.connected,alive:t.alive,auto:t.auto,host:t.id===this.host};
+        if(ended||cheaterSight){row.role=t.role;row.lover=ended?t.lover:null;row.won=ended?(this.winner?.winners.includes(t.id)||false):false;}
         return row;
       });
       const messages=this.messages.filter(m=>{
         if(m.channel==='public'||m.channel==='system')return true;
         if(m.channel==='ghost')return !p.alive||ended;
-        if(m.channel==='wolves')return ended||(WOLF.has(p.role)&&(p.alive||m.id<=p.deathAt));
+        if(m.channel==='wolves')return ended||(PACK.has(p.role)&&(p.alive||m.id<=p.deathAt));
         return false;
       }).slice(-300);
-      const me={id:p.id,name:p.name,role:p.role,alive:p.alive,bot:p.bot,auto:p.auto,lover:p.lover,revengeTarget:p.revengeTarget,revengeDone:p.revengeDone,
-        privateResults:clone(p.privateResults),knownWolves,knownMasons,
+      const me={id:p.id,name:this.name(p.id),realName:p.name,role:p.role,alive:p.alive,bot:p.bot,auto:p.auto,lover:p.lover,revengeTarget:p.revengeTarget,revengeDone:p.revengeDone,
+        privateResults:clone(p.privateResults),knownWolves,knownMasons,levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,
         infected:p.role==='plague'?[...this.infected]:[],
         acted:Object.hasOwn(this.actions,p.id),actionTarget:this.actions[p.id]??null,
         voted:Object.hasOwn(this.votes,p.id),voteTarget:this.votes[p.id]??null,ready:this.ready.has(p.id)};
@@ -769,6 +776,11 @@
         voteHistory:clone(this.voteHistory),winner:clone(this.winner),lastScene:clone(this.lastScene),
         kind:this.phase==='night'?this.nightKind(p):null,
         targets:this.phase==='night'?this.targets(p):this.phase==='vote'?this.targets(p,'vote'):[],
+        cheaterActive:this.living().some(t=>t.role==='cheater'),
+        specials:this.phase==='night'?this.specialKinds(p).flatMap(kind=>{
+          if(kind==='priest')return ['priest_protect','priest_revive','priest_purify'].map(mode=>({kind:'priest',mode,limit:1,used:Object.keys(this.specialActions[p.id]||{}).some(k=>k.startsWith('priest_'))?1:0,targets:this.specialTargets(p,mode)}));
+          return [{kind,mode:null,limit:this.specialLimit(p,kind),used:this.specialCount(p.id,kind),targets:this.specialTargets(p,kind)}];
+        }):[],
         actionDeadline:this.phase==='night'&&this.nightKind(p)?this.actionDeadline(p):null,
         runoff:this.phase==='vote'?this.runoff||[]:[],
         lastActive:p.lastActive,validation:this.phase==='lobby'?checkConfig(this.config,this.players.length):[]};
