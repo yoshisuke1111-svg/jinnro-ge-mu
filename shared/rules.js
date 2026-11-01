@@ -417,6 +417,12 @@
       const queue=initial.slice(),deaths=[];
       while(queue.length){
         const {id,cause}=queue.shift();const p=this.byId(id);if(!p?.alive)continue;
+        if(LEVELER.has(p.role)&&(p.levelerLevel||0)>=5&&cause!=='leveler_duel')continue;
+        if(p.role==='cheater'&&cause!=='leveler_duel'){
+          if(cause==='execution')p.cheaterExecutionHit=true;
+          else if(cause==='attack')p.cheaterAttackHit=true;
+          if(!(p.cheaterExecutionHit&&p.cheaterAttackHit)){this.changed();continue;}
+        }
         p.alive=false;p.deathAt=this.msgId;p.deathCause=cause;deaths.push(p.id);
         if(p.lover&&this.byId(p.lover)?.alive)queue.push({id:p.lover,cause:'lover'});
         if(p.role==='cat'&&(cause==='attack'||cause==='execution')){
@@ -427,22 +433,59 @@
       }
       this.changed();return deaths;
     }
+    captureDawnSnapshot(){
+      this.dawnSnapshot={day:this.day,messageCount:this.messages.length,msgId:this.msgId,voteHistory:clone(this.voteHistory),reports:clone(this.reports),claims:clone(this.claims),
+        infected:[...this.infected],lastExecuted:this.lastExecuted,wasBakerAlive:this.wasBakerAlive,players:this.players.map(p=>({id:p.id,role:p.role,alive:p.alive,privateResults:clone(p.privateResults),lover:p.lover,revengeDone:p.revengeDone,deathAt:p.deathAt,deathCause:p.deathCause,claimed:p.claimed,...this.roleState(p)}))};
+    }
+    restoreDawnSnapshot(resetterId){
+      const s=this.dawnSnapshot;if(!s)return false;
+      this.day=s.day;this.messages=this.messages.slice(0,s.messageCount);this.msgId=s.msgId;this.voteHistory=clone(s.voteHistory);this.reports=clone(s.reports);this.claims=clone(s.claims);
+      this.infected=new Set(s.infected);this.lastExecuted=s.lastExecuted;this.wasBakerAlive=s.wasBakerAlive;this.pendingWin=null;this.winner=null;this.actions={};this.specialActions={};this.votes={};
+      for(const row of s.players){const p=this.byId(row.id);if(!p)continue;p.role=row.role;p.alive=row.alive;p.privateResults=clone(row.privateResults);p.lover=row.lover;p.revengeDone=row.revengeDone;p.deathAt=row.deathAt;p.deathCause=row.deathCause;p.claimed=row.claimed;p.levelerLevel=row.levelerLevel||0;p.cheaterExecutionHit=!!row.cheaterExecutionHit;p.cheaterAttackHit=!!row.cheaterAttackHit;p.resetUsed=!!row.resetUsed;p.implantedFrom=row.implantedFrom||null;}
+      const r=this.byId(resetterId);if(r){r.resetUsed=true;r.privateResults.push({id:'reset-'+this.phaseId+'-'+r.id,kind:'notice',day:this.day,text:'時間を直前の朝まで巻き戻しました。あなただけが巻き戻しを覚えています。'});}
+      this.beginPhase('dawn');this.system('時間軸に異常が発生し、直前の朝まで巻き戻りました。');this.changed();return true;
+    }
     resolveNight() {
       if(this.phase!=='night')return;
-      const initial=[],guards=new Set(),attackCount={};
       const active=this.living().slice();
+      const resetter=active.find(p=>p.role==='resetter'&&(this.specialActions[p.id]?.reset||[]).length);
+      if(resetter&&this.restoreDawnSnapshot(resetter.id))return;
+      const initial=[],guards=new Set(),attackCount={};this.hiddenWolves=new Set();
       for(const p of active){
-        const t=this.actions[p.id];if(!t)continue;
-        if(p.role==='guard')guards.add(t);
-        if(p.role==='plague')this.infected.add(t);
-        if(p.role==='seer'&&this.byId(t)?.role==='fox')initial.push({id:t,cause:'divination'});
-        if(WOLF.has(p.role)&&!(this.day===1&&this.config.firstNightSafe))attackCount[t]=(attackCount[t]||0)+1;
+        const specials=this.specialActions[p.id]||{};
+        for(const id of specials.hide_wolf||[])this.hiddenWolves.add(id);
+      }
+      for(const p of active){
+        const specials=this.specialActions[p.id]||{};
+        for(const id of specials.steal_live||[]){const t=this.byId(id);if(t?.alive)this.stealRole(p,t);}
+        for(const id of specials.steal_dead||[]){const t=this.byId(id);if(t&&!t.alive)this.stealRole(p,t);}
+        for(const id of specials.implant_wolf||[]){const t=this.byId(id);if(t?.alive&&t.role!=='cheater'&&ROLES[t.role]?.team!=='wolves'){const old={role:t.role,state:this.roleState(t)};this.giveRole(t,'wolf',{implantedFrom:old});t.privateResults.push({id:'implant-'+this.phaseId+'-'+t.id,kind:'notice',day:this.day,text:'人狼の力を植え付けられました。あなたは人狼陣営になりました。'});}}
+        for(const id of specials.priest_purify||[]){const t=this.byId(id);if(!t?.alive||t.role==='black_leveler')continue;if(t.implantedFrom?.role){const old=t.implantedFrom;this.giveRole(t,old.role,old.state||{});t.privateResults.push({id:'purify-'+this.phaseId+'-'+t.id,kind:'notice',day:this.day,text:'浄化され、元の役職に戻りました。'});}else if(WOLF.has(t.role)){this.giveRole(t,'villager');t.privateResults.push({id:'purify-'+this.phaseId+'-'+t.id,kind:'notice',day:this.day,text:'浄化され、村人になりました。'});}}
+        for(const id of specials.priest_revive||[]){const t=this.byId(id);if(t&&!t.alive){t.alive=true;t.deathAt=null;t.deathCause=null;t.privateResults.push({id:'revive-'+this.phaseId+'-'+t.id,kind:'notice',day:this.day,text:'白レベラーの力で蘇生しました。'});}}
+        for(const id of specials.priest_protect||[])guards.add(id);
+      }
+      const cheaterAlive=this.living().some(p=>p.role==='cheater');
+      for(const p of this.living().slice()){
+        const t=this.actions[p.id];
+        if(t&&p.role==='guard')guards.add(t);
+        if(t&&p.role==='plague')this.infected.add(t);
+        if(t&&p.role==='seer'){
+          const q=this.byId(t);if(q){const row={id:'seer-'+this.day+'-'+p.id,kind:'seer',day:this.day,target:q.id,name:q.name};if(cheaterAlive){row.mode='cheater';row.cheater=q.role==='cheater';row.black=false;}else{row.black=q.role==='wolf'&&!this.hiddenWolves.has(q.id);}p.privateResults.push(row);if(!cheaterAlive&&q.role==='fox')initial.push({id:q.id,cause:'divination'});}
+        }
+        if(t&&WOLF.has(p.role)&&!(this.day===1&&this.config.firstNightSafe))attackCount[t]=(attackCount[t]||0)+1;
+        const specials=this.specialActions[p.id]||{};
+        for(const id of specials.leveler_divine||[]){const q=this.byId(id);if(!q)continue;const row={id:'leveler-seer-'+this.day+'-'+p.id+'-'+id,kind:'leveler_seer',day:this.day,target:q.id,name:q.name};if(cheaterAlive){row.mode='cheater';row.cheater=q.role==='cheater';}else if(this.hiddenWolves.has(q.id)){row.role='unknown';}else row.role=q.role;p.privateResults.push(row);}
+        for(const id of specials.cheat_kill||[])initial.push({id,cause:'cheater'});
+        for(const id of specials.leveler_kill||[])initial.push({id,cause:'leveler_kill'});
       }
       const max=Math.max(0,...Object.values(attackCount));
       const target=max?this.pick(Object.keys(attackCount).filter(k=>attackCount[k]===max)):null;
-      const attackers=active.filter(p=>WOLF.has(p.role)&&this.actions[p.id]===target).map(p=>p.id);
+      const attackers=this.living().filter(p=>WOLF.has(p.role)&&this.actions[p.id]===target).map(p=>p.id);
       if(target&&!guards.has(target)&&this.byId(target)?.role!=='fox')initial.push({id:target,cause:'attack'});
-      const deaths=this.killMany(initial,attackers);
+      let deaths=this.killMany(initial,attackers);
+      for(const p of this.living().filter(p=>LEVELER.has(p.role)))p.levelerLevel=Math.min(7,(p.levelerLevel||1)+1);
+      const white=this.living().find(p=>p.role==='white_leveler'&&(p.levelerLevel||0)>=7),black=this.living().find(p=>p.role==='black_leveler'&&(p.levelerLevel||0)>=7);
+      if(white&&black)deaths=deaths.concat(this.killMany([{id:white.id,cause:'leveler_duel'},{id:black.id,cause:'leveler_duel'}]));
       this.beginPhase('dawn');
       this.lastScene={id:++this.sceneId,type:'dawn',victims:deaths.map(id=>({id,name:this.name(id)})),title:deaths.length?'夜が明けました':'穏やかな朝'};
       this.system(deaths.length?`朝、${deaths.map(id=>this.name(id)).join('、')}が亡くなっているのが見つかりました。`:'昨夜の犠牲者はいませんでした。');
@@ -452,7 +495,7 @@
       this.wasBakerAlive=baker;
       this.pendingWin=this.computeWin(null);this.changed();
     }
-    startDiscussion() {this.beginPhase('discussion');this.system(`${this.day}日目の話し合いを開始します。制限時間は${this.config.times.discussion}秒です。終了すると自動で投票へ進みます。`);}
+    startDiscussion() {this.captureDawnSnapshot();this.beginPhase('discussion');this.system(`${this.day}日目の話し合いを開始します。制限時間は${this.config.times.discussion}秒です。終了すると自動で投票へ進みます。`);}
     startVote(runoff=null) {
       this.votes={};this.runoff=runoff||[];this.round=runoff?1:0;this.beginPhase('vote');
       this.system(runoff?`最多票が同数です。${runoff.map(id=>this.name(id)).join('・')}で決選投票を行います。`:`投票を開始します。${this.config.times.vote}秒以内に1人を選んでください。時間切れは棄権です。`);
