@@ -23,10 +23,18 @@
     jester: { name:'てるてる坊主', team:'third', icon:'♙', text:'昼の投票で直接処刑されると、その場で単独勝利します。襲撃・道連れ・後追いでは勝てません。', win:'自分が投票で直接処刑される。' },
     plague: { name:'疫病神', team:'third', icon:'✣', text:'毎晩、自分以外の未感染者1人を感染させます。感染は本人以外には見えず、能力を妨げません。', win:'自分が生きていて、他の生存者全員が感染した時に単独勝利。' },
     survivor: { name:'生存者', team:'third', icon:'△', text:'夜能力はありません。村人や人狼に固執せず、生き残ることを目指します。', win:'通常決着・恋人勝利・妖狐勝利の時に生存していれば追加勝利。てるてる坊主・疫病神の単独勝利時は不可。' },
-    avenger: { name:'復讐者', team:'third', icon:'⚑', text:'開始時に復讐対象が1人指定されます。その人を昼の投票で直接処刑させることを目指します。対象が襲撃・道連れで死んでも達成にはなりません。', win:'対象の投票処刑を達成していれば通常決着時に追加勝利。達成後に自分が死んでも有効。単独勝利が発生した時は不可。' }
+    avenger: { name:'復讐者', team:'third', icon:'⚑', text:'開始時に復讐対象が1人指定されます。その人を昼の投票で直接処刑させることを目指します。対象が襲撃・道連れで死んでも達成にはなりません。', win:'対象の投票処刑を達成していれば通常決着時に追加勝利。達成後に自分が死んでも有効。単独勝利が発生した時は不可。' },
+    thief: { name:'泥棒', team:'third', icon:'♜', text:'夜に1度だけ、生存者1人から役職そのものを奪います。奪われた相手は村人になり、自分は奪った役職と陣営へ移ります。', win:'奪った役職の勝利条件を引き継ぐ。盗まずに終わった場合は勝利なし。' },
+    grave_robber: { name:'墓荒らし', team:'third', icon:'†', text:'夜に1度だけ、死亡者1人の役職を奪います。墓を荒らされた死者は村人扱いになり、自分は奪った役職と陣営へ移ります。', win:'奪った役職の勝利条件を引き継ぐ。盗まずに終わった場合は勝利なし。' },
+    cheater: { name:'チーター', team:'third', icon:'⌁', text:'全員の本当の役職が見え、夜に人狼陣営以外を1人殺害できます。処刑を1回、人狼の通常襲撃を1回の両方を受けるまで死亡しません。生存中は占い結果をチーター判定へ改変し、他陣営の勝利を止めます。', win:'自分が生存し、人狼陣営以外の他プレイヤーが全滅する。' },
+    resetter: { name:'リセッター', team:'third', icon:'↶', text:'ゲーム中1回だけ、夜に直前の朝まで時間を巻き戻せます。死亡・投票・役職変化などが朝の状態へ戻り、リセッター自身だけ巻き戻し前を経験したまま残ります。', win:'通常決着時に生存していれば追加勝利。' },
+    white_leveler: { name:'白レベラー', team:'village', icon:'⬆', text:'一夜明けるたびに成長する村人陣営。Lv2完全占い、Lv3聖職者進化（護衛・蘇生・浄化）、Lv4二重占い、Lv5不死、Lv6名前消失、Lv7で生存中の黒レベラーと相打ち。', win:'村人陣営と同じ。' },
+    black_leveler: { name:'黒レベラー', team:'wolves', icon:'⬆', text:'一夜明けるたびに成長する人狼陣営。Lv2人狼を匿う、Lv3人狼植え付け、Lv4一晩に2人を殺害、Lv5不死、Lv6名前消失、Lv7で生存中の白レベラーと相打ち。', win:'人狼陣営と同じ。' }
   };
   const LOVER = { name:'恋人', icon:'♡', text:'基本役職とは別に2人へ付く追加状態です。相方の名前だけ分かり、能力は元の役職のまま。一方が死ぬともう一方も後追いします。元の陣営勝利を失い、通常決着時に2人とも生きていれば最優先で恋人勝利となります。' };
   const WOLF = new Set(['wolf','darkwolf']);
+  const PACK = new Set(['wolf','darkwolf','black_leveler']);
+  const LEVELER = new Set(['white_leveler','black_leveler']);
   const ROLE_IDS = Object.keys(ROLES);
   const MAX_PLAYERS = 30;
   const MIN_PLAYERS = 4;
@@ -38,7 +46,10 @@
     const r=emptyRoles(); r.wolf=Math.max(1,Math.floor(n/4)); r.seer=1;
     if(n>=5)r.guard=1; if(n>=7)r.medium=1; if(n>=8)r.madman=1;
     if(kind==='third' && n>=10) {r.fox=1;r.jester=1;r.baker=1;}
-    if(kind==='all' && n>=20) { for(const k of ROLE_IDS)r[k]=1; r.mason=2; r.wolf=Math.max(2,Math.floor(n/6)); }
+    if(kind==='all' && n>=20) {
+      for(const k of ROLE_IDS.filter(k=>!['thief','grave_robber','cheater','resetter','white_leveler','black_leveler'].includes(k)))r[k]=1;
+      r.mason=2; r.wolf=Math.max(2,Math.floor(n/6));
+    }
     r.villager += n-Object.values(r).reduce((a,b)=>a+b,0);
     return r;
   }
@@ -53,7 +64,8 @@
     if(w<1)errors.push('人狼か黒狼を1人以上入れてください。');
     if(w>=n-w)errors.push('開始直後に決着しないよう、人狼＋黒狼は半数未満にしてください。');
     if(r.mason===1)errors.push('共有者は0人か2人以上にしてください。');
-    for(const k of ['fox','jester','plague','avenger'])if(r[k]>1)errors.push(`${ROLES[k].name}はこの版では1人までです。`);
+    for(const k of ['fox','jester','plague','avenger','thief','grave_robber','cheater','resetter','white_leveler','black_leveler'])if(r[k]>1)errors.push(`${ROLES[k].name}は1人までです。`);
+    if((r.white_leveler||0)!==(r.black_leveler||0))errors.push('白レベラーと黒レベラーは必ず1人ずつセットで入れてください。');
     if(config.lovers&&n<6)errors.push('恋人は合計6人以上の部屋で使えます。');
     for(const [k,min,max] of [['reveal',3,60],['night',5,120],['other',3,120],['dawn',2,20],['discussion',10,600],['vote',5,120],['execution',2,20]]) {
       const v=config.times?.[k];if(!Number.isInteger(v)||v<min||v>max)errors.push(`${PHASES[k]||'その他の能力'}の時間は${min}〜${max}秒です。`);
