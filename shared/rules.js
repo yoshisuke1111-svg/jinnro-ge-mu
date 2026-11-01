@@ -86,9 +86,9 @@
       this.code=code;this.random=random||seeded(seed);this.now=now;this.players=[];this.host=null;
       this.config={roles:preset(8),times:{...DEFAULT_TIMES},lovers:false,firstNightSafe:true,testRole:''};
       this.configVersion=1;this.phase='lobby';this.phaseId=0;this.day=0;this.startedAt=0;this.deadline=null;
-      this.messages=[];this.msgId=0;this.revision=0;this.actions={};this.votes={};this.ready=new Set();
+      this.messages=[];this.msgId=0;this.revision=0;this.actions={};this.specialActions={};this.votes={};this.ready=new Set();
       this.reports=[];this.claims=[];this.voteHistory=[];this.winner=null;this.pendingWin=null;
-      this.lastScene=null;this.sceneId=0;this.lastExecuted=null;this.infected=new Set();this.round=0;
+      this.lastScene=null;this.sceneId=0;this.lastExecuted=null;this.infected=new Set();this.round=0;this.dawnSnapshot=null;this.hiddenWolves=new Set();
       this.botTalkAt=0;this.botDiscussionTalks=0;this.wolfTalkAt=0;this.wolfTalkCount=0;this.wasBakerAlive=false;this.createdAt=now();this.changed();
     }
     changed(){this.revision++;}
@@ -105,7 +105,27 @@
     living(){return this.players.filter(p=>p.alive);}
     humans(){return this.players.filter(p=>!p.bot);}
     isSolo(){return this.humans().length===1;}
-    name(id){return this.byId(id)?.name||'不明';}
+    name(id){
+      const p=this.byId(id);
+      if(!p)return '不明';
+      return LEVELER.has(p.role)&&(p.levelerLevel||0)>=6&&p.alive?'？？？':p.name;
+    }
+    realName(id){return this.byId(id)?.name||'不明';}
+    roleState(p){return {levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,implantedFrom:p.implantedFrom||null};}
+    clearRoleState(p){p.levelerLevel=0;p.cheaterExecutionHit=false;p.cheaterAttackHit=false;p.resetUsed=false;p.implantedFrom=null;}
+    giveRole(p,role,state={}){
+      this.clearRoleState(p);p.role=role;
+      if(LEVELER.has(role))p.levelerLevel=Math.max(1,Number(state.levelerLevel)||1);
+      if(role==='cheater'){p.cheaterExecutionHit=!!state.cheaterExecutionHit;p.cheaterAttackHit=!!state.cheaterAttackHit;}
+      if(role==='resetter')p.resetUsed=!!state.resetUsed;
+      p.implantedFrom=state.implantedFrom||null;
+    }
+    stealRole(taker,donor){
+      const role=donor.role,state=this.roleState(donor);
+      this.giveRole(taker,role,state);this.giveRole(donor,'villager');
+      taker.privateResults.push({id:'role-steal-'+this.phaseId+'-'+taker.id,kind:'notice',day:this.day,text:donor.name+'から「'+ROLES[role].name+'」を奪いました。以後はその役職と陣営になります。'});
+      donor.privateResults.push({id:'role-lost-'+this.phaseId+'-'+donor.id,kind:'notice',day:this.day,text:'役職を奪われ、村人になりました。'});
+    }
     system(text){this.message(null,text,'system');}
     message(p,text,channel='public',meta=null) {
       const m={id:++this.msgId,day:this.day,phase:this.phase,at:this.now(),playerId:p?.id||null,name:p?.name||'村の記録',channel,text:cleanText(text)};
@@ -119,7 +139,8 @@
       name=validName(name);if(this.players.some(p=>p.name===name))throw Error('同じ名前の人がいます。別の名前にしてください。');
       if(!id||this.byId(id))throw Error('プレイヤーIDが不正です。');
       const p={id,name,bot,connected:true,alive:true,role:null,lastActive:this.now(),disconnectedAt:null,auto:false,
-        privateResults:[],lover:null,revengeTarget:null,revengeDone:false,brain:bot?{personality:this.makePersonality(id)}:{},deathAt:null,claimed:null};
+        privateResults:[],lover:null,revengeTarget:null,revengeDone:false,brain:bot?{personality:this.makePersonality(id)}:{},deathAt:null,claimed:null,
+        levelerLevel:0,cheaterExecutionHit:false,cheaterAttackHit:false,resetUsed:false,implantedFrom:null};
       this.players.push(p);if(!this.host&&!bot)this.host=id;
       if(this.humans().length>1)this.config.testRole='';
       this.changed();return p;
@@ -198,7 +219,7 @@
       if(this.config.testRole&&!this.isSolo())throw Error('複数人では役職指定は使えません。');
       this.messages=[];this.msgId=0;this.reports=[];this.claims=[];this.voteHistory=[];
       this.infected=new Set();this.lastExecuted=null;this.winner=null;this.pendingWin=null;this.lastScene=null;
-      this.day=1;this.round=0;this.actions={};this.votes={};
+      this.day=1;this.round=0;this.actions={};this.specialActions={};this.votes={};this.dawnSnapshot=null;this.hiddenWolves=new Set();
       let deck=ROLE_IDS.flatMap(k=>Array(this.config.roles[k]).fill(k));
       const pinned=this.isSolo()?this.config.testRole:'';
       const human=this.humans()[0];
@@ -207,7 +228,8 @@
       for(const p of this.players){
         if(!(pinned&&p.id===human.id))p.role=deck.pop();
         p.alive=true;p.privateResults=[];p.lover=null;p.revengeTarget=null;p.revengeDone=false;p.auto=!p.connected;
-        const personality=p.bot?(p.brain?.personality||this.makePersonality(p.id)):null;p.brain=personality?{personality}:{};p.deathAt=null;p.claimed=null;
+        const personality=p.bot?(p.brain?.personality||this.makePersonality(p.id)):null;p.brain=personality?{personality}:{};p.deathAt=null;p.claimed=null;p.implantedFrom=null;
+        p.levelerLevel=LEVELER.has(p.role)?1:0;p.cheaterExecutionHit=false;p.cheaterAttackHit=false;p.resetUsed=false;
       }
       if(this.config.lovers){
         const a=pinned==='lover'?human:this.pick(this.players);
@@ -221,8 +243,8 @@
     }
     reset() {
       if(this.phase!=='ended')throw Error('終了後に待機室へ戻れます。');
-      for(const p of this.players){p.role=null;p.alive=true;p.lover=null;p.brain={};p.auto=false;p.privateResults=[];p.lastActive=this.now();p.claimed=null;}
-      this.messages=[];this.msgId=0;this.day=0;this.winner=null;this.pendingWin=null;this.lastScene=null;this.actions={};this.votes={};this.reports=[];this.claims=[];this.voteHistory=[];
+      for(const p of this.players){p.role=null;p.alive=true;p.lover=null;p.brain={};p.auto=false;p.privateResults=[];p.lastActive=this.now();p.claimed=null;p.levelerLevel=0;p.cheaterExecutionHit=false;p.cheaterAttackHit=false;p.resetUsed=false;p.implantedFrom=null;}
+      this.messages=[];this.msgId=0;this.day=0;this.winner=null;this.pendingWin=null;this.lastScene=null;this.actions={};this.specialActions={};this.votes={};this.reports=[];this.claims=[];this.voteHistory=[];this.dawnSnapshot=null;this.hiddenWolves=new Set();
       this.beginPhase('lobby');this.configVersion++;this.system('新しいゲームを準備できます。');
     }
     requireTurn(turn) {if(turn!==undefined&&turn!==this.phaseId)throw Error('画面が次のフェーズに進みました。表示を確認してください。');}
