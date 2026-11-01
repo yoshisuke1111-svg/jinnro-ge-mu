@@ -7,9 +7,9 @@ const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const os=require('node:os');
-const {Game,preset}=require('./shared/rules');
+const {Game,preset,ROLES,ROLE_IDS,WOLF}=require('./shared/rules');
 const Bots=require('./shared/bots');
-const VERSION='0.6.2';
+const VERSION='0.7.0';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
   const code=String(value||'').normalize('NFKC').trim().replace(/\s+/g,'').toUpperCase();
@@ -91,11 +91,13 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       return {code,phase:g.phase,phaseLabel:g.phase,day:g.day,createdAt:g.createdAt,startedAt:g.startedAt,deadline:g.deadline,gameNow,
         cpuWatch:!!entry.cpuWatch,fastMode:!!entry.fastMode,speed:entry.clock?.getSpeed?.()||1,connected:entry.clients.size,humans:g.humans().length,
         bots:g.players.filter(p=>p.bot).length,alive:g.living().length,total:g.players.length,winner:g.winner,host:g.host?g.name(g.host):(entry.cpuWatch?'CPU観戦':'—'),
-        actions:Object.fromEntries(Object.entries(g.actions).map(([id,target])=>[g.name(id),target?g.name(target):null])),
-        votes:Object.fromEntries(Object.entries(g.votes).map(([id,target])=>[g.name(id),target?g.name(target):null])),
-        players:g.players.map(p=>({id:p.id,name:p.name,bot:p.bot,connected:p.connected,alive:p.alive,auto:p.auto,role:p.role,lover:p.lover?g.name(p.lover):null,
-          personality:p.bot?(p.brain?.personality||null):null,botDebug:adminBotInfo(g,p),privateResults:p.privateResults.slice(-12),action:Object.hasOwn(g.actions,p.id)?(g.actions[p.id]?g.name(g.actions[p.id]):null):undefined,
-          vote:Object.hasOwn(g.votes,p.id)?(g.votes[p.id]?g.name(g.votes[p.id]):null):undefined})),
+        actions:Object.fromEntries(Object.entries(g.actions).map(([id,target])=>[g.realName(id),target?g.realName(target):null])),
+        specialActions:Object.fromEntries(Object.entries(g.specialActions||{}).map(([id,actions])=>[g.realName(id),Object.fromEntries(Object.entries(actions).map(([k,ids])=>[k,(ids||[]).map(t=>t?g.realName(t):null)]))])),
+        votes:Object.fromEntries(Object.entries(g.votes).map(([id,target])=>[g.realName(id),target?g.realName(target):null])),
+        players:g.players.map(p=>({id:p.id,name:p.name,bot:p.bot,connected:p.connected,alive:p.alive,auto:p.auto,role:p.role,lover:p.lover?g.realName(p.lover):null,
+          levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,
+          personality:p.bot?(p.brain?.personality||null):null,botDebug:adminBotInfo(g,p),privateResults:p.privateResults.slice(-12),action:Object.hasOwn(g.actions,p.id)?(g.actions[p.id]?g.realName(g.actions[p.id]):null):undefined,
+          vote:Object.hasOwn(g.votes,p.id)?(g.votes[p.id]?g.realName(g.votes[p.id]):null):undefined})),
         messages:g.messages.slice(-160).map(m=>({...m})),claims:g.claims.slice(-60),reports:g.reports.slice(-60),voteHistory:g.voteHistory.slice(-12)};
     })};
   }
@@ -136,7 +138,15 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(!code){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';do{code='CPU-'+Array.from({length:4},()=>alphabet[crypto.randomInt(alphabet.length)]).join('');}while(rooms.has(code));}
           if(rooms.has(code))throw Error('その部屋コードはすでに使われています。');
           const clock=makeClock(),game=new Game({code,random:()=>crypto.randomInt(0x100000000)/0x100000000,now:()=>clock.now()});
-          game.setBots(count);game.applyConfig({...game.config,roles:preset(count),testRole:''});game.start({allowBotOnly:true});
+          game.setBots(count);
+          let roleOrder=null;
+          if(Array.isArray(body.roles)&&body.roles.length){
+            if(body.roles.length!==count||body.roles.some(r=>!ROLE_IDS.includes(String(r))))throw Error('CPUの手動配役が不正です。');
+            roleOrder=body.roles.map(String);
+            const counts=Object.fromEntries(ROLE_IDS.map(k=>[k,0]));for(const r of roleOrder)counts[r]++;
+            game.applyConfig({...game.config,roles:counts,testRole:''});
+          }else game.applyConfig({...game.config,roles:preset(count),testRole:''});
+          game.start({allowBotOnly:true,roleOrder});
           rooms.set(code,{game,sessions:new Map(),clients:new Map(),revision:0,lastEmpty:Date.now(),cpuWatch:true,clock,fastMode:false});
           return json(res,200,{ok:true,code});
         }
@@ -152,6 +162,28 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(entry.game.phase==='vote')for(const p of entry.game.living().filter(p=>entry.game.isBot(p)&&!Object.hasOwn(entry.game.votes,p.id))){const c=Bots.decide(entry.game.botView(p.id),p.brain,'vote');entry.game.submitVote(p.id,entry.game.targets(p,'vote').includes(c?.target)?c.target:null,entry.game.phaseId,true);}
           if(!['lobby','ended'].includes(entry.game.phase))entry.game.advance();
           return json(res,200,{ok:true});
+        }
+        if(action==='set_cpu_votes'){
+          const g=entry.game;if(g.phase!=='vote')throw Error('投票フェーズでのみCPU票を操作できます。');
+          const votes=body.votes&&typeof body.votes==='object'?body.votes:{};
+          for(const p of g.living().filter(p=>p.bot)){
+            if(!Object.hasOwn(votes,p.id))continue;
+            const v=votes[p.id];
+            if(v==='auto'){delete g.votes[p.id];p.brain.actionAt=g.now()+3500;continue;}
+            const target=v===null?null:String(v);
+            if(target!==null&&!g.targets(p,'vote').includes(target))throw Error(p.name+'の投票先が不正です。');
+            g.votes[p.id]=target;
+          }
+          g.changed();broadcast(entry);return json(res,200,{ok:true});
+        }
+        if(action==='set_cpu_attack'){
+          const g=entry.game;if(g.phase!=='night')throw Error('夜フェーズでのみ襲撃先を操作できます。');
+          const livingWolves=g.living().filter(p=>WOLF.has(p.role));
+          if(livingWolves.some(p=>!p.bot))throw Error('人間の人狼が生存しているため、管理者から襲撃先は上書きできません。');
+          const cpuWolves=livingWolves.filter(p=>p.bot);if(!cpuWolves.length)throw Error('操作できるCPU人狼がいません。');
+          const target=String(body.target||'');for(const p of cpuWolves)if(!g.targets(p,'attack').includes(target))throw Error('その相手は襲撃できません。');
+          for(const p of cpuWolves)g.actions[p.id]=target;
+          g.system('管理者デバッグ操作によりCPU人狼の襲撃先が指定されました。');g.changed();broadcast(entry);return json(res,200,{ok:true});
         }
         if(action==='delete_room'){
           for(const client of entry.clients.values())client.end();rooms.delete(code);return json(res,200,{ok:true});
