@@ -112,3 +112,40 @@
 }
 /* v0.6.2 custom room-code creation */
 .custom-code-label{font-size:12px;margin:14px 0 7px}.custom-code-label span{float:right;font-size:10px}.room-code-help{margin:7px 0 12px!important}.entry-card #customCode{width:100%}
+
+/* v0.7.0 broken-role presentation + stronger mobile readability */
+@keyframes cheater-jitter{
+  0%,100%{transform:translate(0,0) rotate(0)}
+  20%{transform:translate(-1px,1px) rotate(-.4deg)}
+  40%{transform:translate(1px,0) rotate(.35deg)}
+  60%{transform:translate(-.5px,-1px) rotate(.2deg)}
+  80%{transform:translate(1px,1px) rotate(-.25deg)}
+}
+.cheater-active .board-name,.cheater-active .player-name{animation:cheater-jitter .28s steps(2,end) infinite}
+.cheater-role{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;line-height:1.25;color:var(--red);font-style:normal;font-weight:700}
+.special-title{margin-top:14px!important;padding-top:12px;border-top:1px solid var(--line)}
+.special-action-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.special-action-row strong{font-size:12px;grid-column:1/-1;color:var(--accent)}
+.special-action-row select{width:100%;font-size:12px}
+.special-action-row button{font-size:12px;min-height:42px}
+.special-action-row small{color:var(--muted)}
+@media(max-width:700px){
+  body{font-size:17px}
+  .board-player{width:78px;min-height:72px}
+  .board-avatar{width:43px;height:47px;font-size:16px}
+  .board-name{font-size:14px;line-height:1.25}
+  .board-player small{font-size:9px}
+  .cheater-role{font-size:9px}
+  .board-bubble{width:46%;padding:8px 10px}
+  .board-bubble strong{font-size:11px}
+  .board-bubble span{font-size:14px;line-height:1.5}
+  .relation-label{font-size:11px}
+  .mobile-nav button{font-size:15px;min-height:52px}
+  .message-text{font-size:16px}
+  .message-head{font-size:14px}
+  .narration strong{font-size:17px}
+  .target{font-size:14px;min-height:48px}
+  .special-action-row{grid-template-columns:1fr}
+  .special-action-row strong{font-size:14px}
+  .special-action-row select,.special-action-row button{font-size:14px;min-height:48px}
+}

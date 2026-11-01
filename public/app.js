@@ -1,4 +1,4 @@
-/* v0.6.2 browser UI: circular village board + arrows + longer secret cards + natural CPU conversation. */
+/* v0.7.0 browser UI: board UI + broken roles + admin-ready online play. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
@@ -111,7 +111,7 @@
   $('claim').onclick=()=>call('statement',{kind:'claim',role:$('claimRole').value});
   $('report').onclick=()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'});
   document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
-  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.6.2',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
+  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.7.0',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
 
   function renderSettings(s){
     $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;
@@ -137,6 +137,9 @@
     if(s.me.lover)bits.push('恋人：'+playerName(s.me.lover));
     if(s.me.revengeTarget)bits.push('復讐対象：'+playerName(s.me.revengeTarget)+(s.me.revengeDone?'（達成）':''));
     if(s.me.role==='plague')bits.push('感染済み：'+(s.me.infected.length?s.me.infected.map(playerName).join('、'):'まだいません'));
+    if(s.me.role==='cheater')bits.push('チーター視界：盤面に全員の本当の役職が表示されます。');
+    if(['white_leveler','black_leveler'].includes(s.me.role))bits.push('現在 Lv.'+(s.me.levelerLevel||1));
+    if(s.me.role==='cheater')bits.push('耐久：処刑 '+(s.me.cheaterExecutionHit?'済':'未')+' / 人狼襲撃 '+(s.me.cheaterAttackHit?'済':'未'));
     return bits;
   }
   function renderIdentity(s){
@@ -174,8 +177,23 @@
   function confirmCurrentAction(){if(!state)return;const {vote,kind}=currentActionInfo(state);if(vote)return call('vote',{target:selected});return call('act',{target:kind==='meet'?null:selected});}
   $('boardConfirm').onclick=confirmCurrentAction;$('boardAbstain').onclick=()=>call('vote',{target:null});
 
+  function renderSpecialControls(s,a){
+    const specials=s.specials||[];if(!specials.length)return;
+    const labels={steal_live:'生存者から役職を盗む',steal_dead:'死者の役職を盗む',cheat_kill:'チーター殺害',reset:'時間を巻き戻す',leveler_divine:'完全占い',hide_wolf:'人狼を匿う',implant_wolf:'人狼を植え付ける',leveler_kill:'黒レベラー殺害',priest_protect:'聖職者：護衛',priest_revive:'聖職者：蘇生',priest_purify:'聖職者：浄化'};
+    const title=document.createElement('h2');title.textContent='特殊能力';title.className='special-title';a.append(title);
+    const note=document.createElement('p');note.className='caption';note.textContent='レベラーの能力は成長するほど積み重なります。';a.append(note);
+    for(const sp of specials){
+      const key=sp.mode||sp.kind,row=document.createElement('div');row.className='special-action-row';
+      const head=document.createElement('strong');head.textContent=(labels[key]||key)+' '+sp.used+'/'+sp.limit;row.append(head);
+      if(sp.used>=sp.limit){const done=document.createElement('span');done.className='done-line';done.textContent='✓ 今夜は使用済み';row.append(done);a.append(row);continue;}
+      if(sp.kind==='reset'){const b=document.createElement('button');b.className='primary';b.textContent='直前の朝まで巻き戻す';b.onclick=()=>call('special_act',{kind:'reset'});row.append(b);a.append(row);continue;}
+      if(!sp.targets?.length){const empty=document.createElement('small');empty.textContent='対象なし';row.append(empty);a.append(row);continue;}
+      const sel=document.createElement('select');for(const id of sp.targets){const o=document.createElement('option');o.value=id;o.textContent=playerName(id);sel.append(o);}row.append(sel);
+      const b=document.createElement('button');b.textContent='この対象で使う';b.onclick=()=>call('special_act',{kind:sp.kind,mode:sp.mode||null,target:sel.value});row.append(b);a.append(row);
+    }
+  }
   function renderActions(s){
-    const sig=JSON.stringify([s.phase,s.phaseId,s.me.acted,s.me.voted,s.me.alive,s.me.auto,s.targets,s.me.actionTarget,s.me.voteTarget,selected]);if(actionSignature===sig)return;actionSignature=sig;
+    const sig=JSON.stringify([s.phase,s.phaseId,s.me.acted,s.me.voted,s.me.alive,s.me.auto,s.targets,s.specials,s.me.actionTarget,s.me.voteTarget,selected]);if(actionSignature===sig)return;actionSignature=sig;
     const a=$('actions');a.innerHTML='';const text=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=value;if(cls)e.className=cls;a.append(e);};
     if(s.phase==='ended'){text('h2','対戦終了');text('p','全員の役職が公開されています。','caption');return;}
     if(!s.me.alive){text('h2','幽霊として観戦中');text('p','盤面と幽霊チャットで最後まで見られます。','caption ghost-notice');return;}
@@ -183,7 +201,7 @@
     if(s.phase==='reveal'){text('h2','役職カード');text('p','カードは自動表示されます。見逃した場合は上の「役職カードを見る」から再確認できます。','caption');return;}
     if(s.phase==='discussion'){text('h2','話し合い');text('p','盤面の相手をタップすると、疑い・白寄り・質問・判定主張を矢印で出せます。','caption');return;}
     if(['dawn','execution'].includes(s.phase)){text('h2',s.phase==='dawn'?'朝の発表':'投票結果');text('p','中央のナレーションと盤面を確認してください。','caption');return;}
-    if(s.phase==='night'&&!s.kind){text('h2','夜の行動待ち');text('p',s.me.role==='medium'?'霊媒結果は秘密カードと自分だけの記録へ届きます。':'今夜は対象を選ぶ能力がありません。','caption');return;}
+    if(s.phase==='night'&&!s.kind){if(s.specials?.length){renderSpecialControls(s,a);return;}text('h2','夜の行動待ち');text('p',s.me.role==='medium'?'霊媒結果は秘密カードと自分だけの記録へ届きます。':'今夜は対象を選ぶ能力がありません。','caption');return;}
     const {vote,kind,done,target,targets}=currentActionInfo(s);const labels={vote:'処刑先への投票',divine:'占う相手',attack:'襲撃する相手',protect:'護衛する相手',infect:'感染させる相手',meet:'人狼の顔合わせ'};
     text('h2',labels[kind]||'行動');
     if(done){text('p','✓ '+(target?playerName(target)+'で確定':kind==='meet'?'顔合わせを確認済み':'確定しました'),'done-line');text('p','ほかの人の選択を待っています。','caption');return;}
@@ -196,25 +214,38 @@
   }
 
   function renderChat(s){
-    const ghost=!s.me.alive||s.phase==='ended',wolf=['wolf','darkwolf'].includes(s.me.role)||s.phase==='ended';
+    const ghost=!s.me.alive||s.phase==='ended',wolf=['wolf','darkwolf','black_leveler'].includes(s.me.role)||s.phase==='ended';
     document.querySelector('[data-channel="ghost"]').hidden=!ghost;document.querySelector('[data-channel="wolves"]').hidden=!wolf;
     if(channel==='ghost'&&!ghost||channel==='wolves'&&!wolf)channel='public';document.querySelectorAll('[data-channel]').forEach(b=>b.classList.toggle('active',b.dataset.channel===channel));$('chatScope').textContent=({public:'PUBLIC',wolves:'PACK ONLY',ghost:'GHOSTS ONLY'})[channel];
     const msgs=s.messages.filter(m=>m.channel==='system'||m.channel===channel).slice(-180),sig=channel+':'+msgs.map(m=>m.id).join(',');
     if(chatSignature!==sig){const box=$('messages'),bottom=box.scrollHeight-box.scrollTop-box.clientHeight<80,changed=!chatSignature.startsWith(channel+':');box.innerHTML=msgs.length?msgs.map(m=>`<div class="message ${m.channel==='system'?'system':''} ${m.playerId===s.me.id?'self':''} ${m.meta?'structured':''}">${m.channel!=='system'?`<div class="message-head"><strong>${esc(m.name)}</strong><small>${s.players.find(p=>p.id===m.playerId)?.bot?'CPU · ':''}${m.day?m.day+'日目':'待機室'}${m.meta?' · 矢印':''}</small></div>`:''}<div class="message-text">${esc(m.text)}</div></div>`).join(''):'<p class="message empty">まだ発言はありません。</p>';if(bottom||changed)box.scrollTop=box.scrollHeight;chatSignature=sig;}
     let can=false,hint='';
     if(channel==='ghost'){can=!s.me.alive&&!['lobby','reveal','ended'].includes(s.phase);hint='死亡者だけに届きます。';}
-    else if(channel==='wolves'){can=s.me.alive&&['wolf','darkwolf'].includes(s.me.role)&&s.phase==='night';hint='夜の人狼だけが見られます。';}
+    else if(channel==='wolves'){can=s.me.alive&&['wolf','darkwolf','black_leveler'].includes(s.me.role)&&s.phase==='night';hint='夜の人狼だけが見られます。';}
     else{can=['lobby','ended','discussion','vote','dawn','execution'].includes(s.phase)&&(s.me.alive||s.phase==='ended');hint=can?'公開チャットです。盤面の矢印と合わせて話せます。':'今は公開チャットに発言できません。';}
     if(s.phase==='ended')hint='試合終了。公開チャットで感想を話せます。';$('chatInput').disabled=!can;$('send').disabled=!can;$('chatHint').textContent=hint;$('chatInput').placeholder=can?(channel==='ghost'?'幽霊だけに話す…':channel==='wolves'?'仲間と相談…':'発言を入力…'):'この時間は読むだけです';$('statementBox').hidden=!(s.phase==='discussion'&&s.me.alive&&channel==='public');
   }
 
   function renderPrivate(s){
     const sig=JSON.stringify(s.me.privateResults);if(sig===privateSignature)return;privateSignature=sig;$('recordCount').textContent=s.me.privateResults.length;
-    $('privateResults').innerHTML=s.me.privateResults.length?s.me.privateResults.slice().reverse().map(r=>{if(r.kind==='notice')return `<div class="private-item">${esc(r.text)}</div>`;return `<div class="private-item"><small>${r.day}日目 · ${r.kind==='seer'?'占い':'霊媒'}</small>${esc(r.name)}：<strong class="${r.black?'black':'white'}">${r.black?'人狼':'人狼ではない'}</strong></div>`;}).join(''):'<p class="caption" style="margin:8px 0 0">能力結果はここに残ります。</p>';
-    const latest=s.me.privateResults.filter(r=>['seer','medium'].includes(r.kind)).at(-1);
+    $('privateResults').innerHTML=s.me.privateResults.length?s.me.privateResults.slice().reverse().map(r=>{
+      if(r.kind==='notice')return `<div class="private-item">${esc(r.text)}</div>`;
+      let label='能力結果',value='';
+      if(r.mode==='cheater'){label='チーター判定';value=r.cheater?'チーター':'チーターではない';}
+      else if(r.kind==='leveler_seer'){label='完全占い';value=r.role==='unknown'?'役職不明':(ROLES[r.role]?.name||r.role||'不明');}
+      else{label=r.kind==='seer'?'占い':'霊媒';value=r.black?'人狼':'人狼ではない';}
+      return `<div class="private-item"><small>${r.day}日目 · ${esc(label)}</small>${esc(r.name)}：<strong>${esc(value)}</strong></div>`;
+    }).join(''):'<p class="caption" style="margin:8px 0 0">能力結果はここに残ります。</p>';
+    const latest=s.me.privateResults.filter(r=>['seer','medium','leveler_seer'].includes(r.kind)).at(-1);
     if(latest&&latest.id!==lastPrivateId){lastPrivateId=latest.id;if(['night','dawn'].includes(s.phase))showResultCard(latest);}
   }
-  function showResultCard(r){const label=r.kind==='seer'?'占い結果':'霊媒結果';showSecretCard({eyebrow:r.kind==='seer'?'DIVINATION':'MEDIUM RESULT',heading:`${label} · あなたにだけ公開`,name:'タップして結果を確認',symbol:r.black?'☾':'✧',result:`${r.name}：${r.black?'人狼':'人狼ではない'}`,detail:r.kind==='seer'?'役職名そのものは分かりません':'処刑された人の判定です',black:r.black,autoFlipMs:SECRET_RESULT_AUTO_FLIP,visibleMs:SECRET_RESULT_VISIBLE});}
+  function showResultCard(r){
+    let label='能力結果',result='',detail='',black=false;
+    if(r.mode==='cheater'){label='チーター判定';result=`${r.name}：${r.cheater?'チーター':'チーターではない'}`;detail='チーターが生存しているため、通常の占い情報は妨害されています。';black=!!r.cheater;}
+    else if(r.kind==='leveler_seer'){label='完全占い';result=`${r.name}：${r.role==='unknown'?'役職不明':(ROLES[r.role]?.name||r.role||'不明')}`;detail=r.role==='unknown'?'何者かに匿われ、役職を読み取れませんでした。':'正確な役職を読み取りました。';black=ROLES[r.role]?.team==='wolves';}
+    else{label=r.kind==='seer'?'占い結果':'霊媒結果';result=`${r.name}：${r.black?'人狼':'人狼ではない'}`;detail=r.kind==='seer'?'役職名そのものは分かりません':'処刑された人の判定です';black=!!r.black;}
+    showSecretCard({eyebrow:r.kind==='medium'?'MEDIUM RESULT':'DIVINATION',heading:`${label} · あなたにだけ公開`,name:'タップして結果を確認',symbol:black?'☾':'✧',result,detail,black,autoFlipMs:SECRET_RESULT_AUTO_FLIP,visibleMs:SECRET_RESULT_VISIBLE});
+  }
 
   function renderRecords(s){
     const sig=JSON.stringify([s.claims,s.reports,s.voteHistory]);if(recordSignature===sig)return;recordSignature=sig;
@@ -226,7 +257,7 @@
   function boardPoint(index,n){const a=-Math.PI/2+index*(Math.PI*2/n),mobile=matchMedia('(max-width:700px)').matches;const rx=mobile?(n>18?42:39):(n>20?46:44),ry=mobile?(n>18?42:40):(n>20?43:40);return {x:50+Math.cos(a)*rx,y:50+Math.sin(a)*ry};}
   function renderBoardPlayers(s){
     const box=$('boardPlayers');box.innerHTML='';const n=s.players.length;
-    s.players.forEach((p,i)=>{const pos=boardPoint(i,n),b=document.createElement('button');b.type='button';b.className=`board-player ${p.alive?'':'dead'} ${p.id===s.me.id?'me':''} ${p.bot?'bot':''} ${n>18?'dense':''}`;b.style.left=pos.x+'%';b.style.top=pos.y+'%';b.dataset.playerId=p.id;b.innerHTML=`<span class="board-avatar">${esc([...p.name][0])}</span><span class="board-name">${esc(p.name)}</span><small>${p.bot?'CPU':''}${p.host?(p.bot?' · ':'')+'HOST':''}${!p.alive?' · 死亡':''}</small>`;b.onclick=()=>handleBoardPlayer(p.id);box.append(b);});
+    s.players.forEach((p,i)=>{const pos=boardPoint(i,n),b=document.createElement('button');b.type='button';b.className=`board-player ${p.alive?'':'dead'} ${p.id===s.me.id?'me':''} ${p.bot?'bot':''} ${n>18?'dense':''}`;b.style.left=pos.x+'%';b.style.top=pos.y+'%';b.dataset.playerId=p.id;const peek=s.me.role==='cheater'&&p.role?`<em class="cheater-role">${esc(ROLES[p.role]?.name||p.role)}</em>`:'';b.innerHTML=`<span class="board-avatar">${esc([...(p.name||'?')][0]||'?')}</span><span class="board-name">${esc(p.name)}</span>${peek}<small>${p.bot?'CPU':''}${p.host?(p.bot?' · ':'')+'HOST':''}${!p.alive?' · 死亡':''}</small>`;b.onclick=()=>handleBoardPlayer(p.id);box.append(b);});
   }
   function handleBoardPlayer(id){
     if(!state||id===state.me.id)return;
@@ -282,10 +313,10 @@
 
   function phaseAnnouncement(s){const m=[...s.messages].reverse().find(x=>x.channel==='system'&&x.phase===s.phase&&x.day===s.day);return m?.text||({reveal:'役職を確認してください。',night:'夜になりました。',dawn:'朝になりました。',discussion:'話し合いを始めます。',vote:'投票を開始します。',execution:'投票結果です。',ended:'ゲーム終了です。'})[s.phase]||'';}
   function render(s){
-    const old=state;state=s;document.body.dataset.phase=s.phase;timeOffset=s.now-Date.now();
+    const old=state;state=s;document.body.dataset.phase=s.phase;document.body.classList.toggle('cheater-active',!!s.cheaterActive);timeOffset=s.now-Date.now();
     if(s.phaseId!==old?.phaseId){selected=null;actionSignature='';boardMenuTarget=null;$('boardMenu').hidden=true;
       if(s.phase==='reveal'){lastSceneId=null;lastPrivateId=null;lastWinner=null;privateSignature='';secretShownPhase=null;}
-      if(s.phase==='night'&&['wolf','darkwolf'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
+      if(s.phase==='night'&&['wolf','darkwolf','black_leveler'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
       if(['discussion','dawn','execution','ended'].includes(s.phase))setMobileView('board');else if(['reveal','night'].includes(s.phase))setMobileView('self');else if(s.phase==='vote')setMobileView('board');
       const announcement=phaseAnnouncement(s);if(announcement)narrate(announcement,s.phase==='night'?'NIGHT':s.phase==='dawn'?'MORNING':s.phase==='vote'?'VOTE':'SYSTEM',s.phase==='discussion'?2200:3000);
     }
