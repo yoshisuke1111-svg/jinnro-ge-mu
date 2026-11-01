@@ -353,7 +353,7 @@
       if(channel==='ghost'){
         if(p.alive||['lobby','reveal','ended'].includes(this.phase))throw Error('幽霊だけの会話です。');
       } else if(channel==='wolves'){
-        if(!p.alive||!WOLF.has(p.role)||this.phase!=='night')throw Error('夜の人狼だけの会話です。');
+        if(!p.alive||!PACK.has(p.role)||this.phase!=='night')throw Error('夜の人狼陣営だけの会話です。');
       } else {
         channel='public';
         if(!['lobby','ended','discussion','vote','dawn','execution'].includes(this.phase)||(!p.alive&&!['lobby','ended'].includes(this.phase)))throw Error('生存者への発言は今はできません。');
@@ -415,7 +415,7 @@
       if(this.lastExecuted){
         const t=this.byId(this.lastExecuted);
         for(const p of this.living().filter(p=>p.role==='medium'))
-          p.privateResults.push({id:`medium-${this.day}-${p.id}`,kind:'medium',day:this.day,target:t.id,name:t.name,black:WOLF.has(t.role)});
+          p.privateResults.push({id:`medium-${this.day}-${p.id}`,kind:'medium',day:this.day,target:t.id,name:t.name,black:PACK.has(t.role)});
       }
       this.changed();
     }
@@ -641,7 +641,7 @@
       if(this.phase==='ended')return;
       for(const p of this.humans())if(!p.connected&&p.disconnectedAt!==null&&now-p.disconnectedAt>=15000&&!p.auto){p.auto=true;this.changed();}
       const bots=this.players.filter(p=>this.isBot(p));
-      const botWolves=bots.filter(p=>p.alive&&WOLF.has(p.role));
+      const botWolves=bots.filter(p=>p.alive&&PACK.has(p.role));
       for(const p of bots){
         const b=p.brain;
         if(['reveal','dawn','execution'].includes(this.phase)&&now>=b.actionAt)this.ready.add(p.id);
@@ -654,7 +654,7 @@
           continue;
         }
         if(this.phase==='night'){
-          if(WOLF.has(p.role)&&!b.nightSaid&&this.wolfTalkCount<Math.min(2,botWolves.length)&&now>=this.wolfTalkAt){
+          if(PACK.has(p.role)&&!b.nightSaid&&this.wolfTalkCount<Math.min(2,botWolves.length)&&now>=this.wolfTalkAt){
             const msg=bot.decide(this.botView(p.id),b,'wolfChat');
             if(msg?.text)this.message(p,msg.text,'wolves');
             b.nightSaid=true;this.wolfTalkCount++;this.wolfTalkAt=now+3500+Math.floor(this.random()*2500);
