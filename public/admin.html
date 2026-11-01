@@ -5,7 +5,7 @@
 <title>人狼ゲーム 管理者</title><link rel="stylesheet" href="/admin.css">
 </head>
 <body>
-<header><div><strong>人狼ゲーム</strong><span>管理者ダッシュボード · v0.6.2</span></div><button id="logout" hidden>ログアウト</button></header>
+<header><div><strong>人狼ゲーム</strong><span>管理者ダッシュボード · v0.7.0</span></div><button id="logout" hidden>ログアウト</button></header>
 <main>
 <section id="login" class="login-card">
   <h1>管理者ログイン</h1><p>サーバー起動時にPowerShellへ表示された管理者パスワードを入力してください。</p>
@@ -21,7 +21,13 @@
   </section>
   <section class="cpu-lab">
     <div><h2>CPU観戦ラボ</h2><p>人間なしでCPUだけの試合を作ります。管理者画面から役職・会話・進行を見ながら早送りできます。</p></div>
-    <form id="cpuWatchForm"><label>CPU人数 <input id="cpuWatchCount" type="number" min="4" max="30" value="8"></label><label>部屋コード（任意） <input id="cpuWatchCode" maxlength="16" placeholder="CPU-TEST"></label><button type="submit">CPUだけの試合を作る</button></form>
+    <form id="cpuWatchForm">
+      <label>CPU人数 <input id="cpuWatchCount" type="number" min="4" max="30" value="8"></label>
+      <label>部屋コード（任意） <input id="cpuWatchCode" maxlength="16" placeholder="CPU-TEST"></label>
+      <label class="manual-role-toggle"><input id="cpuManualRoles" type="checkbox"> CPU役職を手動指定</label>
+      <div id="cpuRoleBuilder" class="cpu-role-builder" hidden></div>
+      <button type="submit">CPUだけの試合を作る</button>
+    </form>
     <p id="adminNotice" class="admin-notice" aria-live="polite"></p>
   </section>
   <div class="layout">
