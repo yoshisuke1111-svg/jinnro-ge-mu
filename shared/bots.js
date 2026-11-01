@@ -7,7 +7,7 @@
   else root.WWBots=factory(root.WW);
 })(typeof globalThis!=='undefined'?globalThis:this,function(WW){
   'use strict';
-  const {ROLES,WOLF}=WW;
+  const {ROLES,WOLF,PACK}=WW;
   const hash=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
   const name=(v,id)=>v.players.find(p=>p.id===id)?.name||'その人';
   const live=v=>v.players.filter(p=>p.alive);
@@ -55,7 +55,8 @@
       }
     }
     for(const r of v.me.privateResults){
-      if(r.kind==='seer')add(r.target,r.black?250:(v.config.roles.darkwolf?-28:-95),`自分の占いで${r.black?'人狼':'人狼ではない'}と確認した`);
+      if(r.kind==='seer'&&r.mode!=='cheater')add(r.target,r.black?250:(v.config.roles.darkwolf?-28:-95),`自分の占いで${r.black?'人狼':'人狼ではない'}と確認した`);
+      if(r.kind==='leveler_seer'&&r.mode!=='cheater'&&r.role)add(r.target,ROLES[r.role]?.team==='wolves'?180:-55,`白レベラーの完全占いで${ROLES[r.role]?.name||r.role}と確認した`);
     }
     for(const id of v.me.knownMasons)add(id,-75,'共有者の相方として知っている');
     if(v.me.lover)add(v.me.lover,-1000,'相方を守りたい');
@@ -83,7 +84,7 @@
         rumorWeights[k]=(rumorWeights[k]||0)+1;
       }
     }
-    if(WOLF.has(v.me.role)||v.me.role==='fanatic'){
+    if(PACK.has(v.me.role)||v.me.role==='fanatic'){
       for(const id of v.me.knownWolves)add(id,-600,'仲間を外す');
     }
     if(v.me.role==='avenger'&&!v.me.lover&&!v.me.revengeDone)add(v.me.revengeTarget,75,'投票先として注目している');
@@ -233,7 +234,7 @@
     if(v.day!==1)return false;
     const leader=v.me.knownWolves.slice().sort()[0];
     let chance=0;
-    if(WOLF.has(v.me.role)&&v.me.id===leader)chance=55;
+    if(PACK.has(v.me.role)&&v.me.id===leader)chance=55;
     else if(v.me.role==='madman')chance=40;
     else if(v.me.role==='fanatic')chance=30;
     else if(v.me.role==='jester'&&!v.me.lover)chance=20;
