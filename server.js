@@ -9,7 +9,7 @@ const crypto=require('node:crypto');
 const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF}=require('./shared/rules');
 const Bots=require('./shared/bots');
-const VERSION='0.7.0';
+const VERSION='0.7.1';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
   const code=String(value||'').normalize('NFKC').trim().replace(/\s+/g,'').toUpperCase();
@@ -23,11 +23,34 @@ function makeClock(){
   return {now(){return gameBase+(Date.now()-realBase)*speed;},setSpeed(next){const current=this.now();realBase=Date.now();gameBase=current;speed=next;},getSpeed(){return speed;}};
 }
 
-function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null}={}) {
+function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch}={}) {
   const rooms=new Map(),tickets=new Map(),rates=new Map(),chatRates=new Map(),adminSessions=new Map();
   const startedReal=Date.now(),recentErrors=[];let requestCount=0,apiCount=0;
   const recordError=(scope,error)=>{recentErrors.push({at:Date.now(),scope,message:String(error?.message||error)});if(recentErrors.length>40)recentErrors.splice(0,recentErrors.length-40);};
   const effectiveAdminPassword=adminPassword||crypto.randomBytes(9).toString('base64url');
+  const cleanBase=String(publicBaseUrl||'').trim().replace(/\/+$/,'');
+  async function notifyRoomCreated({code,creator}){
+    if(!discordWebhook||typeof fetchImpl!=='function')return false;
+    const invite=cleanBase?cleanBase+'/?room='+encodeURIComponent(code):'';
+    const mention=/^\d{5,30}$/.test(String(discordNotifyUserId||''))?String(discordNotifyUserId):'';
+    const payload={
+      content:mention?'<@'+mention+'> 新しい人狼部屋が作成されました。':'新しい人狼部屋が作成されました。',
+      allowed_mentions:mention?{users:[mention]}:{parse:[]},
+      embeds:[{
+        title:'🐺 新しい部屋',
+        color:0xd8bc83,
+        fields:[
+          {name:'部屋コード',value:'`'+String(code).slice(0,32)+'`',inline:true},
+          {name:'作成者',value:String(creator||'不明').slice(0,80),inline:true}
+        ],
+        ...(invite?{url:invite,description:'[部屋を開く]('+invite+')'}:{}),
+        timestamp:new Date().toISOString()
+      }]
+    };
+    const response=await fetchImpl(discordWebhook,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+    if(!response.ok)throw Error('Discord通知に失敗しました ('+response.status+')');
+    return true;
+  }
   const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'};
   const allowed={
     '/':'public/index.html','/index.html':'public/index.html','/app.js':'public/app.js','/style.css':'public/style.css',
@@ -224,6 +247,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           const entry={game,sessions:new Map([[secret,pid]]),clients:new Map(),revision:0,lastEmpty:Date.now(),cpuWatch:false,clock:null,fastMode:false};
           rooms.set(code,entry);
           if(data.solo)game.prepareSolo(data.role??'seer',8);
+          else void notifyRoomCreated({code,creator:game.realName(pid)}).catch(error=>recordError('discord room notify',error));
           return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:game.view(pid)});
         }
         const code=normalizeRoomCode(body.code||data.code),entry=rooms.get(code);
