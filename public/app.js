@@ -214,14 +214,14 @@
   }
 
   function renderChat(s){
-    const ghost=!s.me.alive||s.phase==='ended',wolf=['wolf','darkwolf'].includes(s.me.role)||s.phase==='ended';
+    const ghost=!s.me.alive||s.phase==='ended',wolf=['wolf','darkwolf','black_leveler'].includes(s.me.role)||s.phase==='ended';
     document.querySelector('[data-channel="ghost"]').hidden=!ghost;document.querySelector('[data-channel="wolves"]').hidden=!wolf;
     if(channel==='ghost'&&!ghost||channel==='wolves'&&!wolf)channel='public';document.querySelectorAll('[data-channel]').forEach(b=>b.classList.toggle('active',b.dataset.channel===channel));$('chatScope').textContent=({public:'PUBLIC',wolves:'PACK ONLY',ghost:'GHOSTS ONLY'})[channel];
     const msgs=s.messages.filter(m=>m.channel==='system'||m.channel===channel).slice(-180),sig=channel+':'+msgs.map(m=>m.id).join(',');
     if(chatSignature!==sig){const box=$('messages'),bottom=box.scrollHeight-box.scrollTop-box.clientHeight<80,changed=!chatSignature.startsWith(channel+':');box.innerHTML=msgs.length?msgs.map(m=>`<div class="message ${m.channel==='system'?'system':''} ${m.playerId===s.me.id?'self':''} ${m.meta?'structured':''}">${m.channel!=='system'?`<div class="message-head"><strong>${esc(m.name)}</strong><small>${s.players.find(p=>p.id===m.playerId)?.bot?'CPU · ':''}${m.day?m.day+'日目':'待機室'}${m.meta?' · 矢印':''}</small></div>`:''}<div class="message-text">${esc(m.text)}</div></div>`).join(''):'<p class="message empty">まだ発言はありません。</p>';if(bottom||changed)box.scrollTop=box.scrollHeight;chatSignature=sig;}
     let can=false,hint='';
     if(channel==='ghost'){can=!s.me.alive&&!['lobby','reveal','ended'].includes(s.phase);hint='死亡者だけに届きます。';}
-    else if(channel==='wolves'){can=s.me.alive&&['wolf','darkwolf'].includes(s.me.role)&&s.phase==='night';hint='夜の人狼だけが見られます。';}
+    else if(channel==='wolves'){can=s.me.alive&&['wolf','darkwolf','black_leveler'].includes(s.me.role)&&s.phase==='night';hint='夜の人狼だけが見られます。';}
     else{can=['lobby','ended','discussion','vote','dawn','execution'].includes(s.phase)&&(s.me.alive||s.phase==='ended');hint=can?'公開チャットです。盤面の矢印と合わせて話せます。':'今は公開チャットに発言できません。';}
     if(s.phase==='ended')hint='試合終了。公開チャットで感想を話せます。';$('chatInput').disabled=!can;$('send').disabled=!can;$('chatHint').textContent=hint;$('chatInput').placeholder=can?(channel==='ghost'?'幽霊だけに話す…':channel==='wolves'?'仲間と相談…':'発言を入力…'):'この時間は読むだけです';$('statementBox').hidden=!(s.phase==='discussion'&&s.me.alive&&channel==='public');
   }
@@ -316,7 +316,7 @@
     const old=state;state=s;document.body.dataset.phase=s.phase;document.body.classList.toggle('cheater-active',!!s.cheaterActive);timeOffset=s.now-Date.now();
     if(s.phaseId!==old?.phaseId){selected=null;actionSignature='';boardMenuTarget=null;$('boardMenu').hidden=true;
       if(s.phase==='reveal'){lastSceneId=null;lastPrivateId=null;lastWinner=null;privateSignature='';secretShownPhase=null;}
-      if(s.phase==='night'&&['wolf','darkwolf'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
+      if(s.phase==='night'&&['wolf','darkwolf','black_leveler'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
       if(['discussion','dawn','execution','ended'].includes(s.phase))setMobileView('board');else if(['reveal','night'].includes(s.phase))setMobileView('self');else if(s.phase==='vote')setMobileView('board');
       const announcement=phaseAnnouncement(s);if(announcement)narrate(announcement,s.phase==='night'?'NIGHT':s.phase==='dawn'?'MORNING':s.phase==='vote'?'VOTE':'SYSTEM',s.phase==='discussion'?2200:3000);
     }
