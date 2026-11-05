@@ -9,7 +9,7 @@ const crypto=require('node:crypto');
 const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF}=require('./shared/rules');
 const Bots=require('./shared/bots');
-const VERSION='0.7.5';
+const VERSION='0.7.6';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
   const code=String(value||'').normalize('NFKC').trim().replace(/\s+/g,'').toUpperCase();
