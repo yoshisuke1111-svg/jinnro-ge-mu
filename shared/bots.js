@@ -288,10 +288,37 @@
     for(let i=v.voteHistory.length-1;i>=0;i--){const ballot=v.voteHistory[i].ballots?.find(x=>x.voter===v.me.id);if(ballot)return ballot.target||null;}
     return null;
   }
+  function freeIntent(v,msg,me=v.me){
+    const text=String(msg?.text||''),compact=text.replace(/\s+/g,'');
+    const subject=v.players.filter(p=>p.id!==me.id&&p.id!==msg?.playerId).sort((a,b)=>b.name.length-a.name.length).find(p=>compact.includes(p.name));
+    const direct=msg?.meta?.target===me.id||compact.includes(me.name);
+    const question=/[?？]|どう思|どう見|どうする|誰|どこ|教えて|聞きたい|意見|なんで|なぜ|理由|本物|偽/.test(compact);
+    let kind='none';
+    if(/^(おは|こんにちは|こんばんは|よろしく|やあ|どうも)/.test(compact))kind='greeting';
+    if(/投票|票先|吊り|処刑/.test(compact)&&question)kind='vote';
+    else if(/役職|何者|CO|ＣＯ|カミングアウト/.test(compact)&&question)kind='role';
+    else if(/占い|占い師|霊媒|判定/.test(compact)&&question)kind='seer';
+    else if(subject&&(/怪し|白|黒|村っぽ|人狼|信用|信じ|どう思|どう見/.test(compact)))kind='target';
+    else if(/怪し|人狼|黒い|疑って|誰|どこ/.test(compact)&&question)kind='suspect';
+    else if(question)kind='opinion';
+    return {kind,direct,subject,question,text:compact};
+  }
+  function replyInterest(v,b,msg){
+    if(!msg||msg.channel!=='public'||msg.playerId===v.me.id)return 0;
+    const sender=v.players.find(p=>p.id===msg.playerId);if(!sender||sender.bot)return 0;
+    const namedBot=v.players.filter(p=>p.alive&&p.bot).sort((a,b)=>b.name.length-a.name.length).find(p=>String(msg.text||'').includes(p.name));
+    if(namedBot)return namedBot.id===v.me.id?3:0;
+    const i=freeIntent(v,msg);
+    if(i.direct)return 3;
+    if(i.kind==='none')return 0;
+    const candidates=v.players.filter(p=>p.alive&&p.bot).map(p=>p.id).sort();
+    if(!candidates.length)return 0;
+    return candidates[hash(String(msg.id)+'|free-reply')%candidates.length]===v.me.id?1:0;
+  }
   function replySpeech(v,b){
     const me=v.me,msg=v.messages.find(m=>m.id===b.replyMessageId&&m.channel==='public');
     if(!msg)return null;
-    const list=ranked(v),target=list[0],reason=target?safeReason(v,target,b):'',p=tone(b);
+    const list=ranked(v),target=list[0],reason=target?safeReason(v,target,b):'',p=tone(b),intent=freeIntent(v,msg,me);
     if(msg.meta?.kind==='report'&&msg.meta.target===me.id){
       if(msg.meta.black){
         const lead={casual:`${msg.name}の黒は違う。少なくとも自分視点では偽。`,soft:`${msg.name}の黒判定は違うよ。自分視点ではそこははっきりしてる。`,polite:`${msg.name}さんの黒判定は違います。少なくとも自分視点では偽です。`,blunt:`${msg.name}の黒は偽。`,analytical:`${msg.name}の黒判定は自分視点で成立しない。`}[p];
@@ -299,15 +326,7 @@
       }
       return {text:{casual:`${msg.name}の白は見た。でも、その占いまで真だとはまだ思ってない。`,soft:`${msg.name}の白判定は確認したよ。占い自体はもう少し見たいかな。`,polite:`${msg.name}さんの白判定は確認しました。ただ、その占いが真かどうかはもう少し見たいです。`,blunt:`${msg.name}の白は確認。占い真とはまだ決めない。`,analytical:`${msg.name}から白判定。判定と占い師の真偽は分けて考える。`}[p]};
     }
-    if(msg.meta?.kind==='question'&&msg.meta.target===me.id){
-      const voted=ownLastVote(v);
-      if(voted&&/投票|票/.test(msg.text||'')){
-        const vt=ranked(v,[voted])[0],why=vt?safeReason(v,vt,b):'';
-        return {text:choose(v,'reply-vote-'+msg.id,[`昨日は${spokenName(v,b,voted)}に入れた。${why}`,`${spokenName(v,b,voted)}に投票したよ。理由は、${why}`,`票は${spokenName(v,b,voted)}。その時は${why}`])};
-      }
-      if(target)return {statement:{kind:'accuse',target:target.id},text:choose(v,'reply-question-'+msg.id,[`うん。今いちばん気になってるのは${spokenName(v,b,target.id)}。${reason}`,`今の考えなら${opinionSentence(v,b,target,'accuse',reason)}`,`まだ固めてないけど、${opinionSentence(v,b,target,'accuse',reason)}`])};
-      return {text:choose(v,'reply-question-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今はまだ保留かな。投票理由が出たら考えたい。','材料が少ないから、今の時点では決めてない。'])};
-    }
+    if(msg.meta?.kind==='question'&&msg.meta.target===me.id)intent.kind=/投票|票/.test(msg.text||'')?'vote':intent.kind==='none'?'opinion':intent.kind;
     if(msg.meta?.kind==='accuse'&&msg.meta.target===me.id){
       const lead={casual:'そこ疑われるのか。まあ理由は分かった。',soft:'そこを気にされてるのは分かったよ。',polite:'そこを疑われているのは分かりました。',blunt:'疑われてるのは分かった。',analytical:'自分への疑いは把握した。'}[p];
       if(target)return {statement:{kind:'accuse',target:target.id},text:`${lead} ただ、自分は${spokenName(v,b,target.id)}の方を見てる。${reason}`};
@@ -316,12 +335,45 @@
     if(msg.meta?.kind==='trust'&&msg.meta.target===me.id){
       return {text:choose(v,'reply-trust-'+msg.id,[`${msg.name}がそう見てるのは分かった。自分もまだ決め打ちはしない。`,`白く見てくれるのはありがたいけど、そこだけで固めなくていいと思う。`,`了解。自分は引き続き発言と投票を見てる。`])};
     }
-    if(msg.text&&msg.text.includes(me.name)){
-      if(target){
-        const text=choose(v,'reply-name-'+msg.id,[`今のところは${spokenName(v,b,target.id)}が気になる。${reason}`,`${opinionSentence(v,b,target,'accuse',reason)}`,`まだ変わるかもしれないけど、今は${spokenName(v,b,target.id)}を見てる。${reason}`]);
-        return {statement:{kind:'accuse',target:target.id},text};
+    if(intent.kind==='greeting'){
+      return {text:choose(v,'reply-greeting-'+msg.id,{
+        casual:['おはよう。今日も発言と票を見ながら考える。','おはよう。まだ決め打ちはせず見ていくよ。'],
+        soft:['おはよう。今日もゆっくり材料を見ていこう。','おはよう。まずはみんなの話を聞きたいかな。'],
+        polite:['おはようございます。今日も発言と投票を見て考えます。','おはようございます。まずは皆さんの意見を聞きたいです。'],
+        blunt:['おはよう。まず発言を見る。','おはよう。今日も材料から見る。'],
+        analytical:['おはよう。今日も公開情報から整理する。','おはよう。まず昨日までの票と発言を確認する。']
+      }[p])};
+    }
+    if(intent.kind==='vote'){
+      const voted=ownLastVote(v);
+      if(voted){
+        const vt=ranked(v,[voted])[0],why=vt?safeReason(v,vt,b):'その時点では一番気になった';
+        return {text:choose(v,'reply-vote-'+msg.id,[`昨日は${spokenName(v,b,voted)}に入れた。${why}`,`${spokenName(v,b,voted)}に投票したよ。理由は、${why}`,`票は${spokenName(v,b,voted)}。その時は${why}`])};
       }
-      return {text:choose(v,'reply-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今は占い結果と投票理由を見てる。','材料が少ないから、まだ保留かな。'])};
+      if(target)return {statement:{kind:'accuse',target:target.id},text:choose(v,'reply-next-vote-'+msg.id,[`今投票するなら${spokenName(v,b,target.id)}かな。${reason}`,`まだ確定じゃないけど、今は${spokenName(v,b,target.id)}を候補にしてる。${reason}`])};
+    }
+    if(intent.kind==='role'){
+      const claimed=b.fakeRole||b.announcedRole;
+      if(claimed)return {text:choose(v,'reply-role-known-'+msg.id,[`自分はもう${ROLES[claimed]?.name||claimed}で出てる。`,`${ROLES[claimed]?.name||claimed}として話してるよ。`])};
+      return {text:choose(v,'reply-role-hidden-'+msg.id,{casual:['役職は今は伏せておく。必要になったら出る。','今はまだ役職を出す場面じゃないと思ってる。'],soft:['今はまだ役職は伏せたいかな。必要なら出るよ。','今のところは役職を伏せて、発言を見たいかな。'],polite:['今はまだ役職は伏せておきたいです。必要になれば出ます。','現時点では役職は伏せておきます。'],blunt:['今は伏せる。必要なら出る。','役職はまだ言わない。'],analytical:['現時点では役職公開の利益が薄いので伏せる。','役職はまだ公開しない。必要性が出たら考える。']}[p])};
+    }
+    if(intent.kind==='seer'){
+      const reports=v.reports.filter(r=>r.role==='seer'&&r.day===v.day);
+      if(!reports.length)return {text:choose(v,'reply-seer-empty-'+msg.id,['まだ占い結果が少ないから、真偽は決められない。','占いはまだ材料不足。結果とその後の発言を見たい。','今は占い師を決め打つ段階ではないと思う。'])};
+      const latest=reports.at(-1),who=name(v,latest.playerId),t=name(v,latest.target);
+      return {text:choose(v,'reply-seer-'+msg.id,[`${who}の${t}${latest.black?'黒':'白'}は見てる。ただ、結果だけで真偽は決めない。`,`占いは${who}の結果を材料にしてる。出した後の発言と投票も見たい。`,`${who}の判定は確認した。対抗や票の動きまで見てから判断したい。`])};
+    }
+    if(intent.kind==='target'&&intent.subject){
+      const item=ranked(v,[intent.subject.id])[0];if(item){
+        const why=safeReason(v,item,b);
+        if(item.score>=35)return {statement:{kind:'accuse',target:item.id},text:opinionSentence(v,b,item,'accuse',why)};
+        if(item.score<=8)return {statement:{kind:'trust',target:item.id},text:opinionSentence(v,b,item,'trust',why)};
+        return {text:choose(v,'reply-target-neutral-'+msg.id,[`${spokenName(v,b,item.id)}はまだ白黒どちらにも寄せ切ってない。${why}`,`${spokenName(v,b,item.id)}は保留寄り。もう少し発言と票を見たい。`])};
+      }
+    }
+    if(['suspect','opinion'].includes(intent.kind)||intent.direct){
+      if(target)return {statement:{kind:'accuse',target:target.id},text:choose(v,'reply-opinion-'+msg.id,[`今いちばん気になってるのは${spokenName(v,b,target.id)}。${reason}`,`今の考えなら${opinionSentence(v,b,target,'accuse',reason)}`,`まだ固めてないけど、${opinionSentence(v,b,target,'accuse',reason)}`])};
+      return {text:choose(v,'reply-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今はまだ保留かな。投票理由が出たら考えたい。','材料が少ないから、今の時点では決めてない。'])};
     }
     return null;
   }
@@ -399,5 +451,5 @@
     if(mode==='reply')return voiced(v,b,replySpeech(v,b));
     return null;
   }
-  return {decide,evaluate,ranked,reliability,priority};
+  return {decide,evaluate,ranked,reliability,priority,replyInterest,freeIntent};
 });
