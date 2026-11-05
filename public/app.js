@@ -1,4 +1,4 @@
-/* v0.8.0 browser UI: eye-comfort palette, clearer cards, comments, and readable game surfaces. */
+/* v0.8.1 browser UI: eye-comfort palette, clearer cards, comments, and readable game surfaces. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
@@ -109,7 +109,7 @@
   async function saveDraft(){const res=await call('config',draft());if(!res)return false;settingsDirty=false;settingsVersion=-1;$('dirtyHint').textContent='保存しました';if(state)renderSettings(state);return true;}
   $('saveSettings').onclick=saveDraft;$('start').onclick=async()=>{if(settingsDirty&&!(await saveDraft()))return;await call('start');};
   $('fillVillagers').onclick=()=>{const other=ROLE_IDS.filter(k=>k!=='villager').reduce((a,k)=>a+(Number($('count-'+k).value)||0),0);$('count-villager').value=Math.max(0,state.players.length-other);markDirty();};
-  $('setBots').onclick=async()=>{settingsDirty=false;settingsVersion=-1;await call('bots',{count:Number($('cpuCount').value)});};
+  $('setBots').onclick=async()=>{await runButton($('setBots'),'変更中…',()=>call('bots',{count:Number($('cpuCount').value)}));};
   document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=async()=>{const [kind,n]=b.dataset.preset.split(':');settingsDirty=false;settingsVersion=-1;await call('preset',{kind,count:Number(n)});});
   $('soloRole').onchange=async()=>{settingsDirty=false;settingsVersion=-1;const role=$('soloRole').value;const n=Math.max(role==='lover'?6:4,state.players.length);const res=await call('solo',{role,count:n});if(res)toast('練習役職に合わせた基本配役に変更しました。');};
   $('shortTimes').onclick=()=>{$('time-discussion').value=20;$('time-night').value=10;$('time-other').value=8;$('time-vote').value=10;markDirty();};
@@ -125,7 +125,7 @@
   $('claim').onclick=()=>runButton($('claim'),'CO中…',()=>call('statement',{kind:'claim',role:$('claimRole').value}));
   $('report').onclick=()=>runButton($('report'),'報告中…',()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'}));
   document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
-  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.8.0',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
+  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.8.1',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
 
   function renderSettings(s){
     $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;
