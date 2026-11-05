@@ -1065,3 +1065,173 @@ body,.site-header,.panel,.phase-bar,.village-board,.chat-column,.messages,.messa
   .intro-cover{padding:26px 24px}
   .intro-cover h1{font-size:34px}
 }
+
+
+/* v0.7.8 smooth time-of-day color cycle */
+@property --sky-top{syntax:"<color>";inherits:true;initial-value:#151a20}
+@property --sky-mid{syntax:"<color>";inherits:true;initial-value:#151a20}
+@property --sky-bottom{syntax:"<color>";inherits:true;initial-value:#151a20}
+@property --board-center{syntax:"<color>";inherits:true;initial-value:#232c34}
+@property --board-mid{syntax:"<color>";inherits:true;initial-value:#1a2229}
+@property --board-edge{syntax:"<color>";inherits:true;initial-value:#151b21}
+
+body[data-phase]{
+  background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 48%,var(--sky-bottom) 100%);
+  background-attachment:fixed;
+  transition:
+    --sky-top 1.55s ease,
+    --sky-mid 1.55s ease,
+    --sky-bottom 1.55s ease,
+    --board-center 1.55s ease,
+    --board-mid 1.55s ease,
+    --board-edge 1.55s ease,
+    color 1.25s ease;
+}
+body[data-phase] .village-board{
+  background:radial-gradient(ellipse at center,var(--board-center) 0%,var(--board-mid) 58%,var(--board-edge) 100%);
+}
+
+/* Sunrise: warm horizon, but still subdued rather than white */
+body[data-phase="dawn"]{
+  --sky-top:#718a98;
+  --sky-mid:#a39d93;
+  --sky-bottom:#b98d67;
+  --board-center:#c9c6b8;
+  --board-mid:#b9b3a5;
+  --board-edge:#9da2a0;
+  --bg:#9da6a5;
+  --panel:#cbc9bf;
+  --panel2:#bfc3bd;
+  --line:#939793;
+  --text:#28343a;
+  --muted:#5f6a70;
+  --accent:#80673c;
+}
+body[data-phase="dawn"] .site-header{background:#b9bebae8;border-color:#929893}
+body[data-phase="dawn"] .panel{background:#cbc9bf;border-color:#989b96}
+body[data-phase="dawn"] .phase-bar{background:#d2cfc5;border-color:#999a93}
+body[data-phase="dawn"] .chat-column,
+body[data-phase="dawn"] .chat-header,
+body[data-phase="dawn"] .chat-form,
+body[data-phase="dawn"] .chat-hint,
+body[data-phase="dawn"] .statement-box{background:#c4c5be;border-color:#969b98}
+body[data-phase="dawn"] .messages{background:#b8bfbd}
+body[data-phase="dawn"] .message{background:#d2d0c7;border-color:#a0a29d}
+body[data-phase="dawn"] .message.cpu{background:#cbd1cd;border-color:#9da7a3}
+body[data-phase="dawn"] .message.self{background:#d4c9ac;border-color:#a9996e}
+body[data-phase="dawn"] .message.system{background:#b9beb9;border-color:#969c99;border-left-color:#747f84}
+body[data-phase="dawn"] input,
+body[data-phase="dawn"] select{background:#d9d8cf;border-color:#929994;color:#263239}
+body[data-phase="dawn"] button{background:#c0c2bc;border-color:#929894;color:#28343a}
+body[data-phase="dawn"] .primary{background:#ae9361;border-color:#987c4c;color:#20272b}
+body[data-phase="dawn"] .identity-card,
+body[data-phase="dawn"] .board-menu,
+body[data-phase="dawn"] .board-action-dock{background:#c5c6be;border-color:#999c96}
+body[data-phase="dawn"] .board-bubble{background:#d4d3ca;border-color:#9b9f9a;color:#29343a}
+body[data-phase="dawn"] .board-bubble span{color:#29343a}
+body[data-phase="dawn"] .board-bubble strong{color:#626d72}
+body[data-phase="dawn"] .board-avatar{background:#b8c0bd;border-color:#899596;color:#2b373d}
+body[data-phase="dawn"] .mobile-nav{background:#c4c7c2ed;border-color:#969b97}
+
+/* Day: a muted blue-grey sky, deliberately less white than v0.7.7 */
+body[data-phase="discussion"]{
+  --sky-top:#6f8f9d;
+  --sky-mid:#91a8ad;
+  --sky-bottom:#a9b3b1;
+  --board-center:#c3d0ce;
+  --board-mid:#acbdbc;
+  --board-edge:#919fa1;
+  --bg:#94a6a9;
+  --panel:#c7d0cf;
+  --panel2:#b9c5c5;
+  --line:#879698;
+  --text:#26343b;
+  --muted:#586b73;
+  --accent:#75643d;
+}
+body[data-phase="discussion"] .site-header{background:#b8c7c9e8;border-color:#879698}
+body[data-phase="discussion"] .panel{background:#c7d0cf;border-color:#8f9b9d}
+body[data-phase="discussion"] .phase-bar{background:#d0d8d6;border-color:#909c9d}
+body[data-phase="discussion"] .chat-column,
+body[data-phase="discussion"] .chat-header,
+body[data-phase="discussion"] .chat-form,
+body[data-phase="discussion"] .chat-hint,
+body[data-phase="discussion"] .statement-box{background:#c0cbcb;border-color:#8f9c9d}
+body[data-phase="discussion"] .messages{background:#b3c1c2}
+body[data-phase="discussion"] .message{background:#d0d8d6;border-color:#98a4a4}
+body[data-phase="discussion"] .message.cpu{background:#c8d4d3;border-color:#91a09f}
+body[data-phase="discussion"] .message.self{background:#d3ccb3;border-color:#a99a72}
+body[data-phase="discussion"] .message.system{background:#b9c4c3;border-color:#8d999a;border-left-color:#687b82}
+body[data-phase="discussion"] input,
+body[data-phase="discussion"] select{background:#d9e0de;border-color:#859496;color:#243239}
+body[data-phase="discussion"] button{background:#bbc7c6;border-color:#899799;color:#26343b}
+body[data-phase="discussion"] .primary{background:#ad9867;border-color:#94804e;color:#20272b}
+body[data-phase="discussion"] .identity-card,
+body[data-phase="discussion"] .board-menu,
+body[data-phase="discussion"] .board-action-dock{background:#c1cccb;border-color:#8f9b9d}
+body[data-phase="discussion"] .board-bubble{background:#d1d9d7;border-color:#929fa0;color:#27343a}
+body[data-phase="discussion"] .board-bubble span{color:#27343a}
+body[data-phase="discussion"] .board-bubble strong{color:#5d7077}
+body[data-phase="discussion"] .board-avatar{background:#afc0c1;border-color:#819497;color:#29373e}
+body[data-phase="discussion"] .mobile-nav{background:#bdc9c9ed;border-color:#8c999b}
+
+/* Sunset: orange at the horizon fades toward mauve before night */
+body[data-phase="vote"]{
+  --sky-top:#6b5863;
+  --sky-mid:#9a6e61;
+  --sky-bottom:#c18a62;
+  --board-center:#665352;
+  --board-mid:#493d41;
+  --board-edge:#312c31;
+}
+body[data-phase="execution"]{
+  --sky-top:#473d50;
+  --sky-mid:#725358;
+  --sky-bottom:#9a6958;
+  --board-center:#57484d;
+  --board-mid:#3c3339;
+  --board-edge:#28242a;
+}
+
+/* Night: deep navy rather than pure black */
+body[data-phase="night"],
+body[data-phase="reveal"]{
+  --sky-top:#101827;
+  --sky-mid:#0d1521;
+  --sky-bottom:#080d14;
+  --board-center:#182532;
+  --board-mid:#101923;
+  --board-edge:#080d14;
+}
+
+/* Let the whole interface settle into the new time of day instead of snapping. */
+body[data-phase] .site-header,
+body[data-phase] .panel,
+body[data-phase] .phase-bar,
+body[data-phase] .village-board,
+body[data-phase] .chat-column,
+body[data-phase] .chat-header,
+body[data-phase] .messages,
+body[data-phase] .message,
+body[data-phase] .chat-form,
+body[data-phase] .chat-hint,
+body[data-phase] .statement-box,
+body[data-phase] .identity-card,
+body[data-phase] .board-menu,
+body[data-phase] .board-action-dock,
+body[data-phase] .board-bubble,
+body[data-phase] .board-avatar,
+body[data-phase] .mobile-nav,
+body[data-phase] input,
+body[data-phase] select,
+body[data-phase] button{
+  transition:
+    background-color 1.25s ease,
+    border-color 1.25s ease,
+    color 1.25s ease,
+    box-shadow 1.25s ease;
+}
+.reduced-motion body[data-phase],
+.reduced-motion body[data-phase] *{
+  transition:none!important;
+}
