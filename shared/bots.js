@@ -306,6 +306,8 @@
   function replyInterest(v,b,msg){
     if(!msg||msg.channel!=='public'||msg.playerId===v.me.id)return 0;
     const sender=v.players.find(p=>p.id===msg.playerId);if(!sender||sender.bot)return 0;
+    const namedBot=v.players.filter(p=>p.alive&&p.bot).sort((a,b)=>b.name.length-a.name.length).find(p=>String(msg.text||'').includes(p.name));
+    if(namedBot)return namedBot.id===v.me.id?3:0;
     const i=freeIntent(v,msg);
     if(i.direct)return 3;
     if(i.kind==='none')return 0;
