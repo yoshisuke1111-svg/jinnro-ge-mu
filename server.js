@@ -289,9 +289,8 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(body.token&&!pid)throw Error('復帰用のキーが無効です。参加画面から入り直してください。');
           if(pid&&!game.byId(pid)){entry.sessions.delete(secret);throw Error('待機室の席は退出済みです。名前を入力して参加し直してください。');}
           if(!pid){
-            const prev=game.players.length,total=Object.values(game.config.roles).reduce((a,b)=>a+b,0);
             pid=crypto.randomUUID();secret=token();game.addPlayer({id:pid,name:data.name});entry.sessions.set(secret,pid);
-            if(prev===total)game.config.roles.villager++;
+            // 参加人数が変わっても配役は自動変更しない。必要なら部屋主が配役を調整する。
             game.configVersion++;game.system(`${game.name(pid)}が参加しました。`);
           }
           game.connect(pid);broadcast(entry);
