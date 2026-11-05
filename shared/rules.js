@@ -365,7 +365,7 @@
     }
     parseStatement(p,text) {
       let claim=null;
-      for(const k of ['seer','medium','guard','mason','villager','baker','cat']){
+      for(const k of ROLE_IDS){
         const name=ROLES[k].name;
         if(new RegExp(`(?:^|私は|自分は|CO[:：\\s]*)${name}(?:CO|ＣＯ|です|だよ|だ|をCO|$)|${name}(?:CO|ＣＯ)`).test(text)){claim=k;break;}
       }
