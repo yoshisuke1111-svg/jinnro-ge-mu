@@ -46,3 +46,33 @@ test('admin can create exact-role CPU room and control CPU votes and wolf attack
     assert.match(denied.json.error,/人間の人狼/);
   }finally{await app.close();}
 });
+
+
+test('admin can force-kill and revive a player during a running game',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'test-admin'});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const login=await post(base,'/admin/login',{password:'test-admin'});
+    assert.equal(login.res.status,200);
+    const cookie=login.res.headers.get('set-cookie').split(';')[0];
+
+    const roles=['wolf','seer','guard','villager'];
+    const made=await post(base,'/admin/action',{action:'create_cpu_watch',count:4,code:'LIFETEST',roles},cookie);
+    assert.equal(made.res.status,200,JSON.stringify(made.json));
+    const g=app.rooms.get('LIFETEST').game;
+    const target=g.players.find(p=>p.role==='seer');
+    assert.equal(target.alive,true);
+
+    const killed=await post(base,'/admin/action',{action:'force_kill',code:'LIFETEST',playerId:target.id},cookie);
+    assert.equal(killed.res.status,200,JSON.stringify(killed.json));
+    assert.equal(target.alive,false);
+    assert.equal(target.deathCause,'admin');
+
+    const revived=await post(base,'/admin/action',{action:'force_revive',code:'LIFETEST',playerId:target.id},cookie);
+    assert.equal(revived.res.status,200,JSON.stringify(revived.json));
+    assert.equal(target.alive,true);
+    assert.equal(target.deathAt,null);
+    assert.equal(target.deathCause,null);
+  }finally{await app.close();}
+});

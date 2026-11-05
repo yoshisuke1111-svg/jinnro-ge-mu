@@ -9,7 +9,7 @@ const crypto=require('node:crypto');
 const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF}=require('./shared/rules');
 const Bots=require('./shared/bots');
-const VERSION='0.7.2';
+const VERSION='0.7.3';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
   const code=String(value||'').normalize('NFKC').trim().replace(/\s+/g,'').toUpperCase();
@@ -200,6 +200,22 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(entry.game.phase==='vote')for(const p of entry.game.living().filter(p=>entry.game.isBot(p)&&!Object.hasOwn(entry.game.votes,p.id))){const c=Bots.decide(entry.game.botView(p.id),p.brain,'vote');entry.game.submitVote(p.id,entry.game.targets(p,'vote').includes(c?.target)?c.target:null,entry.game.phaseId,true);}
           if(!['lobby','ended'].includes(entry.game.phase))entry.game.advance();
           return json(res,200,{ok:true});
+        }
+        if(action==='force_kill'||action==='force_revive'){
+          const g=entry.game;if(['lobby','ended'].includes(g.phase))throw Error('ゲーム進行中の部屋で使ってください。');
+          const p=g.byId(String(body.playerId||''));if(!p)throw Error('対象プレイヤーが見つかりません。');
+          if(action==='force_kill'){
+            if(!p.alive)throw Error('そのプレイヤーはすでに死亡しています。');
+            p.alive=false;p.deathAt=g.msgId;p.deathCause='admin';
+            delete g.actions[p.id];delete g.specialActions[p.id];delete g.votes[p.id];
+            g.system('管理者操作により'+p.name+'が死亡状態になりました。');
+          }else{
+            if(p.alive)throw Error('そのプレイヤーはすでに生存しています。');
+            p.alive=true;p.deathAt=null;p.deathCause=null;
+            if(p.brain&&typeof p.brain==='object')p.brain.actionAt=g.now()+2500;
+            g.system('管理者操作により'+p.name+'が復活しました。');
+          }
+          g.pendingWin=g.computeWin(null);g.changed();broadcast(entry);return json(res,200,{ok:true,alive:p.alive});
         }
         if(action==='set_cpu_votes'){
           const g=entry.game;if(g.phase!=='vote')throw Error('投票フェーズでのみCPU票を操作できます。');
