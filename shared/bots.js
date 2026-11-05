@@ -275,11 +275,18 @@
     }
     const list=ranked(v),target=list[0],safe=list.at(-1);
     if(!target)return null;
-    const roll=hash(me.id+'|speech-kind|'+v.day+'|'+(b.talks||0))%100,suspicion=b.personality?.suspicion??1;
+    const roll=hash(me.id+'|speech-kind|'+v.day+'|'+(b.talks||0)+'|'+(b.topicSalt||0))%100,suspicion=b.personality?.suspicion??1;
     const trustCut=[30,19,9][suspicion],questionCut=[61,43,27][suspicion];
     let kind='accuse',chosen=target;
     if(roll<trustCut&&safe&&safe.id!==me.id&&safe.score<15){kind='trust';chosen=safe;}
     else if(roll<questionCut&&target.score<70){kind='question';chosen=target;}
+    // 村全体で直近に同じ「誰をどう見るか」が出ていたら、別の論点を優先する。
+    const recentTopicKeys=new Set(v.messages.filter(m=>m.channel==='public'&&m.day===v.day&&m.playerId&&v.players.find(p=>p.id===m.playerId)?.bot&&['accuse','trust','question'].includes(m.meta?.kind)).slice(-7).map(m=>m.meta.kind+':'+m.meta.target));
+    if(recentTopicKeys.has(kind+':'+chosen.id)){
+      const pool=kind==='trust'?[...list].reverse():list;
+      const alt=pool.find(x=>x.id!==me.id&&!recentTopicKeys.has(kind+':'+x.id)&&(kind!=='trust'||x.score<20));
+      if(alt)chosen=alt;
+    }
     b.announcedTarget=kind==='accuse'?chosen.id:b.announcedTarget;
     const reason=safeReason(v,chosen,b),prefix=emotion(v,b),body=opinionSentence(v,b,chosen,kind,reason);
     return {statement:{kind,target:chosen.id},text:prefix?`${prefix} ${body}`:body};
@@ -425,6 +432,42 @@
     return {...out,text:t.trim()};
   }
 
+  function statementTopic(out){
+    const s=out?.statement;if(!s)return '';
+    if(s.kind==='report')return 'report:'+s.role+':'+s.target+':'+Boolean(s.black);
+    if(s.kind==='claim')return 'claim:'+s.role;
+    if(['accuse','trust','question'].includes(s.kind))return s.kind+':'+s.target;
+    return s.kind||'';
+  }
+  function normalizedSpeech(v,text){
+    let t=String(text||'').toLowerCase();
+    for(const p of [...v.players].sort((a,b)=>b.name.length-a.name.length))t=t.split(String(p.name).toLowerCase()).join('<player>');
+    return t.replace(/[\s。、，,.!！?？「」『』（）()・:：;；ー~〜]/g,'').replace(/\d+/g,'#');
+  }
+  function grams(text){
+    const s=String(text||'');if(s.length<3)return new Set(s?[s]:[]);
+    const out=new Set();for(let i=0;i<=s.length-3;i++)out.add(s.slice(i,i+3));return out;
+  }
+  function textSimilarity(a,b){
+    const A=grams(a),B=grams(b);if(!A.size||!B.size)return a===b?1:0;
+    let hit=0;for(const x of A)if(B.has(x))hit++;
+    return hit/(A.size+B.size-hit);
+  }
+  function novelTalk(v,b,out){
+    if(!out?.text&&!out?.statement)return out;
+    // CO・新しい判定結果は重要情報なので、重複抑制で消さない。
+    if(['claim','report'].includes(out.statement?.kind))return out;
+    const key=statementTopic(out),norm=normalizedSpeech(v,out.text);
+    const own=b.recentSpeechTopics||[];
+    if(key&&own.slice(-5).includes(key)){b.topicSalt=(b.topicSalt||0)+1;return null;}
+    const recent=v.messages.filter(m=>m.channel==='public'&&m.day===v.day&&m.playerId&&v.players.find(p=>p.id===m.playerId)?.bot).slice(-8);
+    if(key&&recent.some(m=>statementTopic({statement:m.meta})===key)){b.topicSalt=(b.topicSalt||0)+1;return null;}
+    if(norm&&recent.some(m=>textSimilarity(norm,normalizedSpeech(v,m.text))>=.72)){b.topicSalt=(b.topicSalt||0)+1;return null;}
+    if(key){b.recentSpeechTopics=(own.concat(key)).slice(-8);}
+    b.topicSalt=0;
+    return out;
+  }
+
   function decide(v,b,mode){
     if(!v?.me)throw Error('A redacted player view is required.');
     if(mode==='night')return {target:nightChoice(v,b)};
@@ -447,7 +490,7 @@
       if(vote?.executed)return {text:`${name(v,vote.executed)}が処刑されたか。次は、そこに入れた人と外した人の理由を見たいな。`};
       return {text:'ここからは観戦だね。占い結果と投票の流れを見ながら、最後まで見てる。'};
     }
-    if(mode==='talk')return voiced(v,b,speech(v,b));
+    if(mode==='talk')return novelTalk(v,b,voiced(v,b,speech(v,b)));
     if(mode==='reply')return voiced(v,b,replySpeech(v,b));
     return null;
   }

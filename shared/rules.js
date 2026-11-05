@@ -162,8 +162,9 @@
         while(this.players.some(p=>p.name===name))name=(BOT_NAMES[i]||'CPU')+suffix++;
         this.addPlayer({id:`cpu-${this.code}-${i}-${Math.floor(this.random()*1e9)}`,name,bot:true});
       }
-      if(this.players.length>=MIN_PLAYERS)this.config.roles=preset(this.players.length);
-      this.config.testRole='';this.configVersion++;this.changed();
+      // CPU人数と配役は別設定。人数変更だけでは役職数や練習役職を勝手に書き換えない。
+      // 人数と配役数がずれた場合は validation で知らせ、部屋主が配役を調整する。
+      this.configVersion++;this.changed();
     }
     applyConfig(input) {
       if(this.phase!=='lobby')throw Error('設定は待機室で変更してください。');
@@ -702,7 +703,8 @@
             if(response?.text||response?.statement){b.talks++;b.replies=(b.replies||0)+1;}
             this.botTalkAt=now+4500+Math.floor(this.random()*4200);
           }else{
-            const limit=Math.max(3,Math.min(9,Math.ceil(this.config.times.discussion/16)));
+            // 自発発言は控えめに。人間への直接返信はこの上限とは別に行う。
+            const limit=Math.max(2,Math.min(6,Math.ceil(this.config.times.discussion/22)));
             if(this.botDiscussionTalks<limit){
               const candidates=aliveBots.filter(p=>now>=p.brain.nextTalk&&((p.brain.talks<1)||(bot.priority?.(this.botView(p.id),p.brain)>0&&p.brain.talks<2)))
                 .map(p=>({p,priority:bot.priority?.(this.botView(p.id),p.brain)||0}))
