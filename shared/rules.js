@@ -703,7 +703,8 @@
             if(response?.text||response?.statement){b.talks++;b.replies=(b.replies||0)+1;}
             this.botTalkAt=now+4500+Math.floor(this.random()*4200);
           }else{
-            const limit=Math.max(3,Math.min(9,Math.ceil(this.config.times.discussion/16)));
+            // 自発発言は控えめに。人間への直接返信はこの上限とは別に行う。
+            const limit=Math.max(2,Math.min(6,Math.ceil(this.config.times.discussion/22)));
             if(this.botDiscussionTalks<limit){
               const candidates=aliveBots.filter(p=>now>=p.brain.nextTalk&&((p.brain.talks<1)||(bot.priority?.(this.botView(p.id),p.brain)>0&&p.brain.talks<2)))
                 .map(p=>({p,priority:bot.priority?.(this.botView(p.id),p.brain)||0}))
