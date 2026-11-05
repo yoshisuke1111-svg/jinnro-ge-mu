@@ -1,6 +1,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createApp}=require('../server');
+const fs=require('node:fs');
+const path=require('node:path');
 
 async function api(base,event,data={},code='',token=''){
   const res=await fetch(base+'/api',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({event,data,code,token})});
@@ -44,4 +46,14 @@ test('a new human joining does not auto-add a villager',async()=>{
     assert.deepEqual(entry.game.config.roles,before);
     assert.match(entry.game.view(made.json.playerId).validation.join(' '),/役職の合計と参加人数/);
   }finally{await app.close();}
+});
+
+
+test('CPU count button keeps an unsaved role draft in the browser',()=>{
+  const source=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
+  const line=source.split('\n').find(x=>x.includes("$('setBots').onclick"));
+  assert.ok(line,'setBots click handler should exist');
+  assert.match(line,/call\('bots'/);
+  assert.doesNotMatch(line,/settingsDirty\s*=\s*false/);
+  assert.doesNotMatch(line,/settingsVersion\s*=\s*-1/);
 });
