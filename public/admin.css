@@ -18,3 +18,9 @@
 .control-buttons select{min-width:180px}
 @media(max-width:1100px){.cpu-role-builder{grid-template-columns:repeat(3,minmax(0,1fr))}#cpuVoteRows{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.cpu-role-builder,#cpuVoteRows{grid-template-columns:1fr 1fr}.control-buttons>*{flex:1 1 180px}}
+
+/* v0.7.3 admin live controls */
+.player-table .compact{padding:5px 8px;font-size:11px;white-space:nowrap}
+.player-table .revive{border-color:#4a6f5b;color:var(--ok)}
+.player-table .revive:hover{border-color:var(--ok)}
+.player-table .danger:hover{border-color:var(--bad)}
