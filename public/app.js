@@ -1,4 +1,4 @@
-/* v0.7.4 browser UI: clearer play surfaces, responsive controls, contextual CPU chat. */
+/* v0.7.5 browser UI: eye-comfort palette, clearer cards, comments, and readable game surfaces. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
@@ -125,7 +125,7 @@
   $('claim').onclick=()=>runButton($('claim'),'CO中…',()=>call('statement',{kind:'claim',role:$('claimRole').value}));
   $('report').onclick=()=>runButton($('report'),'報告中…',()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'}));
   document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
-  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.7.4',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
+  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.7.5',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
 
   function renderSettings(s){
     $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;
@@ -179,7 +179,7 @@
     secretFlipTimer=setTimeout(flipSecret,autoFlipMs);
   }
   function showRoleCard(s){
-    const r=ROLES[s.me.role];if(!r)return;const secrets=roleSecrets(s);showSecretCard({eyebrow:'YOUR ROLE',heading:'あなたの役職',name:'タップして役職を確認',symbol:r.icon,result:r.name,detail:[s.me.lover?'恋人陣営（能力は元のまま）':teams[r.team],r.text,...secrets].join(' / '),black:ROLES[s.me.role].team==='wolves',autoFlipMs:SECRET_ROLE_AUTO_FLIP,visibleMs:SECRET_ROLE_VISIBLE});
+    const r=ROLES[s.me.role];if(!r)return;const secrets=roleSecrets(s);showSecretCard({eyebrow:'YOUR ROLE',heading:'あなたの役職',name:'タップして役職を確認',symbol:r.icon,result:r.name,detail:[s.me.lover?'恋人陣営（能力は元のまま）':teams[r.team],r.text,...secrets].join('\n'),black:ROLES[s.me.role].team==='wolves',autoFlipMs:SECRET_ROLE_AUTO_FLIP,visibleMs:SECRET_ROLE_VISIBLE});
   }
   $('identityCard').onclick=()=>state&&showRoleCard(state);$('tarotCard').onclick=flipSecret;$('tarotClose').onclick=closeSecret;
 
@@ -232,7 +232,7 @@
     document.querySelector('[data-channel="ghost"]').hidden=!ghost;document.querySelector('[data-channel="wolves"]').hidden=!wolf;
     if(channel==='ghost'&&!ghost||channel==='wolves'&&!wolf)channel='public';document.querySelectorAll('[data-channel]').forEach(b=>b.classList.toggle('active',b.dataset.channel===channel));$('chatScope').textContent=({public:'PUBLIC',wolves:'PACK ONLY',ghost:'GHOSTS ONLY'})[channel];
     const msgs=s.messages.filter(m=>m.channel==='system'||m.channel===channel).slice(-180),sig=channel+':'+msgs.map(m=>m.id).join(',');
-    if(chatSignature!==sig){const box=$('messages'),bottom=box.scrollHeight-box.scrollTop-box.clientHeight<80,changed=!chatSignature.startsWith(channel+':');box.innerHTML=msgs.length?msgs.map(m=>`<div class="message ${m.channel==='system'?'system':''} ${m.playerId===s.me.id?'self':''} ${m.meta?'structured':''}">${m.channel!=='system'?`<div class="message-head"><strong>${esc(m.name)}</strong><small>${s.players.find(p=>p.id===m.playerId)?.bot?'CPU · ':''}${m.day?m.day+'日目':'待機室'}${m.meta?' · 矢印':''}</small></div>`:''}<div class="message-text">${esc(m.text)}</div></div>`).join(''):'<p class="message empty">まだ発言はありません。</p>';if(bottom||changed)box.scrollTop=box.scrollHeight;chatSignature=sig;}
+    if(chatSignature!==sig){const box=$('messages'),bottom=box.scrollHeight-box.scrollTop-box.clientHeight<80,changed=!chatSignature.startsWith(channel+':');box.innerHTML=msgs.length?msgs.map(m=>`<div class="message ${m.channel==='system'?'system':''} ${m.playerId===s.me.id?'self':''} ${s.players.find(p=>p.id===m.playerId)?.bot?'cpu':''} ${m.meta?'structured':''}">${m.channel!=='system'?`<div class="message-head"><strong>${esc(m.name)}</strong><small>${s.players.find(p=>p.id===m.playerId)?.bot?'CPU · ':''}${m.day?m.day+'日目':'待機室'}${m.meta?' · 矢印':''}</small></div>`:''}<div class="message-text">${esc(m.text)}</div></div>`).join(''):'<p class="message empty">まだ発言はありません。</p>';if(bottom||changed)box.scrollTop=box.scrollHeight;chatSignature=sig;}
     let can=false,hint='';
     if(channel==='ghost'){can=!s.me.alive&&!['lobby','reveal','ended'].includes(s.phase);hint='死亡者だけに届きます。';}
     else if(channel==='wolves'){can=s.me.alive&&['wolf','darkwolf','black_leveler'].includes(s.me.role)&&s.phase==='night';hint='夜の人狼だけが見られます。';}
