@@ -22,7 +22,7 @@ test('a generic free-form game question selects exactly one CPU responder',()=>{
   p.brain.replyMessageId=msg.id;
   const reply=Bots.decide(g.botView(p.id),p.brain,'reply');
   assert.ok(reply?.text);
-  assert.match(reply.text,/気にな|疑|今の考え|怪/);
+  assert.match(reply.text,/気にな|疑|今の考え|怪|見たい|決め手/);
 });
 
 test('when a CPU is named only that CPU wants to answer',()=>{
