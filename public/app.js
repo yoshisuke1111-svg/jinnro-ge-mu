@@ -1,4 +1,4 @@
-/* v0.7.8 browser UI: eye-comfort palette, clearer cards, comments, and readable game surfaces. */
+/* v0.7.9 browser UI: eye-comfort palette, clearer cards, comments, and readable game surfaces. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
@@ -125,7 +125,7 @@
   $('claim').onclick=()=>runButton($('claim'),'CO中…',()=>call('statement',{kind:'claim',role:$('claimRole').value}));
   $('report').onclick=()=>runButton($('report'),'報告中…',()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'}));
   document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
-  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.7.8',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
+  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.7.9',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
 
   function renderSettings(s){
     $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;

@@ -1235,3 +1235,195 @@ body.reduced-motion[data-phase],
 body.reduced-motion[data-phase] *{
   transition:none!important;
 }
+
+
+/* v0.7.9: staged time-of-day themes — no literal gradients */
+body[data-phase]{
+  background:var(--stage-bg)!important;
+  background-image:none!important;
+  background-attachment:scroll!important;
+  transition:background-color .75s ease,color .75s ease!important;
+}
+body[data-phase] .village-board{
+  background:var(--stage-board)!important;
+  background-image:none!important;
+}
+body[data-phase] .site-header,
+body[data-phase] .panel,
+body[data-phase] .phase-bar,
+body[data-phase] .chat-column,
+body[data-phase] .chat-header,
+body[data-phase] .messages,
+body[data-phase] .message,
+body[data-phase] .chat-form,
+body[data-phase] .chat-hint,
+body[data-phase] .statement-box,
+body[data-phase] .identity-card,
+body[data-phase] .board-menu,
+body[data-phase] .board-action-dock,
+body[data-phase] .board-bubble,
+body[data-phase] .board-avatar,
+body[data-phase] .mobile-nav,
+body[data-phase] input,
+body[data-phase] select,
+body[data-phase] button{
+  transition:background-color .75s ease,border-color .75s ease,color .75s ease,box-shadow .75s ease!important;
+}
+
+/* 1. 朝：少し暖色。まだ昼ほど明るくしない */
+body[data-phase="dawn"]{
+  --stage-bg:#8d8178;
+  --stage-board:#aaa096;
+  --bg:#8d8178;
+  --panel:#b7aea5;
+  --panel2:#aaa29a;
+  --line:#837c76;
+  --text:#273238;
+  --muted:#58646a;
+  --accent:#755d38;
+}
+body[data-phase="dawn"] .site-header{background:#a89f96!important;border-color:#817a74!important}
+body[data-phase="dawn"] .panel{background:#b7aea5!important;border-color:#87807a!important}
+body[data-phase="dawn"] .phase-bar{background:#c0b6ab!important;border-color:#8b837c!important}
+body[data-phase="dawn"] .chat-column,
+body[data-phase="dawn"] .chat-header,
+body[data-phase="dawn"] .chat-form,
+body[data-phase="dawn"] .chat-hint,
+body[data-phase="dawn"] .statement-box{background:#afa79f!important;border-color:#847e79!important}
+body[data-phase="dawn"] .messages{background:#a49e98!important}
+body[data-phase="dawn"] .message{background:#c1b8ae!important;border-color:#918a84!important}
+body[data-phase="dawn"] .message.cpu{background:#b7b5ad!important}
+body[data-phase="dawn"] .message.self{background:#c3b28e!important}
+body[data-phase="dawn"] input,
+body[data-phase="dawn"] select{background:#c8c0b7!important;border-color:#817b76!important;color:#263239!important}
+body[data-phase="dawn"] button{background:#aaa39c!important;border-color:#817b76!important;color:#283238!important}
+body[data-phase="dawn"] .primary{background:#a98b58!important;border-color:#8d7144!important}
+body[data-phase="dawn"] .identity-card,
+body[data-phase="dawn"] .board-menu,
+body[data-phase="dawn"] .board-action-dock{background:#b2aaa2!important}
+body[data-phase="dawn"] .board-bubble{background:#c4bbb1!important;border-color:#8a837d!important}
+body[data-phase="dawn"] .board-avatar{background:#a3a39d!important;border-color:#777f80!important}
+
+/* 2. 昼：少しだけ水色を入れた青灰色 */
+body[data-phase="discussion"]{
+  --stage-bg:#758b95;
+  --stage-board:#98aaad;
+  --bg:#758b95;
+  --panel:#a9b7b9;
+  --panel2:#9dacaf;
+  --line:#728286;
+  --text:#24333a;
+  --muted:#50636b;
+  --accent:#6f5f3e;
+}
+body[data-phase="discussion"] .site-header{background:#9dacafe8!important;border-color:#718286!important}
+body[data-phase="discussion"] .panel{background:#a9b7b9!important;border-color:#78898c!important}
+body[data-phase="discussion"] .phase-bar{background:#b3c0c1!important;border-color:#78898c!important}
+body[data-phase="discussion"] .chat-column,
+body[data-phase="discussion"] .chat-header,
+body[data-phase="discussion"] .chat-form,
+body[data-phase="discussion"] .chat-hint,
+body[data-phase="discussion"] .statement-box{background:#a1b0b2!important;border-color:#75878a!important}
+body[data-phase="discussion"] .messages{background:#96a6a9!important}
+body[data-phase="discussion"] .message{background:#b8c4c4!important;border-color:#839396!important}
+body[data-phase="discussion"] .message.cpu{background:#adbdbc!important}
+body[data-phase="discussion"] .message.self{background:#c0b692!important}
+body[data-phase="discussion"] input,
+body[data-phase="discussion"] select{background:#c3cdcd!important;border-color:#74868a!important;color:#243239!important}
+body[data-phase="discussion"] button{background:#9eadaf!important;border-color:#73858a!important;color:#26343b!important}
+body[data-phase="discussion"] .primary{background:#aa955f!important;border-color:#8f7b4d!important}
+body[data-phase="discussion"] .identity-card,
+body[data-phase="discussion"] .board-menu,
+body[data-phase="discussion"] .board-action-dock{background:#a4b2b4!important}
+body[data-phase="discussion"] .board-bubble{background:#bbc6c6!important;border-color:#7f9093!important}
+body[data-phase="discussion"] .board-avatar{background:#91a5a8!important;border-color:#6e8287!important}
+
+/* 3. 投票：夕焼けの橙・茶色 */
+body[data-phase="vote"]{
+  --stage-bg:#8b6655;
+  --stage-board:#765b52;
+  --bg:#8b6655;
+  --panel:#795e56;
+  --panel2:#71564f;
+  --line:#8d7168;
+  --text:#f0e8e3;
+  --muted:#d2c1ba;
+  --accent:#e0b56f;
+}
+body[data-phase="vote"] .site-header{background:#765a53ed!important;border-color:#8a6e65!important}
+body[data-phase="vote"] .panel,
+body[data-phase="vote"] .phase-bar{background:#795e56!important;border-color:#8c7067!important}
+body[data-phase="vote"] .chat-column,
+body[data-phase="vote"] .chat-header,
+body[data-phase="vote"] .chat-form,
+body[data-phase="vote"] .chat-hint,
+body[data-phase="vote"] .statement-box{background:#70564f!important;border-color:#886b63!important}
+body[data-phase="vote"] .messages{background:#654d48!important}
+body[data-phase="vote"] .message{background:#7d6159!important;border-color:#92736a!important}
+body[data-phase="vote"] .message.self{background:#806d4f!important}
+body[data-phase="vote"] input,
+body[data-phase="vote"] select{background:#664f49!important;border-color:#94786f!important;color:#f0e8e3!important}
+body[data-phase="vote"] button{background:#735952!important;border-color:#92746b!important;color:#f0e8e3!important}
+body[data-phase="vote"] .primary{background:#c99655!important;border-color:#b07f43!important;color:#2d2623!important}
+body[data-phase="vote"] .identity-card,
+body[data-phase="vote"] .board-menu,
+body[data-phase="vote"] .board-action-dock,
+body[data-phase="vote"] .board-bubble{background:#775b53!important;border-color:#91736a!important}
+
+/* 4. 処刑：夕焼けが沈み、紫を少し混ぜる */
+body[data-phase="execution"]{
+  --stage-bg:#554751;
+  --stage-board:#4a3d46;
+  --bg:#554751;
+  --panel:#62515a;
+  --panel2:#594951;
+  --line:#77636c;
+  --text:#eee8ec;
+  --muted:#c8bac1;
+  --accent:#d2aa72;
+}
+body[data-phase="execution"] .site-header{background:#4c4049ed!important;border-color:#6e5c65!important}
+body[data-phase="execution"] .panel,
+body[data-phase="execution"] .phase-bar{background:#62515a!important;border-color:#75616a!important}
+body[data-phase="execution"] .chat-column,
+body[data-phase="execution"] .chat-header,
+body[data-phase="execution"] .chat-form,
+body[data-phase="execution"] .chat-hint,
+body[data-phase="execution"] .statement-box{background:#584850!important;border-color:#725e67!important}
+body[data-phase="execution"] .messages{background:#4e4148!important}
+body[data-phase="execution"] .message{background:#66535c!important;border-color:#79636c!important}
+body[data-phase="execution"] .message.self{background:#695d48!important}
+body[data-phase="execution"] input,
+body[data-phase="execution"] select{background:#4f4148!important;border-color:#7a666e!important;color:#eee8ec!important}
+body[data-phase="execution"] button{background:#5c4b53!important;border-color:#77636b!important;color:#eee8ec!important}
+body[data-phase="execution"] .primary{background:#b98e5a!important;border-color:#9d7445!important;color:#2c2528!important}
+body[data-phase="execution"] .identity-card,
+body[data-phase="execution"] .board-menu,
+body[data-phase="execution"] .board-action-dock,
+body[data-phase="execution"] .board-bubble{background:#604e57!important;border-color:#78636c!important}
+
+/* 5. 夜・役職確認：濃い紺 */
+body[data-phase="night"],
+body[data-phase="reveal"]{
+  --stage-bg:#111926;
+  --stage-board:#182431;
+  --bg:#111926;
+  --panel:#17212c;
+  --panel2:#1b2834;
+  --line:#2d3c4a;
+  --text:#dce2e6;
+  --muted:#8f9ca7;
+  --accent:#b6a06f;
+}
+body[data-phase="night"] .village-board,
+body[data-phase="reveal"] .village-board{background:#182431!important}
+body[data-phase="night"] .site-header,
+body[data-phase="reveal"] .site-header{background:#0f1722ed!important}
+body[data-phase="night"] .panel,
+body[data-phase="reveal"] .panel{background:#17212c!important}
+body[data-phase="night"] .messages,
+body[data-phase="reveal"] .messages{background:#101821!important}
+
+/* Keep accessibility setting: no fade when motion is disabled. */
+body.reduced-motion[data-phase],
+body.reduced-motion[data-phase] *{transition:none!important}
