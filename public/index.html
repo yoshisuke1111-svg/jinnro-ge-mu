@@ -13,28 +13,31 @@
 </head>
 <body>
 <header class="site-header">
-  <div class="brand"><span class="brand-moon" aria-hidden="true"></span><div>人狼ゲーム<small>WEREWOLF · 0.7.5</small></div></div>
+  <div class="brand"><span class="brand-moon" aria-hidden="true"></span><div>人狼ゲーム<small>WEREWOLF · 0.7.6</small></div></div>
   <div class="header-tools"><span id="connection" class="connection">準備完了</span><button id="motionToggle" class="quiet" aria-pressed="false">演出 ON</button><button id="helpOpen" class="quiet">遊び方・役職</button></div>
 </header>
 <main>
   <section id="entrance" class="entrance">
-    <div class="intro">
-      <p class="eyebrow">人狼ゲーム</p>
-      <h1>ゲームを始める</h1>
-      <p class="intro-copy">名前を入力して、CPUとの練習またはオンライン対戦を始められます。<br>待機室では参加人数・CPU人数・役職・制限時間を変更できます。</p>
-      <div class="intro-tags"><span>1人＋CPU対応</span><span>最大30人</span><span>ブラウザでプレイ</span></div>
-      <div class="orbit" aria-hidden="true"><div class="moon"></div><span class="orbit-dot"></span></div>
+    <div class="intro intro-cover panel">
+      <div class="creator-badge"><span>CREATED BY</span><strong>作成者 鈾</strong></div>
+      <p class="eyebrow">ONLINE WEREWOLF GAME</p>
+      <h1>人狼ゲーム</h1>
+      <p class="intro-lead">疑う。信じる。騙す。<br><strong>会話と盤面で遊ぶオンライン人狼。</strong></p>
+      <p class="intro-copy">CPUとの一人練習から、URLを共有したオンライン対戦まで。<br>役職・人数・時間を自由に設定して遊べます。</p>
+      <div class="intro-tags"><span>CPU対戦</span><span>最大30人</span><span>ブラウザ対応</span><span>自由配役</span></div>
+      <div class="cover-mark" aria-hidden="true"><span class="cover-moon"></span><span class="cover-line"></span><small>WEREWOLF</small></div>
     </div>
     <div class="entry-card panel">
-      <p class="eyebrow">プレイヤー設定</p><h2>名前を入力</h2>
+      <div class="entry-heading"><p class="eyebrow">PLAY</p><h2>ゲームを始める</h2><p>まずプレイヤー名を決めてください。</p></div>
       <label for="name">プレイヤー名 <span class="muted">1〜16文字</span></label>
       <input id="name" maxlength="32" placeholder="名前を入力" autocomplete="nickname">
-      <label for="practiceRole">ソロ練習で試す役職</label>
+      <div class="entry-section-label"><span>一人で遊ぶ</span><small>CPU相手に練習</small></div>
+      <label for="practiceRole">練習する役職</label>
       <select id="practiceRole"></select>
       <button id="practice" class="primary large">ひとり＋CPUで練習する <span>→</span></button>
       <p class="caption">あなた＋CPU7人で準備します。<br>待機室で人数・配役を変更できます。</p>
       <div id="onlineEntry">
-        <div class="divider"><span>友達と遊ぶ</span></div>
+        <div class="divider"><span>オンラインで遊ぶ</span></div>
         <label for="customCode" class="custom-code-label">作る部屋のコード <span class="muted">空欄なら自動生成</span></label>
         <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off">
         <button id="create" class="secondary full">オンラインの部屋を作る</button>
@@ -161,7 +164,7 @@
     </section>
   </section>
 </main>
-<footer class="site-footer"><span>人狼ゲーム · v0.7.5</span><span>画像・動画・外部フォントなし。</span></footer>
+<footer class="site-footer"><span>人狼ゲーム · v0.7.6</span><span>作成者 鈾</span></footer>
 <div id="toast" class="toast" role="status" hidden></div>
 <dialog id="helpDialog" class="help-dialog"><div class="dialog-head"><div><p class="eyebrow">VILLAGE HANDBOOK</p><h2>遊び方と役職</h2></div><button id="helpClose" class="quiet">閉じる ×</button></div><div id="helpContent"></div></dialog>
 <dialog id="tarotDialog" class="tarot-dialog secret-dialog">
