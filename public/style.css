@@ -1231,7 +1231,7 @@ body[data-phase] button{
     color 1.25s ease,
     box-shadow 1.25s ease;
 }
-.reduced-motion body[data-phase],
-.reduced-motion body[data-phase] *{
+body.reduced-motion[data-phase],
+body.reduced-motion[data-phase] *{
   transition:none!important;
 }
