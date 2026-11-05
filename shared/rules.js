@@ -202,7 +202,7 @@
       this.ready=new Set();
       for(const p of this.players){
         if(!p.bot&&p.connected)p.auto=false;
-        p.brain.phaseId=this.phaseId;p.brain.talks=0;p.brain.nightSaid=false;
+        p.brain.phaseId=this.phaseId;p.brain.talks=0;p.brain.replies=0;p.brain.nightSaid=false;
         p.brain.replyMessageId=null;p.brain.replyAt=0;p.brain.lastSeenPublicId=this.msgId;
         const social=p.brain.personality?.sociability??1,tempo=p.brain.personality?.tempo??1;
         p.brain.nextTalk=this.startedAt+3000+(2-social)*1900+(2-tempo)*900+Math.floor(this.random()*(6200+(2-social)*1700));
@@ -682,23 +682,25 @@
             const sender=this.byId(m.playerId);
             // Avoid CPU-to-CPU reply chains. CPU opinions can still react to public evidence,
             // but conversational replies are reserved for human messages so the chat stays readable.
-            if(sender&&!sender.bot&&(m.meta?.target===p.id||m.text.includes(p.name))&&m.id!==b.repliedTo){
+            const interest=sender&&!sender.bot&&bot.replyInterest?.(this.botView(p.id),b,m);
+            if(interest>0&&m.id!==b.repliedTo&&(!b.replyMessageId||interest>=3)){
               const react=b.personality?.reactivity??1,tempo=b.personality?.tempo??1;
-              b.replyMessageId=m.id;b.replyAt=now+1800+(2-react)*1000+(2-tempo)*450+Math.floor(this.random()*3600);
+              const base=interest>=3?900:1800;
+              b.replyMessageId=m.id;b.replyAt=now+base+(2-react)*850+(2-tempo)*400+Math.floor(this.random()*(interest>=3?2200:3200));
             }
           }
           if(unseen.length)b.lastSeenPublicId=Math.max(...unseen.map(m=>m.id));
         }
         if(now>=this.botTalkAt){
-          const replies=aliveBots.filter(p=>p.brain.replyMessageId&&now>=p.brain.replyAt&&p.brain.talks<2)
+          const replies=aliveBots.filter(p=>p.brain.replyMessageId&&now>=p.brain.replyAt&&(p.brain.replies||0)<4)
             .sort((a,b)=>a.brain.replyAt-b.brain.replyAt||a.id.localeCompare(b.id));
           if(replies.length){
             const p=replies[0],b=p.brain,response=bot.decide(this.botView(p.id),b,'reply');
             if(response?.statement)this.publish(p.id,response.statement,this.phaseId,response.text);
             else if(response?.text)this.message(p,response.text,'public');
             b.repliedTo=b.replyMessageId;b.replyMessageId=null;b.replyAt=0;
-            if(response?.text||response?.statement)b.talks++;
-            this.botTalkAt=now+6500+Math.floor(this.random()*5000);
+            if(response?.text||response?.statement){b.talks++;b.replies=(b.replies||0)+1;}
+            this.botTalkAt=now+4500+Math.floor(this.random()*4200);
           }else{
             const limit=Math.max(3,Math.min(9,Math.ceil(this.config.times.discussion/16)));
             if(this.botDiscussionTalks<limit){
