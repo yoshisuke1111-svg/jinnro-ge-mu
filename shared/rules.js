@@ -162,8 +162,9 @@
         while(this.players.some(p=>p.name===name))name=(BOT_NAMES[i]||'CPU')+suffix++;
         this.addPlayer({id:`cpu-${this.code}-${i}-${Math.floor(this.random()*1e9)}`,name,bot:true});
       }
-      if(this.players.length>=MIN_PLAYERS)this.config.roles=preset(this.players.length);
-      this.config.testRole='';this.configVersion++;this.changed();
+      // CPU人数と配役は別設定。人数変更だけでは役職数や練習役職を勝手に書き換えない。
+      // 人数と配役数がずれた場合は validation で知らせ、部屋主が配役を調整する。
+      this.configVersion++;this.changed();
     }
     applyConfig(input) {
       if(this.phase!=='lobby')throw Error('設定は待機室で変更してください。');
