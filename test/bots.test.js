@@ -82,3 +82,52 @@ test('spontaneous CPU talk avoids repeating the same recent topic',()=>{
     assert.equal(second,null);
   }
 });
+
+
+test('a first CPU question of the day is explicit even with no earlier conversation',()=>{
+  const {g,bots}=makeDiscussion();
+  const p=bots.find(x=>x.role==='villager')||bots[0];
+  const view=g.botView(p.id);
+  let question=null;
+  for(let salt=0;salt<120&&!question;salt++){
+    const brain={...p.brain,personality:{...p.brain.personality},talks:0,replies:0,topicSalt:salt,recentSpeechTopics:[]};
+    const out=Bots.decide(view,brain,'talk');
+    if(out?.statement?.kind==='question')question=out;
+  }
+  assert.ok(question,'test seed should be able to produce a question');
+  assert.doesNotMatch(question.text,/その(?:判断|理由|根拠)|それ(?:どういう|って)/);
+  assert.match(question.text,/誰|投票候補|怪しい|入れるなら/);
+});
+
+test('clarification question is answered by the CPU that asked and names the referenced topic',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const subject=bots[0],asker=bots[1];
+
+  g.publish(human.id,{kind:'accuse',target:subject.id},g.phaseId,subject.name+'がちょっと怪しいと思う');
+  const reference=g.messages.at(-1);
+  g.publish(asker.id,{kind:'question',target:human.id,aboutTarget:subject.id,aboutMessageId:reference.id},g.phaseId,human.name+'、その話もう少し聞いていい？');
+
+  g.chat(human.id,'どれに対しての質問？','public',g.phaseId);
+  const clarify=g.messages.at(-1);
+  const interested=bots.filter(p=>Bots.replyInterest(g.botView(p.id),p.brain,clarify)>0);
+  assert.deepEqual(interested.map(p=>p.id),[asker.id]);
+
+  asker.brain.replyMessageId=clarify.id;
+  const reply=Bots.decide(g.botView(asker.id),asker.brain,'reply');
+  assert.ok(reply?.text);
+  assert.match(reply.text,new RegExp(subject.name));
+  assert.match(reply.text,/疑|話|ところ/);
+});
+
+test('question context survives publishing as public metadata',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const asker=bots[0],subject=bots[1];
+  g.chat(human.id,subject.name+'が怪しい','public',g.phaseId);
+  const reference=g.messages.at(-1);
+  g.publish(asker.id,{kind:'question',target:human.id,aboutTarget:subject.id,aboutMessageId:reference.id},g.phaseId,'理由を聞きたい');
+  const q=g.messages.at(-1);
+  assert.equal(q.meta.kind,'question');
+  assert.equal(q.meta.target,human.id);
+  assert.equal(q.meta.aboutTarget,subject.id);
+  assert.equal(q.meta.aboutMessageId,reference.id);
+});

@@ -206,6 +206,7 @@
         if(!p.bot&&p.connected)p.auto=false;
         p.brain.phaseId=this.phaseId;p.brain.talks=0;p.brain.replies=0;p.brain.nightSaid=false;
         p.brain.replyMessageId=null;p.brain.replyAt=0;p.brain.lastSeenPublicId=this.msgId;
+        if(phase==='discussion'){p.brain.recentSpeechTopics=[];p.brain.topicSalt=0;p.brain.repliedTo=null;}
         const social=p.brain.personality?.sociability??1,tempo=p.brain.personality?.tempo??1;
         p.brain.nextTalk=this.startedAt+3000+(2-social)*1900+(2-tempo)*900+Math.floor(this.random()*(6200+(2-social)*1700));
         p.brain.actionAt=this.startedAt+2600+(2-tempo)*800+Math.floor(this.random()*5200);
@@ -407,6 +408,12 @@
       }else if(['accuse','trust','question'].includes(s.kind)){
         if(!this.byId(statement.target)||statement.target===id)throw Error('相手を選んでください。');
         s.target=statement.target;
+        if(s.kind==='question'){
+          const aboutTarget=String(statement.aboutTarget||'');
+          const aboutMessageId=Number(statement.aboutMessageId||0);
+          if(aboutTarget&&this.byId(aboutTarget))s.aboutTarget=aboutTarget;
+          if(Number.isInteger(aboutMessageId)&&this.messages.some(m=>m.id===aboutMessageId&&m.channel==='public'&&m.day===this.day))s.aboutMessageId=aboutMessageId;
+        }
         text=s.kind==='accuse'?`${this.name(s.target)}を疑っています。`:s.kind==='trust'?`${this.name(s.target)}は今のところ白寄りに見ています。`:`${this.name(s.target)}に理由を聞きたいです。`;
       }else throw Error('不明な主張です。');
       this.message(p,customText||text,'public',s);
