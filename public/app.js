@@ -68,7 +68,7 @@
   }
   $('practice').onclick=()=>runButton($('practice'),'準備中…',async()=>enter(await call('create',{name:$('name').value,solo:true,role:$('practiceRole').value})));
   $('create').onclick=()=>runButton($('create'),'部屋を作成中…',async()=>enter(await call('create',{name:$('name').value,roomCode:$('customCode').value.trim()})));
-  $('join').onclick=()=>runButton($('join'),'参加中…',async()=>enter(await call('join',{name:$('name').value,code:$('code').value.trim().toUpperCase()})));
+  $('join').onclick=()=>runButton($('join'),'参加中…',async()=>{const res=await call('join',{name:$('name').value,code:$('code').value.trim().toUpperCase()});enter(res);if(res?.rejoined)toast('対戦に復帰しました。CPU代行を終了しました。');return res;});
   $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('practice').click();});
   function inviteUrl(){const url=new URL(location.href);if(state?.code)url.search='?room='+encodeURIComponent(state.code);return url.toString();}
   $('copy').onclick=async()=>{const url=inviteUrl();try{await navigator.clipboard.writeText(url);toast('招待URLをコピーしました。');}catch{window.prompt('この招待URLをコピーしてください。',url);}};
