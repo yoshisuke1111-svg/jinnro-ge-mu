@@ -1,4 +1,4 @@
-/* v0.8.1 browser UI: eye-comfort palette, clearer cards, comments, and readable game surfaces. */
+/* v0.8.2 browser UI: admin room narration + existing readable game surfaces. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
@@ -9,7 +9,7 @@
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   let state=null,channel='public',selected=null,settingsDirty=false,settingsVersion=-1,mobileView='board',boardMenuTarget=null;
   let actionSignature='',chatSignature='',recordSignature='',playerSignature='',privateSignature='';
-  let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
+  let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastAdminNarrationId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
   let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null;
   const SECRET_ROLE_AUTO_FLIP=4200,SECRET_ROLE_VISIBLE=10500,SECRET_RESULT_AUTO_FLIP=1800,SECRET_RESULT_VISIBLE=7200,SECRET_FADE=720;
   const reducedPref=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
@@ -125,7 +125,7 @@
   $('claim').onclick=()=>runButton($('claim'),'CO中…',()=>call('statement',{kind:'claim',role:$('claimRole').value}));
   $('report').onclick=()=>runButton($('report'),'報告中…',()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'}));
   document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
-  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.8.1',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
+  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.8.2',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
 
   function renderSettings(s){
     $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;
@@ -322,7 +322,7 @@
   }
   window.addEventListener('resize',()=>state&&requestAnimationFrame(()=>drawArrows(state)));
 
-  function narrate(text,kicker='SYSTEM',duration=3000){clearTimeout(narrationTimer);$('narrationKicker').textContent=kicker;$('narrationText').textContent=text;$('narration').hidden=false;$('narration').classList.remove('fade');narrationTimer=setTimeout(()=>{$('narration').classList.add('fade');setTimeout(()=>$('narration').hidden=true,reduced?0:450);},reduced?900:duration);}
+  function narrate(text,kicker='SYSTEM',duration=3000){clearTimeout(narrationTimer);$('narrationKicker').textContent=kicker;$('narrationText').textContent=text;$('narration').classList.toggle('admin-message',kicker==='管理者');$('narration').hidden=false;$('narration').classList.remove('fade');narrationTimer=setTimeout(()=>{$('narration').classList.add('fade');setTimeout(()=>$('narration').hidden=true,reduced?0:450);},reduced?900:duration);}
   function playScene(scene){
     if(!scene||scene.id===lastSceneId)return;lastSceneId=scene.id;clearTimeout(sceneTimer);const box=$('scene');$('sceneTitle').textContent=scene.title;$('sceneNames').textContent=scene.victims.length?scene.victims.map(v=>v.name).join('、'):'犠牲者はいませんでした';$('sceneMark').textContent=scene.type==='execution'?'◇':scene.victims.length?'╱╱╱':'☀';box.className='board-scene '+(scene.type==='execution'?'execution':scene.victims.length?'death':'dawn');box.hidden=false;setMobileView('board');sceneTimer=setTimeout(()=>box.hidden=true,reduced?1000:3300);
   }
@@ -335,6 +335,11 @@
       if(s.phase==='night'&&['wolf','darkwolf','black_leveler'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
       if(['discussion','dawn','execution','ended'].includes(s.phase))setMobileView('board');else if(['reveal','night'].includes(s.phase))setMobileView('self');else if(s.phase==='vote')setMobileView('board');
       const announcement=phaseAnnouncement(s);if(announcement)narrate(announcement,s.phase==='night'?'NIGHT':s.phase==='dawn'?'MORNING':s.phase==='vote'?'VOTE':'SYSTEM',s.phase==='discussion'?2200:3000);
+    }
+    if(s.adminNarration&&s.adminNarration.id!==lastAdminNarrationId&&s.now-s.adminNarration.at<15000){
+      lastAdminNarrationId=s.adminNarration.id;
+      if(s.phase!=='lobby')setMobileView('board');
+      narrate(s.adminNarration.text,'管理者',reduced?1600:4800);
     }
     $('entrance').hidden=true;$('room').hidden=false;$('roomCode').textContent=offline?'LOCAL':s.code;$('roomEyebrow').textContent=offline?'SOLO PRACTICE':'PRIVATE ROOM';$('roomTitle').textContent=s.phase==='lobby'?'ゲーム設定':s.phase==='ended'?'対戦終了':'人狼ゲーム';$('lobby').hidden=s.phase!=='lobby';$('play').hidden=s.phase==='lobby';$('speed').hidden=true;
     if(s.phase==='lobby')renderSettings(s);renderPlayers(s);

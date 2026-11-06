@@ -89,6 +89,7 @@
       this.messages=[];this.msgId=0;this.revision=0;this.actions={};this.specialActions={};this.votes={};this.ready=new Set();
       this.reports=[];this.claims=[];this.voteHistory=[];this.winner=null;this.pendingWin=null;
       this.lastScene=null;this.sceneId=0;this.lastExecuted=null;this.infected=new Set();this.round=0;this.dawnSnapshot=null;this.hiddenWolves=new Set();
+      this.adminNarration=null;this.adminNarrationSeq=0;
       this.botTalkAt=0;this.botDiscussionTalks=0;this.wolfTalkAt=0;this.wolfTalkCount=0;this.wasBakerAlive=false;this.createdAt=now();this.changed();
     }
     changed(){this.revision++;}
@@ -777,7 +778,7 @@
       const out={code:this.code,phase:this.phase,phaseId:this.phaseId,phaseLabel:PHASES[this.phase],day:this.day,host:this.host===id,solo:this.isSolo(),
         now:this.now(),startedAt:this.startedAt,deadline:this.deadline,revision:this.revision,configVersion:this.configVersion,
         config:clone(this.config),me,players:publicPlayers,messages:clone(messages),reports:clone(this.reports),claims:clone(this.claims),
-        voteHistory:clone(this.voteHistory),winner:clone(this.winner),lastScene:clone(this.lastScene),
+        voteHistory:clone(this.voteHistory),winner:clone(this.winner),lastScene:clone(this.lastScene),adminNarration:clone(this.adminNarration),
         kind:this.phase==='night'?this.nightKind(p):null,
         targets:this.phase==='night'?this.targets(p):this.phase==='vote'?this.targets(p,'vote'):[],
         cheaterActive:this.living().some(t=>t.role==='cheater'),

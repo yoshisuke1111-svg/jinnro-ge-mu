@@ -24,3 +24,16 @@
 .player-table .revive{border-color:#4a6f5b;color:var(--ok)}
 .player-table .revive:hover{border-color:var(--ok)}
 .player-table .danger:hover{border-color:var(--bad)}
+
+
+/* v0.8.2 room-wide admin narration */
+.admin-narration{margin:12px 0 16px;padding:13px;background:#121b25;border:1px solid var(--line);border-radius:10px}
+.admin-narration-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:9px}
+.admin-narration-head>div{display:flex;flex-direction:column}
+.admin-narration-head strong{font-size:13px;color:var(--accent)}
+.admin-narration-head small,.admin-narration>p{font-size:10px;color:var(--muted);margin:2px 0 0}
+.admin-narration-send{display:flex;gap:8px}
+.admin-narration-send input{flex:1;min-width:0}
+.admin-narration-send button{white-space:nowrap;border-color:#7b6842;color:#f0d89d}
+.admin-narration-send button:hover{border-color:var(--accent)}
+@media(max-width:700px){.admin-narration-head{display:block}.admin-narration-head>small{display:block;margin-top:7px}.admin-narration-send{flex-direction:column}.admin-narration-send button{width:100%}}

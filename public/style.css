@@ -1427,3 +1427,12 @@ body[data-phase="reveal"] .messages{background:#101821!important}
 /* Keep accessibility setting: no fade when motion is disabled. */
 body.reduced-motion[data-phase],
 body.reduced-motion[data-phase] *{transition:none!important}
+
+
+/* v0.8.2 admin narration */
+.narration.admin-message{
+  border-color:#bda66f;
+  box-shadow:0 12px 36px #00000070,0 0 0 1px #bda66f33;
+}
+.narration.admin-message small{color:#d7c28e}
+.narration.admin-message strong{color:#f0eadc}

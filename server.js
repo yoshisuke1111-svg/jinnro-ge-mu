@@ -9,7 +9,7 @@ const crypto=require('node:crypto');
 const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF}=require('./shared/rules');
 const Bots=require('./shared/bots');
-const VERSION='0.8.1';
+const VERSION='0.8.2';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
   const code=String(value||'').normalize('NFKC').trim().replace(/\s+/g,'').toUpperCase();
@@ -136,7 +136,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,
           personality:p.bot?(p.brain?.personality||null):null,botDebug:adminBotInfo(g,p),privateResults:p.privateResults.slice(-12),action:Object.hasOwn(g.actions,p.id)?(g.actions[p.id]?g.realName(g.actions[p.id]):null):undefined,
           vote:Object.hasOwn(g.votes,p.id)?(g.votes[p.id]?g.realName(g.votes[p.id]):null):undefined})),
-        messages:g.messages.slice(-160).map(m=>({...m})),claims:g.claims.slice(-60),reports:g.reports.slice(-60),voteHistory:g.voteHistory.slice(-12)};
+        messages:g.messages.slice(-160).map(m=>({...m})),claims:g.claims.slice(-60),reports:g.reports.slice(-60),voteHistory:g.voteHistory.slice(-12),adminNarration:g.adminNarration?{...g.adminNarration}:null};
     })};
   }
   const server=http.createServer(async(req,res)=>{
@@ -200,6 +200,15 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(entry.game.phase==='vote')for(const p of entry.game.living().filter(p=>entry.game.isBot(p)&&!Object.hasOwn(entry.game.votes,p.id))){const c=Bots.decide(entry.game.botView(p.id),p.brain,'vote');entry.game.submitVote(p.id,entry.game.targets(p,'vote').includes(c?.target)?c.target:null,entry.game.phaseId,true);}
           if(!['lobby','ended'].includes(entry.game.phase))entry.game.advance();
           return json(res,200,{ok:true});
+        }
+        if(action==='broadcast_narration'){
+          const g=entry.game;
+          if(g.phase==='lobby')throw Error('ゲーム開始後の部屋で送信してください。');
+          const text=String(body.text||'').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,120);
+          if(!text)throw Error('表示する文章を入力してください。');
+          g.adminNarration={id:++g.adminNarrationSeq,text,at:g.now()};
+          g.changed();broadcast(entry);
+          return json(res,200,{ok:true,id:g.adminNarration.id});
         }
         if(action==='force_kill'||action==='force_revive'){
           const g=entry.game;if(['lobby','ended'].includes(g.phase))throw Error('ゲーム進行中の部屋で使ってください。');
