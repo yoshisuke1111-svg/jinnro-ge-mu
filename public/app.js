@@ -1,4 +1,4 @@
-/* v0.8.2 browser UI: admin room narration + existing readable game surfaces. */
+/* v0.8.3 browser UI: admin room narration + existing readable game surfaces. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
@@ -68,7 +68,7 @@
   }
   $('practice').onclick=()=>runButton($('practice'),'準備中…',async()=>enter(await call('create',{name:$('name').value,solo:true,role:$('practiceRole').value})));
   $('create').onclick=()=>runButton($('create'),'部屋を作成中…',async()=>enter(await call('create',{name:$('name').value,roomCode:$('customCode').value.trim()})));
-  $('join').onclick=()=>runButton($('join'),'参加中…',async()=>enter(await call('join',{name:$('name').value,code:$('code').value.trim().toUpperCase()})));
+  $('join').onclick=()=>runButton($('join'),'参加中…',async()=>{const res=await call('join',{name:$('name').value,code:$('code').value.trim().toUpperCase()});enter(res);if(res?.rejoined)toast('対戦に復帰しました。CPU代行を終了しました。');return res;});
   $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('practice').click();});
   function inviteUrl(){const url=new URL(location.href);if(state?.code)url.search='?room='+encodeURIComponent(state.code);return url.toString();}
   $('copy').onclick=async()=>{const url=inviteUrl();try{await navigator.clipboard.writeText(url);toast('招待URLをコピーしました。');}catch{window.prompt('この招待URLをコピーしてください。',url);}};
@@ -125,7 +125,7 @@
   $('claim').onclick=()=>runButton($('claim'),'CO中…',()=>call('statement',{kind:'claim',role:$('claimRole').value}));
   $('report').onclick=()=>runButton($('report'),'報告中…',()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'}));
   document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
-  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.8.2',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
+  $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.8.3',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
 
   function renderSettings(s){
     $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;

@@ -13,7 +13,7 @@
 </head>
 <body>
 <header class="site-header">
-  <div class="brand"><span class="brand-moon" aria-hidden="true"></span><div>人狼ゲーム<small>WEREWOLF · 0.8.2</small></div></div>
+  <div class="brand"><span class="brand-moon" aria-hidden="true"></span><div>人狼ゲーム<small>WEREWOLF · 0.8.3</small></div></div>
   <div class="header-tools"><span id="connection" class="connection">準備完了</span><button id="motionToggle" class="quiet" aria-pressed="false">演出 ON</button><button id="helpOpen" class="quiet">遊び方・役職</button></div>
 </header>
 <main>
@@ -42,7 +42,7 @@
         <p class="caption room-code-help">3〜16文字。文字・数字・「-」「_」が使えます。同じコードの部屋がある場合は作成できません。</p>
         <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加する部屋コード" maxlength="16"><button id="join" class="secondary">参加</button></div>
       </div>
-      <p id="entryNote" class="entry-note">招待URLを開くと、部屋コードが自動で入ります。</p>
+      <p id="entryNote" class="entry-note">招待URLを開くと、部屋コードが自動で入ります。対戦中に切断されCPU代行になった場合は、同じ部屋コードと同じ名前で自分の席へ復帰できます。</p>
     </div>
   </section>
 
@@ -162,7 +162,7 @@
     </section>
   </section>
 </main>
-<footer class="site-footer"><span>人狼ゲーム · v0.8.2</span><span>作成者 鈾</span></footer>
+<footer class="site-footer"><span>人狼ゲーム · v0.8.3</span><span>作成者 鈾</span></footer>
 <div id="toast" class="toast" role="status" hidden></div>
 <dialog id="helpDialog" class="help-dialog"><div class="dialog-head"><div><p class="eyebrow">VILLAGE HANDBOOK</p><h2>遊び方と役職</h2></div><button id="helpClose" class="quiet">閉じる ×</button></div><div id="helpContent"></div></dialog>
 <dialog id="tarotDialog" class="tarot-dialog secret-dialog">

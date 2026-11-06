@@ -1436,3 +1436,147 @@ body.reduced-motion[data-phase] *{transition:none!important}
 }
 .narration.admin-message small{color:#d7c28e}
 .narration.admin-message strong{color:#f0eadc}
+
+
+/* v0.8.3 daytime clarity pass */
+body[data-phase="discussion"]{
+  --stage-bg:#bdd8e3;
+  --stage-board:#b7d77b;
+  --bg:#bdd8e3;
+  --panel:#e8f1f2;
+  --panel2:#dce9eb;
+  --line:#91a8ad;
+  --text:#17252e;
+  --muted:#50646d;
+  --accent:#6f5d32;
+}
+body[data-phase="discussion"] .site-header{
+  background:#d9e9edf2!important;
+  border-color:#8fa6ab!important;
+}
+body[data-phase="discussion"] .panel{
+  background:#e8f1f2!important;
+  border-color:#95a9ad!important;
+  box-shadow:0 4px 12px #2f485018!important;
+}
+body[data-phase="discussion"] .phase-bar{
+  background:#eef5f5!important;
+  border-color:#96a9ad!important;
+}
+body[data-phase="discussion"] .village-board{
+  background:#b7d77b!important;
+  border-color:#788d58!important;
+  box-shadow:inset 0 0 0 1px #ffffff33!important;
+}
+body[data-phase="discussion"] .village-board:before{
+  border-color:#5f7445!important;
+  opacity:.5!important;
+}
+body[data-phase="discussion"] .board-avatar{
+  background:#263542!important;
+  border-color:#3d5260!important;
+  color:#edf2f3!important;
+  box-shadow:0 3px 9px #2c3a4438!important;
+}
+body[data-phase="discussion"] .board-name{
+  color:#15232d!important;
+  font-weight:800!important;
+  text-shadow:0 1px 0 #ffffff80!important;
+}
+body[data-phase="discussion"] .board-player small{
+  color:#33464f!important;
+  font-weight:650!important;
+}
+body[data-phase="discussion"] .board-center strong{
+  color:#2f4632!important;
+}
+body[data-phase="discussion"] .board-center span{
+  color:#4d644d!important;
+}
+body[data-phase="discussion"] .board-bubble{
+  background:#f4f7e9!important;
+  border-color:#71845a!important;
+  color:#17252d!important;
+  box-shadow:0 4px 10px #38442d28!important;
+}
+body[data-phase="discussion"] .board-bubble strong{
+  color:#243740!important;
+  font-weight:800!important;
+}
+body[data-phase="discussion"] .board-bubble span{
+  color:#17252d!important;
+}
+body[data-phase="discussion"] .chat-column,
+body[data-phase="discussion"] .chat-header,
+body[data-phase="discussion"] .chat-form,
+body[data-phase="discussion"] .chat-hint,
+body[data-phase="discussion"] .statement-box{
+  background:#e3eef0!important;
+  border-color:#95a9ad!important;
+}
+body[data-phase="discussion"] .messages{
+  background:#cfdee1!important;
+}
+body[data-phase="discussion"] .message{
+  background:#f4f8f7!important;
+  border-color:#9badb0!important;
+  box-shadow:0 2px 6px #33484f16!important;
+}
+body[data-phase="discussion"] .message.cpu{
+  background:#eef5f3!important;
+  border-color:#91a6a4!important;
+}
+body[data-phase="discussion"] .message.self{
+  background:#f2ead2!important;
+  border-color:#b6a26c!important;
+}
+body[data-phase="discussion"] .message.system{
+  background:#d9e3e4!important;
+  border-color:#9aa9ab!important;
+  border-left-color:#516a76!important;
+}
+body[data-phase="discussion"] .message-head strong{
+  color:#13222c!important;
+  font-weight:800!important;
+}
+body[data-phase="discussion"] .message.cpu .message-head strong{
+  color:#1b2b34!important;
+}
+body[data-phase="discussion"] .message.self .message-head strong{
+  color:#58491f!important;
+}
+body[data-phase="discussion"] .message-head small{
+  color:#52656d!important;
+}
+body[data-phase="discussion"] .message-text{
+  color:#18262e!important;
+}
+body[data-phase="discussion"] .message.system .message-text{
+  color:#354850!important;
+}
+body[data-phase="discussion"] input,
+body[data-phase="discussion"] select{
+  background:#f8fbfa!important;
+  border-color:#879da2!important;
+  color:#17252e!important;
+}
+body[data-phase="discussion"] button{
+  background:#d9e5e6!important;
+  border-color:#8da1a5!important;
+  color:#18272f!important;
+}
+body[data-phase="discussion"] .primary{
+  background:#b89b5b!important;
+  border-color:#9c8148!important;
+  color:#1f2528!important;
+}
+body[data-phase="discussion"] .identity-card,
+body[data-phase="discussion"] .board-menu,
+body[data-phase="discussion"] .board-action-dock{
+  background:#e6eff0!important;
+  border-color:#94a7aa!important;
+}
+body[data-phase="discussion"] .mobile-nav{
+  background:#dce9ebf2!important;
+  border-color:#95a7aa!important;
+}
