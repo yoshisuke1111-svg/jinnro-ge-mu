@@ -76,3 +76,31 @@ test('admin can force-kill and revive a player during a running game',async()=>{
     assert.equal(target.deathCause,null);
   }finally{await app.close();}
 });
+
+
+test('admin can broadcast a narration to every player view in a room',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'test-admin'});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const login=await post(base,'/admin/login',{password:'test-admin'});
+    assert.equal(login.res.status,200);
+    const cookie=login.res.headers.get('set-cookie').split(';')[0];
+
+    const roles=['wolf','seer','guard','villager'];
+    const made=await post(base,'/admin/action',{action:'create_cpu_watch',count:4,code:'NARRATE',roles},cookie);
+    assert.equal(made.res.status,200,JSON.stringify(made.json));
+    const g=app.rooms.get('NARRATE').game;
+
+    const sent=await post(base,'/admin/action',{action:'broadcast_narration',code:'NARRATE',text:'管理者から全員へテスト'},cookie);
+    assert.equal(sent.res.status,200,JSON.stringify(sent.json));
+    assert.equal(g.adminNarration.text,'管理者から全員へテスト');
+    assert.ok(g.adminNarration.id>=1);
+
+    for(const p of g.players){
+      const view=g.view(p.id);
+      assert.equal(view.adminNarration.text,'管理者から全員へテスト');
+      assert.equal(view.adminNarration.id,g.adminNarration.id);
+    }
+  }finally{await app.close();}
+});
