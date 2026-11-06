@@ -142,6 +142,115 @@
   function choose(v,key,items){return items[hash(v.me.id+'|'+v.day+'|'+key)%items.length];}
   function tone(b){return b.personality?.tone||'soft';}
   function spokenName(v,b,id){const n=name(v,id);return tone(b)==='polite'?`${n}さん`:n;}
+  function compactReason(reason){
+    let s=String(reason||'').trim().replace(/\s+/g,' ');
+    if(!s)return '';
+    s=s.replace(/。+$/,'');
+    return s.length>92?s.slice(0,91)+'…':s;
+  }
+  function composeOpinion(v,b,target,kind,reason=''){
+    const n=spokenName(v,b,target.id),p=tone(b),score=Number(target.score)||0,confidence=b.personality?.confidence??1;
+    const key='compose-'+kind+'-'+target.id+'-'+(b.talks||0)+'-'+(b.replies||0);
+    const r=compactReason(reason);
+    let lead='';
+    if(kind==='trust'){
+      const stance=choose(v,key+'-stance',{
+        casual:['今はそこまで疑ってない','いったん外して見てる','今の優先度は低め'],
+        soft:['今のところ白寄りで見てる','今は強く疑ってない','いったん後回しで見てる'],
+        polite:['今のところ白寄りで見ています','現時点では強く疑っていません','今は優先度を低めに置いています'],
+        blunt:['今は白寄り','今は外す','優先度は低い'],
+        analytical:['現状の疑い優先度は低い','今の材料では白寄りに置く','他を先に見る']
+      }[p]);
+      lead=choose(v,key+'-lead',[`${n}は${stance}。`,`自分は${n}を${stance}。`,`${stance.includes('今')?'': '今は'}${n}については、${stance}。`]);
+    }else{
+      const strength=score>=70?'strong':score>=35?'mid':'weak';
+      const stanceMap={
+        casual:{strong:['かなり気になる','今は一番見たい','だいぶ引っかかってる'],mid:['ちょっと気になる','もう少し見たい','少し引っかかる'],weak:['まだ薄いけど気になる','候補には残してる','少しだけ見てる']},
+        soft:{strong:['かなり気になってる','今はいちばん見たい','けっこう引っかかってる'],mid:['少し気になってる','もう少し見たい','ちょっと引っかかってる'],weak:['まだ弱いけど気にはなる','候補からは外してない','少しだけ気にしてる']},
+        polite:{strong:['かなり気になっています','現時点では最も見たいです','かなり引っかかっています'],mid:['少し気になっています','もう少し見たいです','少し引っかかっています'],weak:['まだ弱いですが気にはなっています','候補には残しています','少しだけ気にしています']},
+        blunt:{strong:['かなり怪しい','最優先で見る','かなり引っかかる'],mid:['気になる','もう少し見る','少し怪しい'],weak:['まだ弱い','候補には残す','少しだけ気になる']},
+        analytical:{strong:['疑い優先度が高い','最優先で確認したい','かなり疑い寄り'],mid:['疑い寄りに置く','追加で見たい','少し疑いを上げてる'],weak:['まだ弱いが候補には残す','軽く疑い寄り','保留より少し疑い側']}
+      };
+      let strengthKey=strength;
+      if(confidence===0&&strengthKey==='strong')strengthKey='mid';
+      const stance=choose(v,key+'-stance',stanceMap[p][strengthKey]);
+      lead=choose(v,key+'-lead',[`${n}が${stance}。`,`今は${n}を${stance}。`,`${n}については、${stance}。`]);
+    }
+    if(!r)return lead;
+    const bridge=choose(v,key+'-bridge',tone(b)==='polite'?['理由は、','特に、','見ているのは、']:['理由は、','特に、','見てるのは、']);
+    let close='';
+    if((b.personality?.verbosity??1)>0){
+      const closers=kind==='trust'
+        ? (tone(b)==='polite'?['ただ、まだ決め打ちはしません。','発言次第では見直します。']:['ただ、まだ決め打ちはしない。','発言次第では見直す。'])
+        : (confidence===0
+            ? (tone(b)==='polite'?['まだ断定はしません。','反応を見てから考えます。']:['まだ断定はしない。','反応を見てから考える。'])
+            : (tone(b)==='polite'?['本人の反応も確認したいです。','投票までにもう一度見ます。']:['本人の反応も見たい。','投票までにもう一回見る。']));
+      close=' '+choose(v,key+'-close',closers);
+    }
+    return `${lead} ${bridge}${r}。${close}`.replace(/。\s*。/g,'。').trim();
+  }
+  function questionContext(v,recipientId){
+    const messages=v.messages.filter(m=>m.day===v.day&&m.channel==='public'&&m.playerId===recipientId);
+    const structured=[...messages].reverse().find(m=>['accuse','trust','report','claim'].includes(m.meta?.kind));
+    const m=structured||last(messages);
+    if(!m)return null;
+    const aboutTarget=m.meta?.target||null;
+    return {message:m,aboutTarget};
+  }
+  function composeQuestion(v,b,recipient){
+    const n=spokenName(v,b,recipient.id),p=tone(b),ctx=questionContext(v,recipient.id),key='question-'+recipient.id+'-'+(b.talks||0);
+    const statement={kind:'question',target:recipient.id};
+    if(ctx){
+      statement.aboutMessageId=ctx.message.id;
+      if(ctx.aboutTarget)statement.aboutTarget=ctx.aboutTarget;
+      const m=ctx.message;
+      if(m.meta?.kind==='accuse'){
+        const t=spokenName(v,b,m.meta.target);
+        return {statement,text:choose(v,key,[`${n}、さっき${t}を気にしてたけど、どこを一番重く見た？`,`${n}が${t}を疑った理由、もう少し具体的に聞きたい。`])};
+      }
+      if(m.meta?.kind==='trust'){
+        const t=spokenName(v,b,m.meta.target);
+        return {statement,text:choose(v,key,[`${n}、${t}を白寄りに置いた理由って何が大きい？`,`${n}が${t}をあまり疑ってない理由、もう少し聞いていい？`])};
+      }
+      if(m.meta?.kind==='report'){
+        const t=spokenName(v,b,m.meta.target),color=m.meta.black?'黒':'白';
+        return {statement,text:choose(v,key,[`${n}、${t}に${color}を出してたけど、その後の見方は変わってない？`,`${n}の${t}${color}について、今どれくらい重く見てる？`])};
+      }
+      if(m.meta?.kind==='claim'){
+        const role=ROLES[m.meta.role]?.name||'役職';
+        return {statement,text:choose(v,key,[`${n}、${role}で出たタイミングは何を見て決めた？`,`${n}の${role}CO、今出ようと思った理由を聞いていい？`])};
+      }
+      const snippet=String(m.text||'').replace(/\s+/g,' ').slice(0,34);
+      if(snippet)return {statement,text:choose(v,key,[`${n}、さっき「${snippet}」って言ってたところ、もう少し詳しく聞いていい？`,`${n}のさっきの話、特に「${snippet}」の部分をもう少し聞きたい。`])};
+    }
+    const generic={
+      casual:[`${n}、今の時点で誰を一番気にしてる？`,`${n}、今投票候補を挙げるなら誰？`],
+      soft:[`${n}は今、誰を一番気にしてる？`,`${n}、今の時点の投票候補って誰になりそう？`],
+      polite:[`${n}は今、誰を一番気にしていますか？`,`${n}、今の時点で投票候補を挙げるなら誰ですか？`],
+      blunt:[`${n}、今いちばん怪しいの誰？`,`${n}、今入れるなら誰？`],
+      analytical:[`${n}に確認。今いちばん疑いが高いのは誰？`,`${n}の現時点の投票候補を聞きたい。`]
+    }[p];
+    return {statement,text:choose(v,key,generic)};
+  }
+  function latestOwnQuestion(v,beforeId,targetId){
+    return [...v.messages].reverse().find(m=>m.id<beforeId&&m.day===v.day&&m.channel==='public'&&m.playerId===v.me.id&&m.meta?.kind==='question'&&(!targetId||m.meta.target===targetId))||null;
+  }
+  function clarifyReply(v,b,msg){
+    const q=latestOwnQuestion(v,msg.id,msg.playerId),p=tone(b);
+    if(!q)return null;
+    const ref=q.meta?.aboutMessageId?v.messages.find(m=>m.id===q.meta.aboutMessageId):null;
+    const about=q.meta?.aboutTarget?spokenName(v,b,q.meta.aboutTarget):null;
+    if(ref?.meta?.kind==='accuse'&&about)return {text:`さっき${ref.name}が${about}を疑ってたところについて聞いてた。${tone(b)==='polite'?'どの部分を重く見たのか知りたかったです。':'どこを重く見たのか知りたかった。'}`};
+    if(ref?.meta?.kind==='trust'&&about)return {text:`さっき${ref.name}が${about}を白寄りに見てたところの話。${tone(b)==='polite'?'その理由を知りたかったです。':'その理由を聞きたかった。'}`};
+    if(ref?.meta?.kind==='report'&&about)return {text:`${ref.name}が${about}に${ref.meta.black?'黒':'白'}を出した話について。${tone(b)==='polite'?'その判定を今どれくらい重く見ているのか聞きたかったです。':'その判定を今どれくらい重く見てるか聞きたかった。'}`};
+    if(ref?.meta?.kind==='claim')return {text:`さっきの${ROLES[ref.meta.role]?.name||'役職'}COについて。${tone(b)==='polite'?'出た理由やタイミングを聞きたかったです。':'出た理由とかタイミングを聞きたかった。'}`};
+    if(ref?.text){
+      const snippet=String(ref.text).replace(/\s+/g,' ').slice(0,38);
+      return {text:`さっきの「${snippet}」って発言について聞いてた。`};
+    }
+    const fallback=p==='polite'?'言い方が曖昧でした。今の時点で誰を一番気にしているか、という意味です。':'言い方が曖昧だった。今の時点で誰を一番気にしてるか、って意味。';
+    return {text:fallback};
+  }
   function reportSentence(v,b,role,target,black){
     const label=role==='seer'?'占い':'霊媒',result=black?'黒':'白',p=tone(b),n=p==='polite'?`${target}さん`:target;
     const first={
@@ -287,8 +396,12 @@
       const alt=pool.find(x=>x.id!==me.id&&!recentTopicKeys.has(kind+':'+x.id)&&(kind!=='trust'||x.score<20));
       if(alt)chosen=alt;
     }
+    if(kind==='question'){
+      const q=composeQuestion(v,b,v.players.find(p=>p.id===chosen.id)||chosen);
+      return q;
+    }
     b.announcedTarget=kind==='accuse'?chosen.id:b.announcedTarget;
-    const reason=safeReason(v,chosen,b),prefix=emotion(v,b),body=opinionSentence(v,b,chosen,kind,reason);
+    const reason=safeReason(v,chosen,b),prefix=emotion(v,b),body=composeOpinion(v,b,chosen,kind,reason);
     return {statement:{kind,target:chosen.id},text:prefix?`${prefix} ${body}`:body};
   }
   function ownLastVote(v){
@@ -302,7 +415,8 @@
     const question=/[?？]|どう思|どう見|どうする|誰|どこ|教えて|聞きたい|意見|なんで|なぜ|理由|本物|偽/.test(compact);
     let kind='none';
     if(/^(おは|こんにちは|こんばんは|よろしく|やあ|どうも)/.test(compact))kind='greeting';
-    if(/投票|票先|吊り|処刑/.test(compact)&&question)kind='vote';
+    if(/どれに対して|何に対して|何のこと|何について|どの話|どの発言|それって何|何を指して|何の質問|どれの理由/.test(compact)&&question)kind='clarify';
+    else if(/投票|票先|吊り|処刑/.test(compact)&&question)kind='vote';
     else if(/役職|何者|CO|ＣＯ|カミングアウト/.test(compact)&&question)kind='role';
     else if(/占い|占い師|霊媒|判定/.test(compact)&&question)kind='seer';
     else if(subject&&(/怪し|白|黒|村っぽ|人狼|信用|信じ|どう思|どう見/.test(compact)))kind='target';
@@ -314,8 +428,12 @@
     if(!msg||msg.channel!=='public'||msg.playerId===v.me.id)return 0;
     const sender=v.players.find(p=>p.id===msg.playerId);if(!sender||sender.bot)return 0;
     const namedBot=v.players.filter(p=>p.alive&&p.bot).sort((a,b)=>b.name.length-a.name.length).find(p=>String(msg.text||'').includes(p.name));
-    if(namedBot)return namedBot.id===v.me.id?3:0;
     const i=freeIntent(v,msg);
+    if(i.kind==='clarify'){
+      const q=[...v.messages].reverse().find(m=>m.id<msg.id&&m.day===v.day&&m.channel==='public'&&m.meta?.kind==='question'&&m.meta.target===sender.id&&v.players.find(p=>p.id===m.playerId)?.bot);
+      if(q)return q.playerId===v.me.id?4:0;
+    }
+    if(namedBot)return namedBot.id===v.me.id?3:0;
     if(i.direct)return 3;
     if(i.kind==='none')return 0;
     const candidates=v.players.filter(p=>p.alive&&p.bot).map(p=>p.id).sort();
@@ -326,17 +444,20 @@
     const me=v.me,msg=v.messages.find(m=>m.id===b.replyMessageId&&m.channel==='public');
     if(!msg)return null;
     const list=ranked(v),target=list[0],reason=target?safeReason(v,target,b):'',p=tone(b),intent=freeIntent(v,msg,me);
+    if(intent.kind==='clarify'){
+      const clarified=clarifyReply(v,b,msg);if(clarified)return clarified;
+    }
     if(msg.meta?.kind==='report'&&msg.meta.target===me.id){
       if(msg.meta.black){
         const lead={casual:`${msg.name}の黒は違う。少なくとも自分視点では偽。`,soft:`${msg.name}の黒判定は違うよ。自分視点ではそこははっきりしてる。`,polite:`${msg.name}さんの黒判定は違います。少なくとも自分視点では偽です。`,blunt:`${msg.name}の黒は偽。`,analytical:`${msg.name}の黒判定は自分視点で成立しない。`}[p];
-        return {statement:target?{kind:'accuse',target:target.id}:undefined,text:target?`${lead} ${opinionSentence(v,b,target,'accuse',reason)}`:lead};
+        return {statement:target?{kind:'accuse',target:target.id}:undefined,text:target?`${lead} ${composeOpinion(v,b,target,'accuse',reason)}`:lead};
       }
       return {text:{casual:`${msg.name}の白は見た。でも、その占いまで真だとはまだ思ってない。`,soft:`${msg.name}の白判定は確認したよ。占い自体はもう少し見たいかな。`,polite:`${msg.name}さんの白判定は確認しました。ただ、その占いが真かどうかはもう少し見たいです。`,blunt:`${msg.name}の白は確認。占い真とはまだ決めない。`,analytical:`${msg.name}から白判定。判定と占い師の真偽は分けて考える。`}[p]};
     }
     if(msg.meta?.kind==='question'&&msg.meta.target===me.id)intent.kind=/投票|票/.test(msg.text||'')?'vote':intent.kind==='none'?'opinion':intent.kind;
     if(msg.meta?.kind==='accuse'&&msg.meta.target===me.id){
       const lead={casual:'そこ疑われるのか。まあ理由は分かった。',soft:'そこを気にされてるのは分かったよ。',polite:'そこを疑われているのは分かりました。',blunt:'疑われてるのは分かった。',analytical:'自分への疑いは把握した。'}[p];
-      if(target)return {statement:{kind:'accuse',target:target.id},text:`${lead} ただ、自分は${spokenName(v,b,target.id)}の方を見てる。${reason}`};
+      if(target)return {statement:{kind:'accuse',target:target.id},text:`${lead} ${composeOpinion(v,b,target,'accuse',reason)}`};
       return {text:`${lead} まだ返せる材料は少ない。`};
     }
     if(msg.meta?.kind==='trust'&&msg.meta.target===me.id){
@@ -373,13 +494,13 @@
     if(intent.kind==='target'&&intent.subject){
       const item=ranked(v,[intent.subject.id])[0];if(item){
         const why=safeReason(v,item,b);
-        if(item.score>=35)return {statement:{kind:'accuse',target:item.id},text:opinionSentence(v,b,item,'accuse',why)};
-        if(item.score<=8)return {statement:{kind:'trust',target:item.id},text:opinionSentence(v,b,item,'trust',why)};
+        if(item.score>=35)return {statement:{kind:'accuse',target:item.id},text:composeOpinion(v,b,item,'accuse',why)};
+        if(item.score<=8)return {statement:{kind:'trust',target:item.id},text:composeOpinion(v,b,item,'trust',why)};
         return {text:choose(v,'reply-target-neutral-'+msg.id,[`${spokenName(v,b,item.id)}はまだ白黒どちらにも寄せ切ってない。${why}`,`${spokenName(v,b,item.id)}は保留寄り。もう少し発言と票を見たい。`])};
       }
     }
     if(['suspect','opinion'].includes(intent.kind)||intent.direct){
-      if(target)return {statement:{kind:'accuse',target:target.id},text:choose(v,'reply-opinion-'+msg.id,[`今いちばん気になってるのは${spokenName(v,b,target.id)}。${reason}`,`今の考えなら${opinionSentence(v,b,target,'accuse',reason)}`,`まだ固めてないけど、${opinionSentence(v,b,target,'accuse',reason)}`])};
+      if(target)return {statement:{kind:'accuse',target:target.id},text:composeOpinion(v,b,target,'accuse',reason)};
       return {text:choose(v,'reply-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今はまだ保留かな。投票理由が出たら考えたい。','材料が少ないから、今の時点では決めてない。'])};
     }
     return null;
@@ -428,7 +549,7 @@
     if(p.verbosity===2&&out.statement?.kind==='accuse'&&t.length<125){
       const extra=choose(v,'extra-detail-'+(b.talks||0),[' 票を入れる前に本人の反応も見たい。',' 昨日の投票も合わせて考えたい。',' ほかの人がどう見てるかも聞きたい。']);t+=extra;
     }
-    if(p.humor===2&&p.tone==='casual'&&out.statement?.kind==='question'&&t.length<105)t+=' 深い意味はなくて、そこだけ気になった。';
+    if(p.humor===2&&p.tone==='casual'&&out.statement?.kind==='question'&&t.length<105&&out.statement?.aboutTarget)t+=' そこだけちょっと引っかかった。';
     return {...out,text:t.trim()};
   }
 
@@ -436,7 +557,8 @@
     const s=out?.statement;if(!s)return '';
     if(s.kind==='report')return 'report:'+s.role+':'+s.target+':'+Boolean(s.black);
     if(s.kind==='claim')return 'claim:'+s.role;
-    if(['accuse','trust','question'].includes(s.kind))return s.kind+':'+s.target;
+    if(['accuse','trust'].includes(s.kind))return s.kind+':'+s.target;
+    if(s.kind==='question')return 'question:'+s.target+':'+(s.aboutTarget||'')+':'+(s.aboutMessageId||'');
     return s.kind||'';
   }
   function normalizedSpeech(v,text){
