@@ -136,7 +136,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,
           personality:p.bot?(p.brain?.personality||null):null,botDebug:adminBotInfo(g,p),privateResults:p.privateResults.slice(-12),action:Object.hasOwn(g.actions,p.id)?(g.actions[p.id]?g.realName(g.actions[p.id]):null):undefined,
           vote:Object.hasOwn(g.votes,p.id)?(g.votes[p.id]?g.realName(g.votes[p.id]):null):undefined})),
-        messages:g.messages.slice(-160).map(m=>({...m})),claims:g.claims.slice(-60),reports:g.reports.slice(-60),voteHistory:g.voteHistory.slice(-12)};
+        messages:g.messages.slice(-160).map(m=>({...m})),claims:g.claims.slice(-60),reports:g.reports.slice(-60),voteHistory:g.voteHistory.slice(-12),adminNarration:g.adminNarration?{...g.adminNarration}:null};
     })};
   }
   const server=http.createServer(async(req,res)=>{
