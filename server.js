@@ -7,7 +7,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const os=require('node:os');
-const {Game,preset,ROLES,ROLE_IDS,WOLF}=require('./shared/rules');
+const {Game,preset,ROLES,ROLE_IDS,WOLF,validName}=require('./shared/rules');
 const Bots=require('./shared/bots');
 const VERSION='0.8.2';
 const token=()=>crypto.randomBytes(32).toString('base64url');
@@ -298,7 +298,21 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(body.token&&!pid)throw Error('復帰用のキーが無効です。参加画面から入り直してください。');
           if(pid&&!game.byId(pid)){entry.sessions.delete(secret);throw Error('待機室の席は退出済みです。名前を入力して参加し直してください。');}
           if(!pid){
-            pid=crypto.randomUUID();secret=token();game.addPlayer({id:pid,name:data.name});entry.sessions.set(secret,pid);
+            const requestedName=validName(data.name);
+            const existing=game.players.find(p=>!p.bot&&p.name===requestedName);
+            if(game.phase!=='lobby'){
+              if(!existing)throw Error('対戦中です。参加済みの名前を入力すると自分の席へ復帰できます。');
+              if(existing.connected)throw Error('その名前のプレイヤーは現在接続中です。');
+              if(!existing.auto)throw Error('再接続を待っています。CPU代行に切り替わった後、もう一度参加してください。');
+              pid=existing.id;secret=token();
+              for(const [sessionToken,sessionPid] of entry.sessions)if(sessionPid===pid)entry.sessions.delete(sessionToken);
+              entry.sessions.set(secret,pid);
+              existing.auto=false;game.connect(pid);
+              game.system(existing.name+'が対戦に復帰しました。CPU代行を終了します。');
+              broadcast(entry);
+              return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:game.view(pid),rejoined:true});
+            }
+            pid=crypto.randomUUID();secret=token();game.addPlayer({id:pid,name:requestedName});entry.sessions.set(secret,pid);
             // 参加人数が変わっても配役は自動変更しない。必要なら部屋主が配役を調整する。
             game.configVersion++;game.system(`${game.name(pid)}が参加しました。`);
           }
