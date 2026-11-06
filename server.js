@@ -201,6 +201,15 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(!['lobby','ended'].includes(entry.game.phase))entry.game.advance();
           return json(res,200,{ok:true});
         }
+        if(action==='broadcast_narration'){
+          const g=entry.game;
+          if(g.phase==='lobby')throw Error('ゲーム開始後の部屋で送信してください。');
+          const text=String(body.text||'').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,120);
+          if(!text)throw Error('表示する文章を入力してください。');
+          g.adminNarration={id:++g.adminNarrationSeq,text,at:g.now()};
+          g.changed();broadcast(entry);
+          return json(res,200,{ok:true,id:g.adminNarration.id});
+        }
         if(action==='force_kill'||action==='force_revive'){
           const g=entry.game;if(['lobby','ended'].includes(g.phase))throw Error('ゲーム進行中の部屋で使ってください。');
           const p=g.byId(String(body.playerId||''));if(!p)throw Error('対象プレイヤーが見つかりません。');
