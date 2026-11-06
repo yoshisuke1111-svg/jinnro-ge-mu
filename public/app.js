@@ -1,4 +1,4 @@
-/* v0.8.1 browser UI: eye-comfort palette, clearer cards, comments, and readable game surfaces. */
+/* v0.8.2 browser UI: admin room narration + existing readable game surfaces. */
 'use strict';
 (()=>{
   const $=id=>document.getElementById(id),{ROLES,LOVER,ROLE_IDS,PHASES,DEFAULT_TIMES}=WW;
@@ -9,7 +9,7 @@
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   let state=null,channel='public',selected=null,settingsDirty=false,settingsVersion=-1,mobileView='board',boardMenuTarget=null;
   let actionSignature='',chatSignature='',recordSignature='',playerSignature='',privateSignature='';
-  let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
+  let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastAdminNarrationId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
   let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null;
   const SECRET_ROLE_AUTO_FLIP=4200,SECRET_ROLE_VISIBLE=10500,SECRET_RESULT_AUTO_FLIP=1800,SECRET_RESULT_VISIBLE=7200,SECRET_FADE=720;
   const reducedPref=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
@@ -330,6 +330,11 @@
   function phaseAnnouncement(s){const m=[...s.messages].reverse().find(x=>x.channel==='system'&&x.phase===s.phase&&x.day===s.day);return m?.text||({reveal:'役職を確認してください。',night:'夜になりました。',dawn:'朝になりました。',discussion:'話し合いを始めます。',vote:'投票を開始します。',execution:'投票結果です。',ended:'ゲーム終了です。'})[s.phase]||'';}
   function render(s){
     const old=state;state=s;document.body.dataset.phase=s.phase;document.body.classList.toggle('cheater-active',!!s.cheaterActive);timeOffset=s.now-Date.now();
+    if(s.adminNarration&&s.adminNarration.id!==lastAdminNarrationId&&s.now-s.adminNarration.at<15000){
+      lastAdminNarrationId=s.adminNarration.id;
+      if(s.phase!=='lobby')setMobileView('board');
+      narrate(s.adminNarration.text,'管理者',reduced?1600:4800);
+    }
     if(s.phaseId!==old?.phaseId){selected=null;actionSignature='';boardMenuTarget=null;$('boardMenu').hidden=true;
       if(s.phase==='reveal'){lastSceneId=null;lastPrivateId=null;lastWinner=null;privateSignature='';secretShownPhase=null;}
       if(s.phase==='night'&&['wolf','darkwolf','black_leveler'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
