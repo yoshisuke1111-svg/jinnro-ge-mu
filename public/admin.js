@@ -17,7 +17,8 @@ function captureDetailState(){
     logTop:log?.scrollTop??0,
     votes:Object.fromEntries([...document.querySelectorAll('[data-vote-cpu]')].map(s=>[s.dataset.voteCpu,s.value])),
     allVote:$('allCpuVote')?.value??'',
-    attack:$('cpuAttackTarget')?.value??''
+    attack:$('cpuAttackTarget')?.value??'',
+    narration:$('adminNarrationText')?.value??''
   };
 }
 function restoreDetailState(s){
@@ -25,6 +26,7 @@ function restoreDetailState(s){
   for(const el of document.querySelectorAll('[data-vote-cpu]'))if(Object.hasOwn(s.votes,el.dataset.voteCpu)&&[...el.options].some(o=>o.value===s.votes[el.dataset.voteCpu]))el.value=s.votes[el.dataset.voteCpu];
   if($('allCpuVote')&&[...$('allCpuVote').options].some(o=>o.value===s.allVote))$('allCpuVote').value=s.allVote;
   if($('cpuAttackTarget')&&[...$('cpuAttackTarget').options].some(o=>o.value===s.attack))$('cpuAttackTarget').value=s.attack;
+  if($('adminNarrationText'))$('adminNarrationText').value=s.narration||'';
   const log=document.querySelector('#pane-log .log');if(log)log.scrollTop=s.logTop;
   window.scrollTo(0,s.pageY);
 }
@@ -67,8 +69,14 @@ function renderWatch(r){const recent=r.messages.filter(m=>m.channel==='public'&&
 function renderDetail(){const saved=captureDetailState(),r=data.rooms.find(x=>x.code===selected);if(!r){$('detail').innerHTML='<p class="empty">部屋を選ぶと詳細を表示します。</p>';return;}
  const tabs=[['players','参加者・役職'],['log','会話ログ'],['state','進行・行動']];if(r.cpuWatch)tabs.unshift(['watch','CPU観戦']);
  if(!tabs.some(([id])=>id===tab))tab=tabs[0][0];
- $('detail').innerHTML=`<div class="detail-head"><div><h2>部屋 ${esc(r.code)}</h2><p>${r.cpuWatch?'<strong class="cpu-badge">CPU観戦部屋</strong> · ':''}${esc(phaseNames[r.phase]||r.phase)}${r.day?' · '+r.day+'日目':''} / 部屋主 ${esc(r.host||'—')}</p></div><div class="chips"><span class="chip">${r.total}人</span><span class="chip">生存 ${r.alive}</span><span class="chip">接続 ${r.connected}</span>${r.cpuWatch?`<span class="chip">速度 ${r.speed}x</span>`:''}${phaseAlert(r)?'<span class="chip status-bad">要確認</span>':'<span class="chip status-ok">正常</span>'}</div></div><div class="detail-actions">${r.cpuWatch?'<button id="deleteRoom" class="danger">CPU観戦部屋を削除</button>':''}</div><div class="tabs">${tabs.map(([id,label])=>`<button data-tab="${id}" class="${tab===id?'active':''}">${label}</button>`).join('')}</div>${tabs.map(([id])=>`<div id="pane-${id}" class="pane"></div>`).join('')}`;
+ $('detail').innerHTML=`<div class="detail-head"><div><h2>部屋 ${esc(r.code)}</h2><p>${r.cpuWatch?'<strong class="cpu-badge">CPU観戦部屋</strong> · ':''}${esc(phaseNames[r.phase]||r.phase)}${r.day?' · '+r.day+'日目':''} / 部屋主 ${esc(r.host||'—')}</p></div><div class="chips"><span class="chip">${r.total}人</span><span class="chip">生存 ${r.alive}</span><span class="chip">接続 ${r.connected}</span>${r.cpuWatch?`<span class="chip">速度 ${r.speed}x</span>`:''}${phaseAlert(r)?'<span class="chip status-bad">要確認</span>':'<span class="chip status-ok">正常</span>'}</div></div><div class="detail-actions">${r.cpuWatch?'<button id="deleteRoom" class="danger">CPU観戦部屋を削除</button>':''}</div><section class="admin-narration"><div class="admin-narration-head"><div><strong>全員へナレーション</strong><small>この部屋の全プレイヤーの画面中央に表示します。</small></div>${r.adminNarration?`<small>前回：${esc(r.adminNarration.text)}</small>`:''}</div><div class="admin-narration-send"><input id="adminNarrationText" maxlength="120" placeholder="例：突然、村に謎の声が響いた……" ${r.phase==='lobby'?'disabled':''}><button id="sendAdminNarration" ${r.phase==='lobby'?'disabled':''}>全員へ表示</button></div>${r.phase==='lobby'?'<p>ゲーム開始後に送信できます。</p>':''}</section><div class="tabs">${tabs.map(([id,label])=>`<button data-tab="${id}" class="${tab===id?'active':''}">${label}</button>`).join('')}</div>${tabs.map(([id])=>`<div id="pane-${id}" class="pane"></div>`).join('')}`;
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;interactionUntil=0;renderDetail();});for(const [id] of tabs)$('pane-'+id).hidden=tab!==id;
+ if($('sendAdminNarration'))$('sendAdminNarration').onclick=async()=>{
+   const input=$('adminNarrationText'),text=input.value.trim();if(!text)return;
+   input.value='';$('adminNotice').textContent='';
+   await adminAction('broadcast_narration',{text});
+   $('adminNotice').textContent='部屋 '+r.code+' の全員へナレーションを送信しました。';
+ };
  if(r.cpuWatch){$('pane-watch').innerHTML=renderWatch(r);$('toggleFast').onclick=()=>adminAction('toggle_fast',{enabled:!r.fastMode});$('stepPhase').onclick=()=>adminAction('step');$('deleteRoom').onclick=()=>{if(confirm(`CPU観戦部屋 ${r.code} を削除しますか？`))adminAction('delete_room');};}
  $('pane-players').innerHTML=`<div class="table-wrap"><table class="player-table"><thead><tr><th>名前</th><th>状態</th><th>役職</th><th>恋人</th><th>CPU人格</th><th>現在の行動</th><th>管理者操作</th></tr></thead><tbody>${r.players.map(p=>{const lifeControl=!['lobby','ended'].includes(r.phase)?`<button class="${p.alive?'danger':'revive'} compact" data-life-action="${p.alive?'force_kill':'force_revive'}" data-player-id="${esc(p.id)}">${p.alive?'強制死亡':'復活'}</button>`:'—';return `<tr class="${p.alive?'':'dead'}"><td><strong>${esc(p.name)}</strong>${p.bot?' <small>CPU</small>':''}</td><td>${p.alive?'生存':'死亡'} / ${p.connected||p.bot?'接続':'切断'}${p.auto?' / CPU代行':''}</td><td class="role">${esc(roleNames[p.role]||p.role||'未配役')}</td><td>${esc(p.lover||'—')}</td><td class="personality">${esc(p.bot?personality(p.personality):'—')}</td><td>${p.action!==undefined?'夜: '+esc(p.action||'対象なし'):''}${p.vote!==undefined?`${p.action!==undefined?' / ':''}投票: ${esc(p.vote||'棄権')}`:'—'}</td><td>${lifeControl}</td></tr>`;}).join('')}</tbody></table></div><h3 style="margin-top:18px">CPU内部状態</h3><div class="state-grid">${r.players.filter(p=>p.bot).map(p=>{const d=p.botDebug||{};const suspects=(d.suspicion||[]).map(x=>`${esc(x.name)} ${x.score}${x.reason?' — '+esc(x.reason):''}`).join('<br>')||'まだ評価なし';return `<div class="state-card"><h3>${esc(p.name)} · ${esc(roleNames[p.role]||p.role||'未配役')}</h3><div class="personality">${esc(personality(p.personality))}</div><p>発言数: ${d.talks||0}${d.fakeRole?` / 騙り: ${esc(roleNames[d.fakeRole]||d.fakeRole)}`:''}${d.replyQueued?' / 返信待ち':''}</p><strong>疑い上位</strong><div class="personality">${suspects}</div></div>`;}).join('')}</div>`;
  document.querySelectorAll('[data-life-action]').forEach(b=>b.onclick=()=>{const p=r.players.find(x=>x.id===b.dataset.playerId);if(!p)return;const revive=b.dataset.lifeAction==='force_revive';if(revive||confirm(p.name+'を管理者操作で強制死亡させますか？'))adminAction(b.dataset.lifeAction,{playerId:p.id});});
