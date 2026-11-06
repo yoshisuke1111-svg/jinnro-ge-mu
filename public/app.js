@@ -322,7 +322,7 @@
   }
   window.addEventListener('resize',()=>state&&requestAnimationFrame(()=>drawArrows(state)));
 
-  function narrate(text,kicker='SYSTEM',duration=3000){clearTimeout(narrationTimer);$('narrationKicker').textContent=kicker;$('narrationText').textContent=text;$('narration').hidden=false;$('narration').classList.remove('fade');narrationTimer=setTimeout(()=>{$('narration').classList.add('fade');setTimeout(()=>$('narration').hidden=true,reduced?0:450);},reduced?900:duration);}
+  function narrate(text,kicker='SYSTEM',duration=3000){clearTimeout(narrationTimer);$('narrationKicker').textContent=kicker;$('narrationText').textContent=text;$('narration').classList.toggle('admin-message',kicker==='管理者');$('narration').hidden=false;$('narration').classList.remove('fade');narrationTimer=setTimeout(()=>{$('narration').classList.add('fade');setTimeout(()=>$('narration').hidden=true,reduced?0:450);},reduced?900:duration);}
   function playScene(scene){
     if(!scene||scene.id===lastSceneId)return;lastSceneId=scene.id;clearTimeout(sceneTimer);const box=$('scene');$('sceneTitle').textContent=scene.title;$('sceneNames').textContent=scene.victims.length?scene.victims.map(v=>v.name).join('、'):'犠牲者はいませんでした';$('sceneMark').textContent=scene.type==='execution'?'◇':scene.victims.length?'╱╱╱':'☀';box.className='board-scene '+(scene.type==='execution'?'execution':scene.victims.length?'death':'dawn');box.hidden=false;setMobileView('board');sceneTimer=setTimeout(()=>box.hidden=true,reduced?1000:3300);
   }
@@ -330,16 +330,16 @@
   function phaseAnnouncement(s){const m=[...s.messages].reverse().find(x=>x.channel==='system'&&x.phase===s.phase&&x.day===s.day);return m?.text||({reveal:'役職を確認してください。',night:'夜になりました。',dawn:'朝になりました。',discussion:'話し合いを始めます。',vote:'投票を開始します。',execution:'投票結果です。',ended:'ゲーム終了です。'})[s.phase]||'';}
   function render(s){
     const old=state;state=s;document.body.dataset.phase=s.phase;document.body.classList.toggle('cheater-active',!!s.cheaterActive);timeOffset=s.now-Date.now();
-    if(s.adminNarration&&s.adminNarration.id!==lastAdminNarrationId&&s.now-s.adminNarration.at<15000){
-      lastAdminNarrationId=s.adminNarration.id;
-      if(s.phase!=='lobby')setMobileView('board');
-      narrate(s.adminNarration.text,'管理者',reduced?1600:4800);
-    }
     if(s.phaseId!==old?.phaseId){selected=null;actionSignature='';boardMenuTarget=null;$('boardMenu').hidden=true;
       if(s.phase==='reveal'){lastSceneId=null;lastPrivateId=null;lastWinner=null;privateSignature='';secretShownPhase=null;}
       if(s.phase==='night'&&['wolf','darkwolf','black_leveler'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
       if(['discussion','dawn','execution','ended'].includes(s.phase))setMobileView('board');else if(['reveal','night'].includes(s.phase))setMobileView('self');else if(s.phase==='vote')setMobileView('board');
       const announcement=phaseAnnouncement(s);if(announcement)narrate(announcement,s.phase==='night'?'NIGHT':s.phase==='dawn'?'MORNING':s.phase==='vote'?'VOTE':'SYSTEM',s.phase==='discussion'?2200:3000);
+    }
+    if(s.adminNarration&&s.adminNarration.id!==lastAdminNarrationId&&s.now-s.adminNarration.at<15000){
+      lastAdminNarrationId=s.adminNarration.id;
+      if(s.phase!=='lobby')setMobileView('board');
+      narrate(s.adminNarration.text,'管理者',reduced?1600:4800);
     }
     $('entrance').hidden=true;$('room').hidden=false;$('roomCode').textContent=offline?'LOCAL':s.code;$('roomEyebrow').textContent=offline?'SOLO PRACTICE':'PRIVATE ROOM';$('roomTitle').textContent=s.phase==='lobby'?'ゲーム設定':s.phase==='ended'?'対戦終了':'人狼ゲーム';$('lobby').hidden=s.phase!=='lobby';$('play').hidden=s.phase==='lobby';$('speed').hidden=true;
     if(s.phase==='lobby')renderSettings(s);renderPlayers(s);
