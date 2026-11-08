@@ -12,3 +12,9 @@ services:
         value: production
       - key: ADMIN_PASSWORD
         sync: false
+      - key: AI_CPU_ENABLED
+        value: "0"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-6-luna
