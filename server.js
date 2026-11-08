@@ -9,6 +9,7 @@ const crypto=require('node:crypto');
 const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF,validName}=require('./shared/rules');
 const Bots=require('./shared/bots');
+const {createAiCpu}=require('./ai-cpu');
 const VERSION='0.8.4';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
@@ -23,8 +24,9 @@ function makeClock(){
   return {now(){return gameBase+(Date.now()-realBase)*speed;},setSpeed(next){const current=this.now();realBase=Date.now();gameBase=current;speed=next;},getSpeed(){return speed;}};
 }
 
-function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}) {
+function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null}={}) {
   const rooms=new Map(),tickets=new Map(),rates=new Map(),chatRates=new Map(),adminSessions=new Map();
+  const ai=aiCpu||createAiCpu({fetchImpl});
   const startedReal=Date.now(),recentErrors=[];let requestCount=0,apiCount=0;
   const recordError=(scope,error)=>{recentErrors.push({at:Date.now(),scope,message:String(error?.message||error)});if(recentErrors.length>40)recentErrors.splice(0,recentErrors.length-40);};
   const effectiveAdminPassword=adminPassword||crypto.randomBytes(9).toString('base64url');
@@ -85,6 +87,34 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   }
   function streamTicket(entry,pid) {
     const t=token();tickets.set(t,{code:entry.game.code,pid,until:Date.now()+45000});return t;
+  }
+  function ensureAiSeat(entry){
+    if(!ai.enabled||entry.game.phase==='lobby'||entry.game.phase==='ended')return null;
+    if(entry.aiBotId&&entry.game.byId(entry.aiBotId)?.bot)return entry.aiBotId;
+    const seat=entry.game.players.find(p=>p.bot);
+    entry.aiBotId=seat?.id||null;
+    return entry.aiBotId;
+  }
+  function queueAiRewrite(entry){
+    const id=ensureAiSeat(entry);if(!id)return;
+    entry.aiRewriteSeen=entry.aiRewriteSeen||new Set();
+    entry.aiRewritePending=entry.aiRewritePending||new Set();
+    const game=entry.game;
+    const candidates=game.messages.filter(m=>m.playerId===id&&m.channel==='public'&&m.text&&!entry.aiRewriteSeen.has(m.id)&&!entry.aiRewritePending.has(m.id));
+    for(const message of candidates.slice(-2)){
+      entry.aiRewritePending.add(message.id);
+      const view=game.botView(id),draft={text:message.text,statement:message.meta||null};
+      void ai.rewrite({view,draft,mode:'talk'}).then(text=>{
+        entry.aiRewritePending.delete(message.id);entry.aiRewriteSeen.add(message.id);
+        const current=game.messages.find(m=>m.id===message.id);
+        if(!current||current.playerId!==id||current.channel!=='public')return;
+        const clean=String(text||'').trim();
+        if(clean&&clean!==current.text){current.text=clean;game.changed();broadcast(entry);}
+      }).catch(error=>{
+        entry.aiRewritePending.delete(message.id);entry.aiRewriteSeen.add(message.id);
+        recordError('ai cpu rewrite',error);
+      });
+    }
   }
   function broadcast(entry) {
     const game=entry.game;
@@ -347,6 +377,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     for(const [code,entry] of rooms){
       try{
         entry.game.tick(Bots);
+        queueAiRewrite(entry);
         if(entry.revision!==entry.game.revision)broadcast(entry);
         if((!entry.cpuWatch&&!entry.game.humans().length)||(!entry.cpuWatch&&!entry.clients.size&&Date.now()-entry.lastEmpty>30*60000)){
           for(const res of entry.clients.values())res.end();
