@@ -10,6 +10,9 @@
 <script src="/shared/rules.js" defer></script>
 <script src="/transport.js" defer></script>
 <script src="/app.js" defer></script>
+<style id="creator-credit-style">
+#creator-credit{position:fixed;right:8px;bottom:calc(6px + env(safe-area-inset-bottom, 0px));z-index:12;pointer-events:none;user-select:none;background:rgba(9,21,22,.76);border:1px solid rgba(250,235,204,.2);color:#f7ebd6;border-radius:6px;padding:3px 6px;font:600 10px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;letter-spacing:.02em}
+</style>
 </head>
 <body>
 <header class="site-header">
@@ -172,5 +175,6 @@
   </button>
   <p id="tarotAuto" class="caption">タップで確認できます。表になってからしばらく表示します。</p><button id="tarotClose" class="secondary">閉じる</button>
 </dialog>
+<div id="creator-credit">作成者 鈾</div>
 </body>
 </html>
