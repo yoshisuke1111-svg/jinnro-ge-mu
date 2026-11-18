@@ -90,9 +90,31 @@
     if(v.me.role==='avenger'&&!v.me.lover&&!v.me.revengeDone)add(v.me.revengeTarget,75,'投票先として注目している');
     return {score,reasons};
   }
-  function ranked(v,targets=null){
+  function ranked(v,targets=null,b=null){
     const e=evaluate(v),ids=targets||live(v).filter(p=>p.id!==v.me.id).map(p=>p.id);
-    return ids.map(id=>({id,score:e.score[id]??0,reason:(e.reasons[id]||[]).sort((a,b)=>b.weight-a.weight)[0]?.text||null})).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+    const priorVote=b?ownLastVote(v):null,memory=b?(b.suspicionMemory||(b.suspicionMemory={})):null;
+    const rows=ids.map(id=>{
+      const rawScore=e.score[id]??0;let score=rawScore;
+      if(memory){
+        const previous=memory[id];
+        if(previous){
+          const age=Math.max(0,(v.day||0)-(previous.day||v.day||0)),ageFactor=Math.max(.25,1-age*.25);
+          score+=Math.max(-8,Math.min(12,(Number(previous.score)||0)*.14))*ageFactor;
+        }
+        if(id===b.announcedTarget)score+=7;
+        if(id===priorVote)score+=3;
+      }
+      return {id,score,rawScore,reason:(e.reasons[id]||[]).sort((a,b)=>b.weight-a.weight)[0]?.text||null};
+    });
+    if(memory){
+      const aliveIds=new Set(live(v).map(p=>p.id));
+      for(const id of Object.keys(memory))if(!aliveIds.has(id))delete memory[id];
+      for(const row of rows){
+        const previous=memory[row.id],base=Math.max(-40,Math.min(100,row.rawScore));
+        memory[row.id]={score:previous?(Number(previous.score)||0)*.58+base*.42:base,day:v.day};
+      }
+    }
+    return rows.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
   }
   function nightChoice(v,b){
     const ids=['attack','divine'].includes(v.kind)?v.targets.filter(id=>id!==v.me.lover):v.targets.slice();
@@ -112,7 +134,7 @@
     if(v.kind==='divine'){
       const examined=new Set(v.me.privateResults.filter(r=>r.kind==='seer').map(r=>r.target));
       const unknown=choices.filter(id=>!examined.has(id));
-      const rs=ranked(v,unknown.length?unknown:choices);
+      const rs=ranked(v,unknown.length?unknown:choices,b);
       const target=rs[0]?.id;
       return target||choices[0];
     }
@@ -382,15 +404,16 @@
       const detail={cat:'吊るなら道連れが出るから、それだけ覚えておいて。',guard:'護衛先はまだ伏せる。',baker:'朝のパンも一緒に見て判断してほしい。'}[me.role];
       return {statement:{kind:'claim',role:me.role},text:claimSentence(v,b,me.role,detail)};
     }
-    const list=ranked(v),target=list[0],safe=list.at(-1);
-    if(!target)return null;
+    const list=ranked(v,null,b),top=list[0],previous=list.find(x=>x.id===b.announcedTarget);
+    if(!top)return null;
+    const target=previous&&previous.score>=top.score-12?previous:top,safe=list.at(-1);
     const roll=hash(me.id+'|speech-kind|'+v.day+'|'+(b.talks||0)+'|'+(b.topicSalt||0))%100,suspicion=b.personality?.suspicion??1;
     const trustCut=[30,19,9][suspicion],questionCut=[61,43,27][suspicion];
     let kind='accuse',chosen=target;
     if(roll<trustCut&&safe&&safe.id!==me.id&&safe.score<15){kind='trust';chosen=safe;}
     else if(roll<questionCut&&target.score<70){kind='question';chosen=target;}
     // 村全体で直近に同じ「誰をどう見るか」が出ていたら、別の論点を優先する。
-    const recentTopicKeys=new Set(v.messages.filter(m=>m.channel==='public'&&m.day===v.day&&m.playerId&&v.players.find(p=>p.id===m.playerId)?.bot&&['accuse','trust','question'].includes(m.meta?.kind)).slice(-7).map(m=>m.meta.kind+':'+m.meta.target));
+    const recentTopicKeys=new Set(v.messages.filter(m=>m.channel==='public'&&m.day===v.day&&m.playerId&&m.playerId!==me.id&&v.players.find(p=>p.id===m.playerId)?.bot&&['accuse','trust','question'].includes(m.meta?.kind)).slice(-7).map(m=>m.meta.kind+':'+m.meta.target));
     if(recentTopicKeys.has(kind+':'+chosen.id)){
       const pool=kind==='trust'?[...list].reverse():list;
       const alt=pool.find(x=>x.id!==me.id&&!recentTopicKeys.has(kind+':'+x.id)&&(kind!=='trust'||x.score<20));
@@ -443,7 +466,7 @@
   function replySpeech(v,b){
     const me=v.me,msg=v.messages.find(m=>m.id===b.replyMessageId&&m.channel==='public');
     if(!msg)return null;
-    const list=ranked(v),target=list[0],reason=target?safeReason(v,target,b):'',p=tone(b),intent=freeIntent(v,msg,me);
+    const list=ranked(v,null,b),target=list[0],reason=target?safeReason(v,target,b):'',p=tone(b),intent=freeIntent(v,msg,me);
     if(intent.kind==='clarify'){
       const clarified=clarifyReply(v,b,msg);if(clarified)return clarified;
     }
@@ -475,7 +498,7 @@
     if(intent.kind==='vote'){
       const voted=ownLastVote(v);
       if(voted){
-        const vt=ranked(v,[voted])[0],why=vt?safeReason(v,vt,b):'その時点では一番気になった';
+        const vt=ranked(v,[voted],b)[0],why=vt?safeReason(v,vt,b):'その時点では一番気になった';
         return {text:choose(v,'reply-vote-'+msg.id,[`昨日は${spokenName(v,b,voted)}に入れた。${why}`,`${spokenName(v,b,voted)}に投票したよ。理由は、${why}`,`票は${spokenName(v,b,voted)}。その時は${why}`])};
       }
       if(target)return {statement:{kind:'accuse',target:target.id},text:choose(v,'reply-next-vote-'+msg.id,[`今投票するなら${spokenName(v,b,target.id)}かな。${reason}`,`まだ確定じゃないけど、今は${spokenName(v,b,target.id)}を候補にしてる。${reason}`])};
@@ -492,7 +515,7 @@
       return {text:choose(v,'reply-seer-'+msg.id,[`${who}の${t}${latest.black?'黒':'白'}は見てる。ただ、結果だけで真偽は決めない。`,`占いは${who}の結果を材料にしてる。出した後の発言と投票も見たい。`,`${who}の判定は確認した。対抗や票の動きまで見てから判断したい。`])};
     }
     if(intent.kind==='target'&&intent.subject){
-      const item=ranked(v,[intent.subject.id])[0];if(item){
+      const item=ranked(v,[intent.subject.id],b)[0];if(item){
         const why=safeReason(v,item,b);
         if(item.score>=35)return {statement:{kind:'accuse',target:item.id},text:composeOpinion(v,b,item,'accuse',why)};
         if(item.score<=8)return {statement:{kind:'trust',target:item.id},text:composeOpinion(v,b,item,'trust',why)};
@@ -594,7 +617,7 @@
     if(!v?.me)throw Error('A redacted player view is required.');
     if(mode==='night')return {target:nightChoice(v,b)};
     if(mode==='vote'){
-      const r=ranked(v,v.targets);
+      const r=ranked(v,v.targets,b);
       if(!r.length)return {target:null};
       const announced=r.find(x=>x.id===b.announcedTarget);
       return {target:announced&&announced.score>=r[0].score-8?announced.id:r[0].id};
