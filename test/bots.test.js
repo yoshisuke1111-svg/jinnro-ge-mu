@@ -147,3 +147,29 @@ test('previously announced suspicion gets a continuity bonus instead of resettin
   assert.ok(after>=before+6.9);
   assert.ok(p.brain.suspicionMemory?.[remembered.id]);
 });
+
+
+test('casual non-game question selects exactly one CPU responder',()=>{
+  const {g,human,bots}=makeDiscussion();
+  g.chat(human.id,'好きな食べ物って何？','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  const intents=bots.map(p=>Bots.freeIntent(g.botView(p.id),msg,p));
+  assert.ok(intents.every(i=>i.kind==='casual'));
+  const interested=bots.filter(p=>Bots.replyInterest(g.botView(p.id),p.brain,msg)>0);
+  assert.equal(interested.length,1);
+  const p=interested[0];
+  p.brain.replyMessageId=msg.id;
+  const reply=Bots.decide(g.botView(p.id),p.brain,'reply');
+  assert.ok(reply?.text);
+  assert.doesNotMatch(reply.text,/投票|占い|怪し|疑/);
+});
+
+test('named CPU answers casual chat directly',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const named=bots[1];
+  g.chat(human.id,named.name+'、今日眠いわ','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  const scores=bots.map(p=>[p.id,Bots.replyInterest(g.botView(p.id),p.brain,msg)]);
+  assert.equal(scores.filter(([,score])=>score>0).length,1);
+  assert.ok(scores.find(([id])=>id===named.id)[1]>=3);
+});
