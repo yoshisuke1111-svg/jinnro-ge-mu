@@ -435,7 +435,8 @@
     const text=String(msg?.text||''),compact=text.replace(/\s+/g,'');
     const subject=v.players.filter(p=>p.id!==me.id&&p.id!==msg?.playerId).sort((a,b)=>b.name.length-a.name.length).find(p=>compact.includes(p.name));
     const direct=msg?.meta?.target===me.id||compact.includes(me.name);
-    const question=/[?？]|どう思|どう見|どうする|誰|どこ|教えて|聞きたい|意見|なんで|なぜ|理由|本物|偽/.test(compact);
+    const question=/[?？]|どう思|どう見|どうする|誰|どこ|教えて|聞きたい|意見|なんで|なぜ|理由|本物|偽|好き|嫌い|何食べ|何して|どうだった/.test(compact);
+    const gameTalk=/人狼|村人|村側|狼|占い|占い師|霊媒|役職|CO|ＣＯ|投票|票先|吊り|処刑|黒|白|怪し|疑|信用|信じ|噛み|襲撃|護衛|守る|対抗|真偽|判定|狂人|妖狐|生存者|投票候補/.test(compact);
     let kind='none';
     if(/^(おは|こんにちは|こんばんは|よろしく|やあ|どうも)/.test(compact))kind='greeting';
     if(/どれに対して|何に対して|何のこと|何について|どの話|どの発言|それって何|何を指して|何の質問|どれの理由/.test(compact)&&question)kind='clarify';
@@ -443,9 +444,10 @@
     else if(/役職|何者|CO|ＣＯ|カミングアウト/.test(compact)&&question)kind='role';
     else if(/占い|占い師|霊媒|判定/.test(compact)&&question)kind='seer';
     else if(subject&&(/怪し|白|黒|村っぽ|人狼|信用|信じ|どう思|どう見/.test(compact)))kind='target';
-    else if(/怪し|人狼|黒い|疑って|誰|どこ/.test(compact)&&question)kind='suspect';
-    else if(question)kind='opinion';
-    return {kind,direct,subject,question,text:compact};
+    else if(/怪し|人狼|黒い|疑って|誰|どこ/.test(compact)&&question&&gameTalk)kind='suspect';
+    else if(question&&gameTalk)kind='opinion';
+    else if(compact.length>=2)kind='casual';
+    return {kind,direct,subject,question,gameTalk,text:compact};
   }
   function replyInterest(v,b,msg){
     if(!msg||msg.channel!=='public'||msg.playerId===v.me.id)return 0;
@@ -485,6 +487,16 @@
     }
     if(msg.meta?.kind==='trust'&&msg.meta.target===me.id){
       return {text:choose(v,'reply-trust-'+msg.id,[`${msg.name}がそう見てるのは分かった。自分もまだ決め打ちはしない。`,`白く見てくれるのはありがたいけど、そこだけで固めなくていいと思う。`,`了解。自分は引き続き発言と投票を見てる。`])};
+    }
+    if(intent.kind==='casual'){
+      const casual={
+        casual:['へえ、そうなんだ。','それちょっと分かる。','なるほどな。','それはなかなかだな。'],
+        soft:['へえ、そうなんだ。','それちょっと分かるかも。','なるほどね。','それはちょっと大変そう。'],
+        polite:['そうなんですね。','なるほど、分かります。','それは少し大変そうですね。','へえ、そうなんですか。'],
+        blunt:['へえ。','なるほど。','それは大変だな。','まあ分かる。'],
+        analytical:['なるほど。','そういう話か。','それは少し気になるな。','へえ、面白いな。']
+      }[p];
+      return {text:choose(v,'reply-casual-'+msg.id,casual)};
     }
     if(intent.kind==='greeting'){
       return {text:choose(v,'reply-greeting-'+msg.id,{
