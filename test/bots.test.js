@@ -131,3 +131,19 @@ test('question context survives publishing as public metadata',()=>{
   assert.equal(q.meta.aboutTarget,subject.id);
   assert.equal(q.meta.aboutMessageId,reference.id);
 });
+
+
+test('previously announced suspicion gets a continuity bonus instead of resetting immediately',()=>{
+  const {g,bots}=makeDiscussion();
+  const p=bots.find(x=>x.role==='villager')||bots[0];
+  const view=g.botView(p.id);
+  const raw=Bots.ranked(view);
+  assert.ok(raw.length>=2);
+  const remembered=raw[1];
+  p.brain.announcedTarget=remembered.id;
+  const stable=Bots.ranked(view,null,p.brain);
+  const before=raw.find(x=>x.id===remembered.id).score;
+  const after=stable.find(x=>x.id===remembered.id).score;
+  assert.ok(after>=before+6.9);
+  assert.ok(p.brain.suspicionMemory?.[remembered.id]);
+});
