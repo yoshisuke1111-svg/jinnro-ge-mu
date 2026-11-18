@@ -13,7 +13,7 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: AI_CPU_ENABLED
-        value: "0"
+        value: "1"
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
