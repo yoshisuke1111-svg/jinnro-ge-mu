@@ -79,11 +79,12 @@ function createAiCpu({
   apiKey=process.env.OPENAI_API_KEY||'',
   enabled=String(process.env.AI_CPU_ENABLED||'')==='1',
   model=process.env.OPENAI_MODEL||DEFAULT_MODEL,
-  cpuCount=Math.max(1,Math.min(6,Number(process.env.AI_CPU_COUNT||3)||3)),
+  cpuCount=process.env.AI_CPU_COUNT||3,
   fetchImpl=globalThis.fetch,
   timeoutMs=4500
 }={}){
   const active=Boolean(enabled&&apiKey&&typeof fetchImpl==='function');
+  const normalizedCpuCount=Math.max(1,Math.min(6,Number(cpuCount)||3));
   async function rewrite({view,draft,mode='talk'}={}){
     const fallback=String(draft?.text||'').trim();
     if(!active||!fallback)return fallback;
@@ -115,7 +116,7 @@ function createAiCpu({
       clearTimeout(timer);
     }
   }
-  return {enabled:active,model,cpuCount,rewrite};
+  return {enabled:active,model,cpuCount:normalizedCpuCount,rewrite};
 }
 
 module.exports={createAiCpu,extractOutputText,buildInput};
