@@ -39,39 +39,45 @@ function publicContext(view,draft,mode){
     role:draft.statement.role||null,
     black:typeof draft.statement.black==='boolean'?draft.statement.black:null
   }:null;
+  const speaker=view?.me?.name||null;
   return {
     mode,
     day:view?.day||null,
-    speaker:view?.me?.name||null,
+    speaker,
     personality:view?.me?.personality||null,
     statement,
     draft:String(draft?.text||'').slice(0,500),
     recent,
-    previousOwn:recent.filter(m=>m.speaker===view?.me?.name).slice(-3)
+    previousOwn:recent.filter(m=>m.speaker===speaker).slice(-3),
+    latestOther:[...recent].reverse().find(m=>m.speaker!==speaker)||null
   };
 }
 
 function buildInput(view,draft,mode){
   const context=publicContext(view,draft,mode);
+  const casual=mode==='casual';
+  const rules=casual?[
+    'あなたはオンライン人狼ゲームに参加しているCPUプレイヤーです。人狼の議論以外の軽い雑談にも自然に参加できます。',
+    'latestOther は直前に他の参加者が話した内容です。雑談なら、その内容にちゃんと反応してください。',
+    '無理に人狼の話へ戻さないでください。好きな食べ物、学校、眠い、天気、趣味など普通の世間話には普通に返してください。',
+    'ただし実在の身体・学校・家・今日の体験など、CPU自身が本当に経験した事実としては語らないでください。好みや軽いキャラ付けは自然な範囲で構いません。',
+    'recentに無いゲーム内事実、投票、占い結果、役職情報は作らないでください。秘密情報も漏らさないでください。',
+    'draftは保険用の短い仮文です。雑談ではdraftに縛られすぎず、latestOtherへの自然な返答を優先してください。',
+    '1〜2文、最大120文字程度。発言本文だけを返してください。'
+  ]:[
+    'あなたはオンライン人狼ゲームのCPU発言を自然な日本語に整える係です。',
+    '与えられたdraftの意味・対象・白黒判定・CO内容を絶対に変えないでください。',
+    'recentに無い出来事、投票、占い結果、役職情報を作らないでください。',
+    'CPUが知っていても公開すべきでない秘密情報を推測・追加しないでください。',
+    '「それ」「そこ」など参照先不明の言い方は避け、必要なら相手の名前や内容を短く示してください。',
+    '決め台詞、芝居がかった口調、説明臭いAI文は避けてください。',
+    'previousOwnやrecentと同じ言い回しを繰り返さず、意味を保ったまま自然に言い換えてください。',
+    '「まだ決め打ちはしない」「発言と投票も見る」のような定型句を毎回付け足さないでください。必要な時だけ使ってください。',
+    '1〜2文、最大120文字程度。発言本文だけを返してください。'
+  ];
   return [
-    {
-      role:'developer',
-      content:[
-        'あなたはオンライン人狼ゲームのCPU発言を自然な日本語に整える係です。',
-        '与えられたdraftの意味・対象・白黒判定・CO内容を絶対に変えないでください。',
-        'recentに無い出来事、投票、占い結果、役職情報を作らないでください。',
-        'CPUが知っていても公開すべきでない秘密情報を推測・追加しないでください。',
-        '「それ」「そこ」など参照先不明の言い方は避け、必要なら相手の名前や内容を短く示してください。',
-        '決め台詞、芝居がかった口調、説明臭いAI文は避けてください。',
-        'previousOwnやrecentと同じ言い回しを繰り返さず、意味を保ったまま自然に言い換えてください。',
-        '「まだ決め打ちはしない」「発言と投票も見る」のような定型句を毎回付け足さないでください。必要な時だけ使ってください。',
-        '1〜2文、最大120文字程度。発言本文だけを返してください。'
-      ].join('\n')
-    },
-    {
-      role:'user',
-      content:JSON.stringify(context)
-    }
+    {role:'developer',content:rules.join('\n')},
+    {role:'user',content:JSON.stringify(context)}
   ];
 }
 
