@@ -18,3 +18,5 @@ services:
         sync: false
       - key: OPENAI_MODEL
         value: gpt-6-luna
+      - key: AI_CPU_COUNT
+        value: "3"
