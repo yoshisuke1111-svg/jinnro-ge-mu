@@ -105,7 +105,10 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     for(const message of candidates.slice(-Math.max(4,ai.cpuCount*2))){
       entry.aiRewritePending.add(message.id);
       const id=message.playerId,view=game.botView(id),draft={text:message.text,statement:message.meta||null};
-      void ai.rewrite({view,draft,mode:'talk'}).then(text=>{
+      const priorHuman=[...game.messages].reverse().find(m=>m.id<message.id&&m.day===game.day&&m.channel==='public'&&m.playerId&&!game.byId(m.playerId)?.bot);
+      const intent=priorHuman?Bots.freeIntent?.(view,priorHuman,view.me):null;
+      const mode=intent?.kind==='casual'?'casual':'talk';
+      void ai.rewrite({view,draft,mode}).then(text=>{
         const current=game.messages.find(m=>m.id===message.id);
         if(!current||current.playerId!==id||current.channel!=='public')return;
         const clean=String(text||'').trim();
