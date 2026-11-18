@@ -26,7 +26,7 @@ function publicContext(view,draft,mode){
   const players=new Map((view?.players||[]).map(p=>[p.id,p]));
   const recent=(view?.messages||[])
     .filter(m=>m.channel==='public'&&m.day===view.day)
-    .slice(-10)
+    .slice(-12)
     .map(m=>({
       speaker:String(m.name||players.get(m.playerId)?.name||'不明').slice(0,24),
       text:String(m.text||'').slice(0,180),
@@ -46,7 +46,8 @@ function publicContext(view,draft,mode){
     personality:view?.me?.personality||null,
     statement,
     draft:String(draft?.text||'').slice(0,500),
-    recent
+    recent,
+    previousOwn:recent.filter(m=>m.speaker===view?.me?.name).slice(-3)
   };
 }
 
@@ -62,6 +63,8 @@ function buildInput(view,draft,mode){
         'CPUが知っていても公開すべきでない秘密情報を推測・追加しないでください。',
         '「それ」「そこ」など参照先不明の言い方は避け、必要なら相手の名前や内容を短く示してください。',
         '決め台詞、芝居がかった口調、説明臭いAI文は避けてください。',
+        'previousOwnやrecentと同じ言い回しを繰り返さず、意味を保ったまま自然に言い換えてください。',
+        '「まだ決め打ちはしない」「発言と投票も見る」のような定型句を毎回付け足さないでください。必要な時だけ使ってください。',
         '1〜2文、最大120文字程度。発言本文だけを返してください。'
       ].join('\n')
     },
@@ -76,8 +79,9 @@ function createAiCpu({
   apiKey=process.env.OPENAI_API_KEY||'',
   enabled=String(process.env.AI_CPU_ENABLED||'')==='1',
   model=process.env.OPENAI_MODEL||DEFAULT_MODEL,
+  cpuCount=Math.max(1,Math.min(6,Number(process.env.AI_CPU_COUNT||3)||3)),
   fetchImpl=globalThis.fetch,
-  timeoutMs=7000
+  timeoutMs=4500
 }={}){
   const active=Boolean(enabled&&apiKey&&typeof fetchImpl==='function');
   async function rewrite({view,draft,mode='talk'}={}){
@@ -111,7 +115,7 @@ function createAiCpu({
       clearTimeout(timer);
     }
   }
-  return {enabled:active,model,rewrite};
+  return {enabled:active,model,cpuCount,rewrite};
 }
 
 module.exports={createAiCpu,extractOutputText,buildInput};
