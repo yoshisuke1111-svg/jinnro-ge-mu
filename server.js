@@ -9,6 +9,7 @@ const crypto=require('node:crypto');
 const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF,validName}=require('./shared/rules');
 const Bots=require('./shared/bots');
+const {createAiCpu}=require('./ai-cpu');
 const VERSION='0.8.4';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
@@ -23,8 +24,9 @@ function makeClock(){
   return {now(){return gameBase+(Date.now()-realBase)*speed;},setSpeed(next){const current=this.now();realBase=Date.now();gameBase=current;speed=next;},getSpeed(){return speed;}};
 }
 
-function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}) {
+function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null}={}) {
   const rooms=new Map(),tickets=new Map(),rates=new Map(),chatRates=new Map(),adminSessions=new Map();
+  const ai=aiCpu||createAiCpu({fetchImpl});
   const startedReal=Date.now(),recentErrors=[];let requestCount=0,apiCount=0;
   const recordError=(scope,error)=>{recentErrors.push({at:Date.now(),scope,message:String(error?.message||error)});if(recentErrors.length>40)recentErrors.splice(0,recentErrors.length-40);};
   const effectiveAdminPassword=adminPassword||crypto.randomBytes(9).toString('base64url');
@@ -86,7 +88,43 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   function streamTicket(entry,pid) {
     const t=token();tickets.set(t,{code:entry.game.code,pid,until:Date.now()+45000});return t;
   }
+  function ensureAiSeats(entry){
+    if(!ai.enabled||entry.game.phase==='lobby'||entry.game.phase==='ended')return [];
+    const botIds=entry.game.players.filter(p=>p.bot).map(p=>p.id);
+    const kept=(entry.aiBotIds||[]).filter(id=>botIds.includes(id));
+    const added=botIds.filter(id=>!kept.includes(id)).slice(0,Math.max(0,ai.cpuCount-kept.length));
+    entry.aiBotIds=kept.concat(added).slice(0,ai.cpuCount);
+    return entry.aiBotIds;
+  }
+  function queueAiRewrite(entry){
+    const ids=ensureAiSeats(entry);if(!ids.length)return false;
+    entry.aiRewriteSeen=entry.aiRewriteSeen||new Set();
+    entry.aiRewritePending=entry.aiRewritePending||new Set();
+    const selected=new Set(ids),game=entry.game;
+    const candidates=game.messages.filter(m=>selected.has(m.playerId)&&m.channel==='public'&&m.text&&!entry.aiRewriteSeen.has(m.id)&&!entry.aiRewritePending.has(m.id));
+    for(const message of candidates.slice(-Math.max(4,ai.cpuCount*2))){
+      entry.aiRewritePending.add(message.id);
+      const id=message.playerId,view=game.botView(id),draft={text:message.text,statement:message.meta||null};
+      const priorHuman=[...game.messages].reverse().find(m=>m.id<message.id&&m.day===game.day&&m.channel==='public'&&m.playerId&&!game.byId(m.playerId)?.bot);
+      const intent=priorHuman?Bots.freeIntent?.(view,priorHuman,view.me):null;
+      const mode=intent?.kind==='casual'?'casual':'talk';
+      void ai.rewrite({view,draft,mode}).then(text=>{
+        const current=game.messages.find(m=>m.id===message.id);
+        if(!current||current.playerId!==id||current.channel!=='public')return;
+        const clean=String(text||'').trim();
+        if(clean&&clean!==current.text){current.text=clean;game.changed();}
+      }).catch(error=>{
+        recordError('ai cpu rewrite',error);
+      }).finally(()=>{
+        entry.aiRewritePending.delete(message.id);entry.aiRewriteSeen.add(message.id);
+        if(!entry.aiRewritePending.size)broadcast(entry);
+      });
+    }
+    return entry.aiRewritePending.size>0;
+  }
   function broadcast(entry) {
+    if(entry.aiRewritePending?.size){entry.aiBroadcastDeferred=true;return;}
+    entry.aiBroadcastDeferred=false;
     const game=entry.game;
     for(const [pid,res] of entry.clients){
       if(!game.byId(pid)){send(res,'removed',{message:'待機室で75秒間操作がなかったため退出しました。入り直せます。'});res.end();entry.clients.delete(pid);continue;}
@@ -123,7 +161,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       startedAt:startedReal,uptimeMs:now-startedReal,node:process.version,pid:process.pid,platform:`${process.platform} ${process.arch}`,
       hostname:os.hostname(),rss:mem.rss,heapUsed:mem.heapUsed,heapTotal:mem.heapTotal,external:mem.external,
       loadavg:os.loadavg(),tickMs,maxRooms,requests:requestCount,apiRequests:apiCount,openStreams:[...rooms.values()].reduce((a,e)=>a+e.clients.size,0),
-      tickets:tickets.size,adminSessions:adminSessions.size,recentErrors:recentErrors.slice().reverse()
+      tickets:tickets.size,adminSessions:adminSessions.size,ai:{enabled:ai.enabled,model:ai.model,cpuCount:ai.cpuCount},recentErrors:recentErrors.slice().reverse()
     },rooms:[...rooms.entries()].map(([code,entry])=>{
       const g=entry.game,gameNow=g.now();
       return {code,phase:g.phase,phaseLabel:g.phase,day:g.day,createdAt:g.createdAt,startedAt:g.startedAt,deadline:g.deadline,gameNow,
@@ -134,7 +172,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         votes:Object.fromEntries(Object.entries(g.votes).map(([id,target])=>[g.realName(id),target?g.realName(target):null])),
         players:g.players.map(p=>({id:p.id,name:p.name,bot:p.bot,connected:p.connected,alive:p.alive,auto:p.auto,role:p.role,lover:p.lover?g.realName(p.lover):null,
           levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,
-          personality:p.bot?(p.brain?.personality||null):null,botDebug:adminBotInfo(g,p),privateResults:p.privateResults.slice(-12),action:Object.hasOwn(g.actions,p.id)?(g.actions[p.id]?g.realName(g.actions[p.id]):null):undefined,
+          personality:p.bot?(p.brain?.personality||null):null,aiSpeech:!!entry.aiBotIds?.includes(p.id),botDebug:adminBotInfo(g,p),privateResults:p.privateResults.slice(-12),action:Object.hasOwn(g.actions,p.id)?(g.actions[p.id]?g.realName(g.actions[p.id]):null):undefined,
           vote:Object.hasOwn(g.votes,p.id)?(g.votes[p.id]?g.realName(g.votes[p.id]):null):undefined})),
         messages:g.messages.slice(-160).map(m=>({...m})),claims:g.claims.slice(-60),reports:g.reports.slice(-60),voteHistory:g.voteHistory.slice(-12),adminNarration:g.adminNarration?{...g.adminNarration}:null};
     })};
@@ -347,6 +385,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     for(const [code,entry] of rooms){
       try{
         entry.game.tick(Bots);
+        queueAiRewrite(entry);
         if(entry.revision!==entry.game.revision)broadcast(entry);
         if((!entry.cpuWatch&&!entry.game.humans().length)||(!entry.cpuWatch&&!entry.clients.size&&Date.now()-entry.lastEmpty>30*60000)){
           for(const res of entry.clients.values())res.end();
