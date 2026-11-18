@@ -37,3 +37,16 @@ test('prompt carries recent self speech so the model can avoid repetition',()=>{
   assert.equal(payload.previousOwn.length,1);
   assert.equal(payload.previousOwn[0].text,'Bが少し気になる。');
 });
+
+
+test('casual prompt prioritizes the latest human message',()=>{
+  const input=buildInput({day:1,me:{name:'CPU A'},players:[{id:'a',name:'CPU A'},{id:'h',name:'人間'}],messages:[
+    {channel:'public',day:1,playerId:'h',name:'人間',text:'好きな食べ物って何？'},
+    {channel:'public',day:1,playerId:'a',name:'CPU A',text:'へえ、そうなんだ。'}
+  ]},{text:'へえ、そうなんだ。'},'casual');
+  const developer=input[0].content;
+  const payload=JSON.parse(input[1].content);
+  assert.match(developer,/雑談/);
+  assert.match(developer,/無理に人狼の話へ戻さない/);
+  assert.equal(payload.latestOther.text,'好きな食べ物って何？');
+});
