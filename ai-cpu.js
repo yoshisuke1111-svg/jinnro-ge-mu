@@ -84,7 +84,8 @@ function createAiCpu({
   timeoutMs=4500
 }={}){
   const active=Boolean(enabled&&apiKey&&typeof fetchImpl==='function');
-  const normalizedCpuCount=Math.max(1,Math.min(6,Number(cpuCount)||3));
+  const parsedCpuCount=Number(cpuCount);
+  const normalizedCpuCount=Math.max(1,Math.min(6,Number.isFinite(parsedCpuCount)?Math.trunc(parsedCpuCount):3));
   async function rewrite({view,draft,mode='talk'}={}){
     const fallback=String(draft?.text||'').trim();
     if(!active||!fallback)return fallback;
