@@ -299,3 +299,34 @@ test('common CPU chat avoids commentator-style suspicion wording',()=>{
   const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../shared/bots.js'),'utf8');
   assert.doesNotMatch(src,/今見るなら/);
 });
+
+
+test('CPU names are drawn from the pool instead of always starting with Aoi',()=>{
+  const {Game}=require('../shared/rules');
+  const firstNames=[];
+  for(const seed of [1,2,3,4,5,6,7,8]){
+    const g=new Game({code:'N'+seed,seed});
+    g.setBots(1);
+    firstNames.push(g.players.find(p=>p.bot).name);
+  }
+  assert.ok(new Set(firstNames).size>1);
+  assert.ok(firstNames.some(n=>n!=='アオイ'));
+});
+
+test('CPU personalities include distinct archetypes and behavior biases',()=>{
+  const {Game}=require('../shared/rules');
+  const g=new Game({code:'PERS',seed:77});
+  g.setBots(10);
+  const ps=g.players.filter(p=>p.bot).map(p=>p.brain.personality);
+  assert.ok(new Set(ps.map(p=>p.archetype)).size>=4);
+  assert.ok(ps.every(p=>Number.isInteger(p.questionBias)&&Number.isInteger(p.hedging)));
+});
+
+test('bot view exposes personality only to the bot reasoning view',()=>{
+  const {Game}=require('../shared/rules');
+  const g=new Game({code:'PVIEW',seed:12});
+  g.setBots(4);
+  const p=g.players.find(x=>x.bot);
+  const bv=g.botView(p.id);
+  assert.ok(bv.me.personality?.archetype);
+});
