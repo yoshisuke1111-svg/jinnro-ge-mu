@@ -652,15 +652,15 @@
     if(!out?.text)return out;
     const p=b.personality||{tone:'soft',sociability:1,confidence:1,verbosity:1,humor:0};
     let t=String(out.text).replace(/\s+/g,' ').replace(/。\s*。/g,'。').trim();
-    // Keep each personality's own sentence templates. Do not mechanically convert every line to です/ます.
-    if(p.tone==='blunt'||p.verbosity===0){
-      const sentences=t.match(/[^。！？]+[。！？]?/g)||[t];t=sentences.slice(0,p.verbosity===0?2:3).join('');
+    const parts=t.split(/[。]+/).map(x=>x.trim()).filter(Boolean);
+    t=parts.slice(0,p.verbosity===0?1:2).join(' ');
+    if(p.verbosity===2&&out.statement?.kind==='accuse'&&t.length<48&&!/反応|投票|票|発言|説明/.test(t)){
+      const extra=choose(v,'extra-detail-'+(b.talks||0),['もう少し話を聞きたい','ほかの人の見方も聞きたい']);t+=' '+extra;
     }
-    if(p.verbosity===2&&out.statement?.kind==='accuse'&&t.length<125&&!/反応|投票|票|発言|説明/.test(t)){
-      const extra=choose(v,'extra-detail-'+(b.talks||0),[' もう少し話を聞きたい。',' ほかの人の見方も聞きたい。']);t+=extra;
-    }
-    if(p.humor===2&&p.tone==='casual'&&out.statement?.kind==='question'&&t.length<105&&out.statement?.aboutTarget)t+=' そこだけちょっと引っかかった。';
-    return {...out,text:t.trim()};
+    if(p.humor===2&&p.tone==='casual'&&out.statement?.kind==='question'&&t.length<44&&out.statement?.aboutTarget)t+=' そこちょっと引っかかった';
+    t=t.replace(/[、，,]/g,'').replace(/\s+/g,' ').trim();
+    if(t.length>68)t=t.slice(0,68).replace(/\s+\S*$/,'').trim()||t.slice(0,68).trim();
+    return {...out,text:t};
   }
 
   function statementTopic(out){
