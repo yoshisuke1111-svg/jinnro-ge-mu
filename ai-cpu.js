@@ -28,6 +28,7 @@ function publicContext(view,draft,mode){
     .filter(m=>m.channel==='public'&&m.day===view.day)
     .slice(-12)
     .map(m=>({
+      id:Number(m.id)||null,
       speaker:String(m.name||players.get(m.playerId)?.name||'不明').slice(0,24),
       text:String(m.text||'').slice(0,180),
       kind:m.meta?.kind||null,
@@ -37,9 +38,12 @@ function publicContext(view,draft,mode){
     kind:draft.statement.kind||null,
     target:draft.statement.target?players.get(draft.statement.target)?.name||null:null,
     role:draft.statement.role||null,
-    black:typeof draft.statement.black==='boolean'?draft.statement.black:null
+    black:typeof draft.statement.black==='boolean'?draft.statement.black:null,
+    replyTo:Number(draft.statement.replyTo)||null
   }:null;
   const speaker=view?.me?.name||null;
+  const replySourceId=Number(draft?.statement?.replyTo||0);
+  const replySource=replySourceId?recent.find(m=>m.id===replySourceId)||null:null;
   return {
     mode,
     day:view?.day||null,
@@ -49,14 +53,24 @@ function publicContext(view,draft,mode){
     draft:String(draft?.text||'').slice(0,500),
     recent,
     previousOwn:recent.filter(m=>m.speaker===speaker).slice(-3),
-    latestOther:[...recent].reverse().find(m=>m.speaker!==speaker)||null
+    latestOther:[...recent].reverse().find(m=>m.speaker!==speaker)||null,
+    replySource
   };
 }
 
 function buildInput(view,draft,mode){
   const context=publicContext(view,draft,mode);
   const casual=mode==='casual';
-  const rules=casual?[
+  const directReply=mode==='reply';
+  const rules=directReply?[
+    'あなたはオンライン人狼ゲームに参加しているCPUプレイヤーです。replySource は、あなたが今返事をする相手の発言です。',
+    'replySourceに対して会話として自然に返してください。ゲームの話ならゲームの話として、雑談なら雑談として答えてください。',
+    '「なるほど」「へえ」「それは大変そう」だけで終わらせず、相手の内容に具体的に触れてください。',
+    'statementにtarget・role・black等がある場合、その意味と事実は絶対に変えないでください。',
+    'recentに無い投票、占い結果、役職、死亡理由などのゲーム内事実を作らないでください。自分だけが知る秘密情報も漏らさないでください。',
+    '実在の学校・家・身体・今日の体験をCPU自身の実体験として捏造しないでください。軽い好みやキャラ付けは構いません。',
+    '1〜2文、最大120文字程度。発言本文だけを返してください。'
+  ]:casual?[
     'あなたはオンライン人狼ゲームに参加しているCPUプレイヤーです。人狼の議論以外の軽い雑談にも自然に参加できます。',
     'latestOther は直前に他の参加者が話した内容です。雑談なら、その内容にちゃんと反応してください。',
     '無理に人狼の話へ戻さないでください。好きな食べ物、学校、眠い、天気、趣味など普通の世間話には普通に返してください。',
