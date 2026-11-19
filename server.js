@@ -115,7 +115,10 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       entry.aiRewritePending.add(message.id);
       const id=message.playerId,view=game.botView(id),source=humanReplySource(message),draft={text:message.text,statement:message.meta||null};
       const mode=source?'reply':'talk';
-      void ai.rewrite({view,draft,mode}).then(text=>{
+      const history=game.messages
+        .filter(m=>m.channel==='public'||m.channel==='system')
+        .map(m=>({id:m.id,day:m.day,phase:m.phase,channel:m.channel,playerId:m.playerId,name:m.name,text:m.text,meta:m.meta||null}));
+      void ai.rewrite({view,draft,mode,history}).then(text=>{
         const current=game.messages.find(m=>m.id===message.id);
         if(!current||current.playerId!==id||current.channel!=='public')return;
         const clean=String(text||'').trim();
