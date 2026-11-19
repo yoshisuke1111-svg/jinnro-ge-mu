@@ -101,13 +101,20 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     entry.aiRewriteSeen=entry.aiRewriteSeen||new Set();
     entry.aiRewritePending=entry.aiRewritePending||new Set();
     const selected=new Set(ids),game=entry.game;
-    const candidates=game.messages.filter(m=>selected.has(m.playerId)&&m.channel==='public'&&m.text&&!entry.aiRewriteSeen.has(m.id)&&!entry.aiRewritePending.has(m.id));
-    for(const message of candidates.slice(-Math.max(4,ai.cpuCount*2))){
+    const humanReplySource=message=>{
+      const replyTo=Number(message.meta?.replyTo||0);
+      if(!Number.isInteger(replyTo)||replyTo<=0)return null;
+      const source=game.messages.find(m=>m.id===replyTo&&m.channel==='public'&&m.day===message.day);
+      return source?.playerId&&!game.byId(source.playerId)?.bot?source:null;
+    };
+    const candidates=game.messages.filter(m=>{
+      if(m.channel!=='public'||!m.text||entry.aiRewriteSeen.has(m.id)||entry.aiRewritePending.has(m.id))return false;
+      return selected.has(m.playerId)||!!humanReplySource(m);
+    });
+    for(const message of candidates.slice(-Math.max(6,ai.cpuCount*2))){
       entry.aiRewritePending.add(message.id);
-      const id=message.playerId,view=game.botView(id),draft={text:message.text,statement:message.meta||null};
-      const priorHuman=[...game.messages].reverse().find(m=>m.id<message.id&&m.day===game.day&&m.channel==='public'&&m.playerId&&!game.byId(m.playerId)?.bot);
-      const intent=priorHuman?Bots.freeIntent?.(view,priorHuman,view.me):null;
-      const mode=intent?.kind==='casual'?'casual':'talk';
+      const id=message.playerId,view=game.botView(id),source=humanReplySource(message),draft={text:message.text,statement:message.meta||null};
+      const mode=source?'reply':'talk';
       void ai.rewrite({view,draft,mode}).then(text=>{
         const current=game.messages.find(m=>m.id===message.id);
         if(!current||current.playerId!==id||current.channel!=='public')return;
