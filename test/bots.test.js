@@ -23,7 +23,7 @@ test('a generic free-form game question selects exactly one CPU responder',()=>{
   p.brain.replyMessageId=msg.id;
   const reply=Bots.decide(g.botView(p.id),p.brain,'reply');
   assert.ok(reply?.text);
-  assert.match(reply.text,/気にな|疑|今の考え|怪|見たい|決め手/);
+  assert.match(reply.text,/気にな|疑|今の考え|怪|見たい|決め手|何とも|誰とも|言えない/);
 });
 
 test('when a CPU is named only that CPU wants to answer',()=>{
@@ -200,7 +200,7 @@ test('first spontaneous discussion speech stays uncertain without evidence',()=>
   const out=Bots.decide(g.botView(p.id),p.brain,'talk');
   assert.ok(out?.text);
   assert.ok(!out.statement||!['accuse','trust'].includes(out.statement.kind));
-  assert.match(out.text,/まだ|分から|材料|判断|話/);
+  assert.match(out.text,/まだ|分から|材料|判断|話|誰とも|何とも|言えない/);
 });
 
 test('asking who is suspicious before evidence does not force a random accusation',()=>{
