@@ -330,3 +330,11 @@ test('bot view exposes personality only to the bot reasoning view',()=>{
   const bv=g.botView(p.id);
   assert.ok(bv.me.personality?.archetype);
 });
+
+
+test('CPU name pool includes kanji given names',()=>{
+  const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../shared/rules.js'),'utf8');
+  assert.match(src,/伊織/);
+  assert.match(src,/真白/);
+  assert.match(src,/千景/);
+});
