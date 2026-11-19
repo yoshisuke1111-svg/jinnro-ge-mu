@@ -116,12 +116,17 @@
 /* v0.7.0 broken-role presentation + stronger mobile readability */
 @keyframes cheater-jitter{
   0%,100%{transform:translate(0,0) rotate(0)}
-  20%{transform:translate(-1px,1px) rotate(-.4deg)}
-  40%{transform:translate(1px,0) rotate(.35deg)}
-  60%{transform:translate(-.5px,-1px) rotate(.2deg)}
-  80%{transform:translate(1px,1px) rotate(-.25deg)}
+  10%{transform:translate(-7px,2px) rotate(-1.4deg)}
+  20%{transform:translate(5px,-3px) rotate(1.1deg)}
+  30%{transform:translate(-3px,4px) rotate(-.7deg)}
+  40%{transform:translate(8px,1px) rotate(1.7deg)}
+  50%{transform:translate(-6px,-4px) rotate(-1.2deg)}
+  60%{transform:translate(4px,3px) rotate(.9deg)}
+  70%{transform:translate(-8px,-1px) rotate(-1.6deg)}
+  80%{transform:translate(6px,4px) rotate(1.3deg)}
+  90%{transform:translate(-4px,-3px) rotate(-.8deg)}
 }
-.cheater-active .board-name,.cheater-active .player-name{animation:cheater-jitter .28s steps(2,end) infinite}
+.cheater-active .board-name,.cheater-active .player-name{display:inline-block;will-change:transform;animation:cheater-jitter .34s steps(1,end) infinite}
 .cheater-role{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;line-height:1.25;color:var(--red);font-style:normal;font-weight:700}
 .special-title{margin-top:14px!important;padding-top:12px;border-top:1px solid var(--line)}
 .special-action-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
