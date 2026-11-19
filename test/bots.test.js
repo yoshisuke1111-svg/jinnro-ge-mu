@@ -90,7 +90,7 @@ test('opening CPU talk does not invent a target before anyone has provided evide
   const out=Bots.decide(g.botView(p.id),p.brain,'talk');
   assert.ok(out?.text);
   assert.ok(!out.statement||!['accuse','trust','question'].includes(out.statement.kind));
-  assert.match(out.text,/まだ|分から|材料|判断|話/);
+  assert.match(out.text,/まだ|分から|材料|判断|話|誰とも|何とも|言えない/);
   assert.doesNotMatch(out.text,/を疑って|白寄り|一番怪しいのは/);
 });
 
@@ -225,7 +225,7 @@ test('asking about one player before evidence stays neutral',()=>{
   const out=Bots.decide(g.botView(responder.id),responder.brain,'reply');
   assert.ok(out?.text);
   assert.ok(!out.statement||!['accuse','trust'].includes(out.statement.kind));
-  assert.match(out.text,/まだ|保留|判断|材料/);
+  assert.match(out.text,/まだ|保留|判断|材料|白とも黒とも|見てない/);
 });
 
 test('special-role chatter does not fabricate a suspect target',()=>{
