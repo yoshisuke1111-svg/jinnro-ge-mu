@@ -22,13 +22,13 @@ test('white and black leveler must be configured as a pair',()=>{
   assert.match(checkConfig(cfg,4).join('\n'),/セット/);
 });
 
-test('cheater survives one execution and dies after wolf attack too',()=>{
+test('cheater survives wolf attacks but dies from one execution',()=>{
   const g=makeGame(['cheater','wolf','seer','villager']);
   const c=byRole(g,'cheater');
-  assert.deepEqual(g.killMany([{id:c.id,cause:'execution'}]),[]);
-  assert.equal(c.alive,true);assert.equal(c.cheaterExecutionHit,true);assert.equal(c.cheaterAttackHit,false);
-  assert.deepEqual(g.killMany([{id:c.id,cause:'attack'}]),[c.id]);
-  assert.equal(c.alive,false);assert.equal(c.cheaterAttackHit,true);
+  assert.deepEqual(g.killMany([{id:c.id,cause:'attack'}]),[]);
+  assert.equal(c.alive,true);assert.equal(c.cheaterAttackHit,true);
+  assert.deepEqual(g.killMany([{id:c.id,cause:'execution'}]),[c.id]);
+  assert.equal(c.alive,false);assert.equal(c.cheaterExecutionHit,true);
 });
 
 test('only the cheater receives every true role before game end',()=>{
