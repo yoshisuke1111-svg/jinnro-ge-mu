@@ -387,12 +387,51 @@
     }[p])};
   }
   function priority(v,b){
-    if(b.replyMessageId)return 7;
-    if(hasFreshReport(v,b))return 8;
+    if(b.replyMessageId)return 9;
+    if(pressureState(v).pressure)return 8;
+    if(hasFreshReport(v,b))return 10;
     if(shouldFake(v,b))return 5;
     if(v.me.role==='mason'&&!b.announcedRole)return 4;
     if(v.me.role==='medium'&&!b.announcedRole)return 3;
     return 0;
+  }
+  function pressureState(v){
+    const recent=(v.messages||[]).filter(m=>m.channel==='public'&&m.day===v.day&&m.playerId!==v.me.id);
+    const accusations=recent.filter(m=>m.meta?.kind==='accuse'&&m.meta.target===v.me.id);
+    const blackReports=recent.filter(m=>m.meta?.kind==='report'&&m.meta.target===v.me.id&&m.meta.black);
+    return {accusations,blackReports,pressure:accusations.length+blackReports.length*2,last:accusations.at(-1)||blackReports.at(-1)||null};
+  }
+  function groundedAlternative(v,b,exclude=[]){
+    const blocked=new Set([v.me.id,...exclude]);
+    return ranked(v,null,b).find(x=>!blocked.has(x.id)&&(x.reason||x.score>=15))||null;
+  }
+  function defensiveSpeech(v,b){
+    const state=pressureState(v);if(!state.pressure)return null;
+    const p=tone(b),lastAccuser=state.last?.playerId?spokenName(v,b,state.last.playerId):null;
+    const alt=groundedAlternative(v,b,state.last?.playerId?[state.last.playerId]:[]);
+    const strong=state.pressure>=3;
+    const lead=choose(v,'defense-lead-'+state.pressure+'-'+(b.talks||0),{
+      casual:strong?['いや、さすがに自分に集まりすぎ。まず理由をちゃんと聞きたい。','ちょっと待って、自分を吊る流れは違うと思う。どこがそんなに怪しい？']:['自分を疑うのは分かったけど、どこが怪しく見えた？','そこ自分に来るのか。理由はちゃんと聞きたい。'],
+      soft:strong?['かなり自分に集まってるね。でも、自分を吊る前に理由をちゃんと聞きたいかな。','ちょっと自分に寄りすぎてる気がする。怪しいと思ったところを具体的に聞きたい。']:['自分が気になってるのは分かったよ。どこを怪しく見たのか聞きたいかな。','そこを疑われてるのは分かった。理由をもう少し聞きたい。'],
+      polite:strong?['かなり自分に疑いが集まっていますが、処刑を決める前に理由を具体的に聞きたいです。','少し自分に疑いが寄りすぎています。どこを怪しく見たのか確認したいです。']:['自分が疑われているのは分かりました。どこを怪しく見たのか聞きたいです。','疑われている点は理解しました。理由をもう少し具体的に聞きたいです。'],
+      blunt:strong?['自分に集まりすぎ。まず理由出して。','待って、自分吊りは違う。どこが怪しい？']:['自分疑う理由は？','そこ自分に来るのか。根拠聞きたい。'],
+      analytical:strong?['自分への疑いが集中してる。処刑判断の前に根拠を整理してほしい。','自分に票を寄せるなら、どの発言を根拠にしてるか明確にしてほしい。']:['自分への疑いは把握した。具体的にどの発言を根拠にしてる？','疑い自体は分かった。根拠を確認したい。']
+    }[p]);
+    if(alt){
+      const why=safeReason(v,alt,b);
+      const pivot=choose(v,'defense-pivot-'+alt.id+'-'+(b.talks||0),{
+        casual:[`それより自分は${spokenName(v,b,alt.id)}の方が気になる。`,`むしろ今見るなら${spokenName(v,b,alt.id)}じゃない？`],
+        soft:[`それより、自分は${spokenName(v,b,alt.id)}の方が気になってるかな。`,`今なら${spokenName(v,b,alt.id)}の方を先に見たいかな。`],
+        polite:[`それより、今は${spokenName(v,b,alt.id)}さんの方が気になっています。`,`現時点では${spokenName(v,b,alt.id)}さんの方を先に見たいです。`],
+        blunt:[`それより${spokenName(v,b,alt.id)}の方が怪しい。`,`今見るなら${spokenName(v,b,alt.id)}。`],
+        analytical:[`比較するなら、今は${spokenName(v,b,alt.id)}の方が疑い材料がある。`,`自分より${spokenName(v,b,alt.id)}を先に確認したい。`]
+      }[p]);
+      return {statement:{kind:'accuse',target:alt.id},text:`${lead} ${pivot} ${why}`};
+    }
+    if(lastAccuser){
+      return {statement:{kind:'question',target:state.last.playerId},text:`${lead} ${lastAccuser}、そこをもう少し具体的に聞かせて。`};
+    }
+    return {text:lead};
   }
   function speech(v,b){
     const me=v.me,p=tone(b);
@@ -419,6 +458,8 @@
       const detail={cat:'吊るなら道連れが出るから、それだけ覚えておいて。',guard:'護衛先はまだ伏せる。',baker:'朝のパンも一緒に見て判断してほしい。'}[me.role];
       return {statement:{kind:'claim',role:me.role},text:claimSentence(v,b,me.role,detail)};
     }
+    const defense=defensiveSpeech(v,b);
+    if(defense)return defense;
     if(!hasDiscussionBasis(v)){
       if((b.talks||0)===0)return openingUncertainty(v,b);
       return null;
@@ -501,9 +542,13 @@
     }
     if(msg.meta?.kind==='question'&&msg.meta.target===me.id)intent.kind=/投票|票/.test(msg.text||'')?'vote':intent.kind==='none'?'opinion':intent.kind;
     if(msg.meta?.kind==='accuse'&&msg.meta.target===me.id){
-      const lead={casual:'そこ疑われるのか。まあ理由は分かった。',soft:'そこを気にされてるのは分かったよ。',polite:'そこを疑われているのは分かりました。',blunt:'疑われてるのは分かった。',analytical:'自分への疑いは把握した。'}[p];
-      if(target)return {statement:{kind:'accuse',target:target.id},text:`${lead} ${composeOpinion(v,b,target,'accuse',reason)}`};
-      return {text:`${lead} まだ返せる材料は少ない。`};
+      const alt=groundedAlternative(v,b,[msg.playerId]);
+      const lead={casual:'自分を疑うのは分かったけど、どこが怪しく見えた？',soft:'自分が気になってるのは分かったよ。どこを怪しく見たのか聞きたいかな。',polite:'自分が疑われているのは分かりました。どこを怪しく見たのか聞きたいです。',blunt:'自分疑う理由は？',analytical:'自分への疑いは把握した。具体的な根拠を聞きたい。'}[p];
+      if(alt){
+        const why=safeReason(v,alt,b);
+        return {statement:{kind:'accuse',target:alt.id},text:`${lead} それより自分は${spokenName(v,b,alt.id)}の方が気になる。 ${why}`};
+      }
+      return {statement:{kind:'question',target:msg.playerId},text:lead};
     }
     if(msg.meta?.kind==='trust'&&msg.meta.target===me.id){
       return {text:choose(v,'reply-trust-'+msg.id,[`${msg.name}がそう見てるのは分かった。自分もまだ決め打ちはしない。`,`白く見てくれるのはありがたいけど、そこだけで固めなくていいと思う。`,`了解。自分は引き続き発言と投票を見てる。`])};
