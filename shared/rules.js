@@ -80,6 +80,18 @@
   function cleanText(s) {return String(s||'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g,'').trim().slice(0,400);}
 
   const PERSONALITY_LABELS={casual:'くだけた話し方',soft:'やわらかい話し方',polite:'丁寧な話し方',blunt:'短く率直',analytical:'理屈っぽい'};
+  const PERSONALITY_PRESETS=[
+    {archetype:'慎重派',tone:'soft',sociability:1,confidence:0,verbosity:1,suspicion:0,reactivity:1,humor:0,tempo:1,questionBias:2,hedging:2},
+    {archetype:'聞き役',tone:'soft',sociability:2,confidence:0,verbosity:0,suspicion:0,reactivity:1,humor:0,tempo:1,questionBias:2,hedging:2},
+    {archetype:'迷いがち',tone:'casual',sociability:1,confidence:0,verbosity:1,suspicion:1,reactivity:2,humor:1,tempo:2,questionBias:2,hedging:2},
+    {archetype:'軽口',tone:'casual',sociability:2,confidence:1,verbosity:0,suspicion:1,reactivity:1,humor:2,tempo:2,questionBias:1,hedging:1},
+    {archetype:'短文',tone:'blunt',sociability:0,confidence:1,verbosity:0,suspicion:1,reactivity:1,humor:0,tempo:0,questionBias:1,hedging:1},
+    {archetype:'強気',tone:'blunt',sociability:1,confidence:2,verbosity:0,suspicion:2,reactivity:2,humor:0,tempo:2,questionBias:0,hedging:0},
+    {archetype:'理屈派',tone:'analytical',sociability:1,confidence:1,verbosity:2,suspicion:1,reactivity:0,humor:0,tempo:0,questionBias:1,hedging:1},
+    {archetype:'丁寧',tone:'polite',sociability:1,confidence:0,verbosity:1,suspicion:0,reactivity:1,humor:0,tempo:1,questionBias:2,hedging:2},
+    {archetype:'様子見',tone:'soft',sociability:0,confidence:0,verbosity:0,suspicion:0,reactivity:0,humor:0,tempo:0,questionBias:1,hedging:2},
+    {archetype:'直感派',tone:'casual',sociability:2,confidence:1,verbosity:0,suspicion:2,reactivity:1,humor:1,tempo:2,questionBias:0,hedging:1}
+  ];
 
   class Game {
     constructor({code='SOLO',seed=Date.now(),random=null,now=()=>Date.now()}={}) {
@@ -96,11 +108,14 @@
     pick(a){return a.length?a[Math.floor(this.random()*a.length)]:null;}
     shuffled(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
     makePersonality(id='cpu'){
-      const tones=['casual','soft','soft','casual','blunt','analytical','polite'];
       let h=2166136261;for(const c of String(id)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}h>>>=0;
-      const tone=tones[h%tones.length],sociability=(h>>>3)%3,confidence=(h>>>7)%3,verbosity=(h>>>11)%3;
-      const suspicion=(h>>>14)%3,reactivity=(h>>>17)%3,humor=(h>>>20)%3,tempo=(h>>>23)%3;
-      return {tone,label:PERSONALITY_LABELS[tone],sociability,confidence,verbosity,suspicion,reactivity,humor,tempo};
+      const base=PERSONALITY_PRESETS[h%PERSONALITY_PRESETS.length];
+      const p={...base};
+      // 少しだけ個体差を足すが、性格の芯はプリセットから崩さない。
+      if(p.archetype==='軽口'||p.archetype==='直感派')p.humor=Math.min(2,p.humor+((h>>>8)&1));
+      if(p.archetype==='慎重派'||p.archetype==='迷いがち')p.tempo=(h>>>12)&1;
+      p.label=p.archetype+'・'+PERSONALITY_LABELS[p.tone];
+      return p;
     }
     byId(id){return this.players.find(p=>p.id===id);}
     living(){return this.players.filter(p=>p.alive);}
@@ -159,8 +174,11 @@
       const old=this.players.filter(p=>p.bot);
       if(old.length>count){const ids=new Set(old.slice(count).map(p=>p.id));this.players=this.players.filter(p=>!ids.has(p.id));}
       for(let i=old.length;i<count;i++){
-        let name=BOT_NAMES[i]||`村人${i+1}`;let suffix=2;
-        while(this.players.some(p=>p.name===name))name=(BOT_NAMES[i]||'CPU')+suffix++;
+        const used=new Set(this.players.map(p=>p.name));
+        const available=BOT_NAMES.filter(n=>!used.has(n));
+        let base=this.pick(available)||`村人${i+1}`;
+        let name=base,suffix=2;
+        while(this.players.some(p=>p.name===name))name=base+suffix++;
         this.addPlayer({id:`cpu-${this.code}-${i}-${Math.floor(this.random()*1e9)}`,name,bot:true});
       }
       // CPU人数と配役は別設定。人数変更だけでは役職数や練習役職を勝手に書き換えない。
@@ -784,6 +802,7 @@
         infected:p.role==='plague'?[...this.infected]:[],
         acted:Object.hasOwn(this.actions,p.id),actionTarget:this.actions[p.id]??null,
         voted:Object.hasOwn(this.votes,p.id),voteTarget:this.votes[p.id]??null,ready:this.ready.has(p.id)};
+      if(forBot&&p.bot)me.personality=clone(p.brain?.personality||null);
       const out={code:this.code,phase:this.phase,phaseId:this.phaseId,phaseLabel:PHASES[this.phase],day:this.day,host:this.host===id,solo:this.isSolo(),
         now:this.now(),startedAt:this.startedAt,deadline:this.deadline,revision:this.revision,configVersion:this.configVersion,
         config:clone(this.config),me,players:publicPlayers,messages:clone(messages),reports:clone(this.reports),claims:clone(this.claims),
