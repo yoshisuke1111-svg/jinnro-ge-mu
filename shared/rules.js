@@ -40,7 +40,7 @@
   const MIN_PLAYERS = 4;
   const PHASES = {lobby:'待機室',reveal:'役職確認',night:'夜の行動',dawn:'夜明け',discussion:'昼の話し合い',vote:'投票',execution:'投票結果',ended:'ゲーム終了'};
   const DEFAULT_TIMES = {reveal:20, night:30, other:20, dawn:8, discussion:120, vote:30, execution:8};
-  const BOT_NAMES = ['アオイ','シオン','ミオ','レン','ユズ','カナタ','ナギ','ハル','スイ','ツキ','アキ','リク','コハク','イオ','ソラ','ヒナ','トワ','アサヒ','サク','リン','ノア','カイ','セナ','メイ','イズミ','リオ','フウ','チセ','ルカ','ミナト'];
+  const BOT_NAMES = ['アオイ','シオン','ミオ','レン','ユズ','カナタ','ナギ','ハル','スイ','ツキ','アキ','リク','コハク','イオ','ソラ','ヒナ','トワ','アサヒ','サク','リン','ノア','カイ','セナ','メイ','イズミ','リオ','フウ','チセ','ルカ','ミナト','伊織','真白','千景','琴葉','玲奈','七海','直樹','遥','翼','光','薫','要','司','環','渚','誠','響','雅','晶','忍','慧','悠真','結月','紗月','颯太','奏汰','透真','凪沙','美月','悠里'];
   const emptyRoles = () => Object.fromEntries(ROLE_IDS.map(k=>[k,0]));
   function preset(n, kind='basic') {
     const r=emptyRoles(); r.wolf=Math.max(1,Math.floor(n/4)); r.seer=1;
