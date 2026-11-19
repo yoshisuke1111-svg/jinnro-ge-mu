@@ -153,7 +153,7 @@
     if(s.me.role==='plague')bits.push('感染済み：'+(s.me.infected.length?s.me.infected.map(playerName).join('、'):'まだいません'));
     if(s.me.role==='cheater')bits.push('チーター視界：盤面に全員の本当の役職が表示されます。');
     if(['white_leveler','black_leveler'].includes(s.me.role))bits.push('現在 Lv.'+(s.me.levelerLevel||1));
-    if(s.me.role==='cheater')bits.push('耐久：処刑 '+(s.me.cheaterExecutionHit?'済':'未')+' / 人狼襲撃 '+(s.me.cheaterAttackHit?'済':'未'));
+    if(s.me.role==='cheater')bits.push('特性：人狼の通常襲撃は無効 / 投票処刑で死亡');
     return bits;
   }
   function renderIdentity(s){
