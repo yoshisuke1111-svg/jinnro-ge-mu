@@ -33,7 +33,7 @@
   function evaluate(v){
     const score={},reasons={};
     for(const p of live(v)){
-      score[p.id]=(hash(v.me.id+'|'+p.id)%100)/25;
+      score[p.id]=0;
       reasons[p.id]=[];
     }
     const add=(id,amount,reason)=>{
@@ -114,7 +114,7 @@
         memory[row.id]={score:previous?(Number(previous.score)||0)*.58+base*.42:base,day:v.day};
       }
     }
-    return rows.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+    return rows.sort((a,b)=>b.score-a.score||((hash(v.me.id+'|'+v.day+'|rank|'+a.id)%1000)-(hash(v.me.id+'|'+v.day+'|rank|'+b.id)%1000))||a.id.localeCompare(b.id));
   }
   function nightChoice(v,b){
     const ids=['attack','divine'].includes(v.kind)?v.targets.filter(id=>id!==v.me.lover):v.targets.slice();
@@ -371,6 +371,21 @@
     else if(v.me.role==='jester'&&!v.me.lover)chance=20;
     return chance>0&&(hash(v.me.id+'|fake-seer')%100)<chance;
   }
+  function hasDiscussionBasis(v){
+    if((v.voteHistory||[]).length||(v.reports||[]).length||(v.claims||[]).length)return true;
+    if((v.me?.privateResults||[]).some(r=>['seer','medium','leveler_seer'].includes(r.kind)))return true;
+    return (v.messages||[]).some(m=>m.channel==='public'&&['accuse','trust','report','claim'].includes(m.meta?.kind));
+  }
+  function openingUncertainty(v,b){
+    const p=tone(b);
+    return {text:choose(v,'opening-uncertain-'+(b.talks||0),{
+      casual:['まだ誰が怪しいか分からんな。もうちょい話聞きたい。','誰が怪しいんだろ。今のところ全然決められない。','まだ材料ないな。とりあえずみんなの話見よ。'],
+      soft:['まだ誰が怪しいかは分からないかな。もう少し話を聞きたい。','今はまだ何とも言えないね。みんなの発言を見たいかな。','まだ材料が少ないし、誰が怪しいかはこれからかな。'],
+      polite:['まだ誰が怪しいかは分かりません。もう少し皆さんの話を聞きたいです。','今の段階ではまだ判断できません。まず発言を見たいです。','まだ材料が少ないので、今は誰とも決められません。'],
+      blunt:['まだ分からん。まず話を聞く。','今は誰とも言えない。材料待ち。','まだ怪しいやつは決めてない。'],
+      analytical:['まだ判断材料が足りない。まず発言が増えるのを見たい。','現時点では差を付けられない。公開情報が増えてから見る。','今は誰かを疑う段階じゃない。まず材料を集めたい。']
+    }[p])};
+  }
   function priority(v,b){
     if(b.replyMessageId)return 7;
     if(hasFreshReport(v,b))return 8;
@@ -403,6 +418,10 @@
       b.announcedRole=me.role;
       const detail={cat:'吊るなら道連れが出るから、それだけ覚えておいて。',guard:'護衛先はまだ伏せる。',baker:'朝のパンも一緒に見て判断してほしい。'}[me.role];
       return {statement:{kind:'claim',role:me.role},text:claimSentence(v,b,me.role,detail)};
+    }
+    if(!hasDiscussionBasis(v)){
+      if((b.talks||0)===0)return openingUncertainty(v,b);
+      return null;
     }
     const list=ranked(v,null,b),top=list[0],previous=list.find(x=>x.id===b.announcedTarget);
     if(!top)return null;
@@ -528,6 +547,7 @@
       return {text:choose(v,'reply-seer-'+msg.id,[`${who}の${t}${latest.black?'黒':'白'}は見てる。ただ、結果だけで真偽は決めない。`,`占いは${who}の結果を材料にしてる。出した後の発言と投票も見たい。`,`${who}の判定は確認した。対抗や票の動きまで見てから判断したい。`])};
     }
     if(intent.kind==='target'&&intent.subject){
+      if(!hasDiscussionBasis(v))return {text:choose(v,'reply-target-unknown-'+msg.id,[`${spokenName(v,b,intent.subject.id)}はまだ判断つかない。もう少し発言を見たい。`,`今のところ${spokenName(v,b,intent.subject.id)}を白とも黒とも見てない。材料がまだ少ない。`,`${spokenName(v,b,intent.subject.id)}についてはまだ保留かな。今の段階では決められない。`])};
       const item=ranked(v,[intent.subject.id],b)[0];if(item){
         const why=safeReason(v,item,b);
         if(item.score>=35)return {statement:{kind:'accuse',target:item.id},text:composeOpinion(v,b,item,'accuse',why)};
@@ -535,9 +555,13 @@
         return {text:choose(v,'reply-target-neutral-'+msg.id,[`${spokenName(v,b,item.id)}はまだ白黒どちらにも寄せ切ってない。${why}`,`${spokenName(v,b,item.id)}は保留寄り。もう少し発言と票を見たい。`])};
       }
     }
-    if(['suspect','opinion'].includes(intent.kind)||intent.direct){
+    if(intent.kind==='suspect'){
+      if(!hasDiscussionBasis(v))return openingUncertainty(v,b);
       if(target)return {statement:{kind:'accuse',target:target.id},text:composeOpinion(v,b,target,'accuse',reason)};
       return {text:choose(v,'reply-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今はまだ保留かな。投票理由が出たら考えたい。','材料が少ないから、今の時点では決めてない。'])};
+    }
+    if(intent.kind==='opinion'){
+      return {text:choose(v,'reply-game-opinion-'+msg.id,['それは気になる話ではあるな。まだ今の公開情報だけでは何とも言えない。','その話は分かる。ただ、今の時点で誰かに結びつける材料はまだないかな。','そこは確かに考えたい。もう少し情報が出てから見たいな。'])};
     }
     return null;
   }
