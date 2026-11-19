@@ -22,9 +22,22 @@ function cleanAiText(text,fallback){
   return out.trim()||fallback;
 }
 
-function publicContext(view,draft,mode){
+function publicContext(view,draft,mode,history=null){
   const players=new Map((view?.players||[]).map(p=>[p.id,p]));
-  const recent=(view?.messages||[])
+  const sourceHistory=Array.isArray(history)?history:(view?.messages||[]);
+  const fullHistory=sourceHistory
+    .filter(m=>m.channel==='public'||m.channel==='system')
+    .map(m=>({
+      id:Number(m.id)||null,
+      day:Number(m.day)||null,
+      phase:m.phase||null,
+      channel:m.channel,
+      speaker:String(m.name||players.get(m.playerId)?.name||'村の記録').slice(0,24),
+      text:String(m.text||'').slice(0,300),
+      kind:m.meta?.kind||null,
+      target:m.meta?.target?players.get(m.meta.target)?.name||null:null
+    }));
+  const recent=fullHistory
     .filter(m=>m.channel==='public'&&m.day===view.day)
     .slice(-12)
     .map(m=>({
@@ -52,19 +65,22 @@ function publicContext(view,draft,mode){
     statement,
     draft:String(draft?.text||'').slice(0,500),
     recent,
-    previousOwn:recent.filter(m=>m.speaker===speaker).slice(-3),
+    history:fullHistory,
+    previousOwn:fullHistory.filter(m=>m.channel==='public'&&m.speaker===speaker).slice(-6),
     latestOther:[...recent].reverse().find(m=>m.speaker!==speaker)||null,
     replySource
   };
 }
 
-function buildInput(view,draft,mode){
-  const context=publicContext(view,draft,mode);
+function buildInput(view,draft,mode,history=null){
+  const context=publicContext(view,draft,mode,history);
   const casual=mode==='casual';
   const directReply=mode==='reply';
   const rules=directReply?[
     'あなたはオンライン人狼ゲームに参加しているCPUプレイヤーです。replySource は、あなたが今返事をする相手の発言です。',
     'replySourceに対して会話として自然に返してください。ゲームの話ならゲームの話として、雑談なら雑談として答えてください。',
+    'history は試合開始から現在までの公開会話と公開システム記録です。直前だけでなく、必要なら数日前・数十発言前の内容も踏まえてください。',
+    'history内で以前出た話題、本人の発言、質問、軽い冗談、疑い先、CO、判定、投票公開後の流れを覚えているように自然につなげてください。',
     '「なるほど」「へえ」「それは大変そう」だけで終わらせず、相手の内容に具体的に触れてください。',
     'statementにtarget・role・black等がある場合、その意味と事実は絶対に変えないでください。',
     'recentに無い投票、占い結果、役職、死亡理由などのゲーム内事実を作らないでください。自分だけが知る秘密情報も漏らさないでください。',
@@ -80,6 +96,7 @@ function buildInput(view,draft,mode){
     '1〜2文、最大120文字程度。発言本文だけを返してください。'
   ]:[
     'あなたはオンライン人狼ゲームのCPU発言を自然な日本語に整える係です。',
+    'history は試合開始から現在までの公開会話と公開システム記録です。直前だけでなく過去の公開発言も必要に応じて参照してください。',
     '与えられたdraftの意味・対象・白黒判定・CO内容を絶対に変えないでください。',
     'recentに無い出来事、投票、占い結果、役職情報を作らないでください。',
     'CPUが知っていても公開すべきでない秘密情報を推測・追加しないでください。',
@@ -106,7 +123,7 @@ function createAiCpu({
   const active=Boolean(enabled&&apiKey&&typeof fetchImpl==='function');
   const parsedCpuCount=Number(cpuCount);
   const normalizedCpuCount=Math.max(1,Math.min(6,Number.isFinite(parsedCpuCount)?Math.trunc(parsedCpuCount):3));
-  async function rewrite({view,draft,mode='talk'}={}){
+  async function rewrite({view,draft,mode='talk',history=null}={}){
     const fallback=String(draft?.text||'').trim();
     if(!active||!fallback)return fallback;
     const controller=new AbortController();
@@ -120,7 +137,7 @@ function createAiCpu({
         },
         body:JSON.stringify({
           model,
-          input:buildInput(view,draft,mode),
+          input:buildInput(view,draft,mode,history),
           max_output_tokens:120,
           store:false
         }),
