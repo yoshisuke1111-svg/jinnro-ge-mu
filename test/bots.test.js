@@ -239,3 +239,43 @@ test('special-role chatter does not fabricate a suspect target',()=>{
   assert.ok(out?.text);
   assert.notEqual(out.statement?.kind,'accuse');
 });
+
+
+test('accused CPU asks for grounds instead of accusing an unrelated player',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const accused=bots.find(p=>p.role==='villager')||bots[0];
+  g.publish(human.id,{kind:'accuse',target:accused.id},g.phaseId,accused.name+'がちょっと怪しい');
+  const source=g.messages.at(-1);
+  accused.brain.replyMessageId=source.id;
+  const out=Bots.decide(g.botView(accused.id),accused.brain,'reply');
+  assert.ok(out?.text);
+  assert.equal(out.statement?.kind,'question');
+  assert.equal(out.statement?.target,human.id);
+  assert.match(out.text,/理由|根拠|どこ|怪しく/);
+});
+
+test('accused CPU may redirect only when another player has grounded suspicion evidence',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const accused=bots.find(p=>p.role==='villager')||bots[0];
+  const other=bots.find(p=>p.id!==accused.id);
+  g.publish(other.id,{kind:'accuse',target:human.id},g.phaseId,human.name+'が怪しいと思う');
+  g.publish(human.id,{kind:'accuse',target:accused.id},g.phaseId,accused.name+'が怪しい');
+  const source=g.messages.at(-1);
+  accused.brain.replyMessageId=source.id;
+  const out=Bots.decide(g.botView(accused.id),accused.brain,'reply');
+  assert.ok(out?.text);
+  // It can defend or redirect, but must never invent a third unrelated suspect.
+  if(out.statement?.kind==='accuse')assert.equal(out.statement.target,human.id);
+  else assert.equal(out.statement?.kind,'question');
+});
+
+test('spontaneous talk under accusation prioritizes defense over unrelated suspicion',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const accused=bots.find(p=>p.role==='villager')||bots[0];
+  g.publish(human.id,{kind:'accuse',target:accused.id},g.phaseId,accused.name+'が怪しい');
+  const out=Bots.decide(g.botView(accused.id),accused.brain,'talk');
+  assert.ok(out?.text);
+  assert.ok(['question','accuse'].includes(out.statement?.kind)||!out.statement);
+  if(out.statement?.kind==='question')assert.equal(out.statement.target,human.id);
+  assert.match(out.text,/自分|疑|理由|根拠|怪しく/);
+});
