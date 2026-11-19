@@ -14,12 +14,17 @@ function extractOutputText(data){
   return parts.join('\n').trim();
 }
 
-function cleanAiText(text,fallback){
+function chatLikeText(text,fallback=''){
   let out=String(text||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim();
   out=out.replace(/^["「『]+|["」』]+$/g,'').trim();
-  if(!out)return fallback;
-  if(out.length>180)out=out.slice(0,180).replace(/[、,][^、,。！？]*$/,'')||out.slice(0,180);
-  return out.trim()||fallback;
+  if(!out)out=String(fallback||'').trim();
+  const parts=out.split(/[。]+/).map(x=>x.trim()).filter(Boolean).slice(0,2);
+  out=(parts.length?parts.join(' '):out).replace(/[、，,]/g,'').replace(/\s+/g,' ').trim();
+  if(out.length>68)out=out.slice(0,68).replace(/\s+\S*$/,'').trim()||out.slice(0,68).trim();
+  return out;
+}
+function cleanAiText(text,fallback){
+  return chatLikeText(text,fallback)||chatLikeText(fallback,'');
 }
 
 function publicContext(view,draft,mode,history=null){
@@ -80,7 +85,7 @@ function buildInput(view,draft,mode,history=null){
     '会話相手が疑い・黒判定・質問を向けてきた時は、まずその発言への人間らしい反応を優先してください。定型的な「候補には残す」「反応を見る」で済ませないでください。',
     'recentに無い投票、占い結果、役職、死亡理由などのゲーム内事実を作らないでください。自分だけが知る秘密情報も漏らさないでください。',
     '実在の学校・家・身体・今日の体験をCPU自身の実体験として捏造しないでください。軽い好みやキャラ付けは構いません。',
-    '1〜2文、最大120文字程度。発言本文だけを返してください。'
+    'ゲーム中の短いチャットとして、原則1行・8〜45文字くらい、長くても65文字までにしてください。日本語の「。」と「、」は基本使わず、必要なら「？」「！」だけ使ってください。発言本文だけを返してください。'
   ]:casual?[
     'あなたはオンライン人狼ゲームに参加しているCPUプレイヤーです。人狼の議論以外の軽い雑談にも自然に参加できます。',
     'latestOther は直前に他の参加者が話した内容です。雑談なら、その内容にちゃんと反応してください。',
@@ -88,7 +93,7 @@ function buildInput(view,draft,mode,history=null){
     'ただし実在の身体・学校・家・今日の体験など、CPU自身が本当に経験した事実としては語らないでください。好みや軽いキャラ付けは自然な範囲で構いません。',
     'recentに無いゲーム内事実、投票、占い結果、役職情報は作らないでください。秘密情報も漏らさないでください。',
     'draftは保険用の短い仮文です。雑談ではdraftに縛られすぎず、latestOtherへの自然な返答を優先してください。',
-    '1〜2文、最大120文字程度。発言本文だけを返してください。'
+    'ゲーム中の短いチャットとして、原則1行・8〜45文字くらい、長くても65文字までにしてください。日本語の「。」と「、」は基本使わず、必要なら「？」「！」だけ使ってください。発言本文だけを返してください。'
   ]:[
     'あなたはオンライン人狼ゲームのCPU発言を自然な日本語に整える係です。',
     'history は試合開始から現在までの公開会話と公開システム記録です。直前だけでなく過去の公開発言も必要に応じて参照してください。',
@@ -101,7 +106,7 @@ function buildInput(view,draft,mode,history=null){
     '決め台詞、芝居がかった口調、説明臭いAI文は避けてください。',
     'previousOwnやrecentと同じ言い回しを繰り返さず、意味を保ったまま自然に言い換えてください。',
     '「まだ決め打ちはしない」「発言と投票も見る」のような定型句を毎回付け足さないでください。必要な時だけ使ってください。',
-    '1〜2文、最大120文字程度。発言本文だけを返してください。'
+    'ゲーム中の短いチャットとして、原則1行・8〜45文字くらい、長くても65文字までにしてください。日本語の「。」と「、」は基本使わず、必要なら「？」「！」だけ使ってください。発言本文だけを返してください。'
   ];
   return [
     {role:'developer',content:rules.join('\n')},
@@ -135,7 +140,7 @@ function createAiCpu({
         body:JSON.stringify({
           model,
           input:buildInput(view,draft,mode,history),
-          max_output_tokens:120,
+          max_output_tokens:80,
           store:false
         }),
         signal:controller.signal
