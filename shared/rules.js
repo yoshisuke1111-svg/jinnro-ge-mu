@@ -26,7 +26,7 @@
     avenger: { name:'復讐者', team:'third', icon:'⚑', text:'開始時に復讐対象が1人指定されます。その人を昼の投票で直接処刑させることを目指します。対象が襲撃・道連れで死んでも達成にはなりません。', win:'対象の投票処刑を達成していれば通常決着時に追加勝利。達成後に自分が死んでも有効。単独勝利が発生した時は不可。' },
     thief: { name:'泥棒', team:'third', icon:'♜', text:'夜に1度だけ、生存者1人から役職そのものを奪います。奪われた相手は村人になり、自分は奪った役職と陣営へ移ります。', win:'奪った役職の勝利条件を引き継ぐ。盗まずに終わった場合は勝利なし。' },
     grave_robber: { name:'墓荒らし', team:'third', icon:'†', text:'夜に1度だけ、死亡者1人の役職を奪います。墓を荒らされた死者は村人扱いになり、自分は奪った役職と陣営へ移ります。', win:'奪った役職の勝利条件を引き継ぐ。盗まずに終わった場合は勝利なし。' },
-    cheater: { name:'チーター', team:'third', icon:'⌁', text:'全員の本当の役職が見え、夜に人狼陣営以外を1人殺害できます。処刑を1回、人狼の通常襲撃を1回の両方を受けるまで死亡しません。生存中は占い結果をチーター判定へ改変し、他陣営の勝利を止めます。', win:'自分が生存し、人狼陣営以外の他プレイヤーが全滅する。' },
+    cheater: { name:'チーター', team:'third', icon:'⌁', text:'全員の本当の役職が見え、夜に人狼陣営以外を1人殺害できます。人狼の通常襲撃では死亡しませんが、昼の投票で処刑されると死亡します。生存中は占い結果をチーター判定へ改変し、他陣営の勝利を止めます。', win:'自分が生存し、人狼陣営以外の他プレイヤーが全滅する。' },
     resetter: { name:'リセッター', team:'third', icon:'↶', text:'ゲーム中1回だけ、夜に直前の朝まで時間を巻き戻せます。死亡・投票・役職変化などが朝の状態へ戻り、リセッター自身だけ巻き戻し前を経験したまま残ります。', win:'通常決着時に生存していれば追加勝利。' },
     white_leveler: { name:'白レベラー', team:'village', icon:'⬆', text:'一夜明けるたびに成長する村人陣営。Lv2完全占い、Lv3聖職者進化（護衛・蘇生・浄化）、Lv4二重占い、Lv5不死、Lv6名前消失、Lv7で生存中の黒レベラーと相打ち。', win:'村人陣営と同じ。' },
     black_leveler: { name:'黒レベラー', team:'wolves', icon:'⬆', text:'一夜明けるたびに成長する人狼陣営。Lv2人狼を匿う、Lv3人狼植え付け、Lv4一晩に2人を殺害、Lv5不死、Lv6名前消失、Lv7で生存中の白レベラーと相打ち。', win:'人狼陣営と同じ。' }
@@ -437,8 +437,8 @@
         if(LEVELER.has(p.role)&&(p.levelerLevel||0)>=5&&cause!=='leveler_duel')continue;
         if(p.role==='cheater'&&cause!=='leveler_duel'){
           if(cause==='execution')p.cheaterExecutionHit=true;
-          else if(cause==='attack')p.cheaterAttackHit=true;
-          if(!(p.cheaterExecutionHit&&p.cheaterAttackHit)){this.changed();continue;}
+          else if(cause==='attack'){p.cheaterAttackHit=true;this.changed();continue;}
+          else {this.changed();continue;}
         }
         p.alive=false;p.deathAt=this.msgId;p.deathCause=cause;deaths.push(p.id);
         if(p.lover&&this.byId(p.lover)?.alive)queue.push({id:p.lover,cause:'lover'});
