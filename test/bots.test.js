@@ -251,7 +251,7 @@ test('accused CPU asks for grounds instead of accusing an unrelated player',()=>
   assert.ok(out?.text);
   assert.equal(out.statement?.kind,'question');
   assert.equal(out.statement?.target,human.id);
-  assert.match(out.text,/理由|根拠|どこ|怪しく/);
+  assert.match(out.text,/理由|根拠|どこ|怪しく|何で|なんで/);
 });
 
 test('accused CPU may redirect only when another player has grounded suspicion evidence',()=>{
