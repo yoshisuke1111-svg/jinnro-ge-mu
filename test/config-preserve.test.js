@@ -57,3 +57,20 @@ test('CPU count button keeps an unsaved role draft in the browser',()=>{
   assert.doesNotMatch(line,/settingsDirty\s*=\s*false/);
   assert.doesNotMatch(line,/settingsVersion\s*=\s*-1/);
 });
+
+
+test('board player tap keeps its centering transform on mobile',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'..','public','style.css'),'utf8');
+  assert.match(css,/\.board-player:active:not\(:disabled\)\{transform:translate\(-50%,-50%\)\}/);
+  const app=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
+  assert.match(app,/max-width:700px/);
+  assert.match(app,/boardMenu.*scrollIntoView/s);
+});
+
+test('board view has a quick public chat form wired to the normal chat API',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'..','public','index.html'),'utf8');
+  const app=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
+  assert.match(html,/id="boardChatForm"/);
+  assert.match(html,/id="boardChatInput"/);
+  assert.match(app,/submitChat\('boardChatInput','boardSend','public'\)/);
+});
