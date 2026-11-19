@@ -68,3 +68,25 @@ test('reply mode uses the exact human source message',()=>{
   assert.match(developer,/具体的に触れて/);
   assert.equal(payload.replySource.text,'仮病でクワガタムシ');
 });
+
+
+test('AI context includes the full public game history',()=>{
+  const view={
+    day:3,
+    me:{name:'レン'},
+    players:[{id:'r',name:'レン'},{id:'h',name:'ウラン'}],
+    messages:[{id:99,day:3,phase:'discussion',channel:'public',playerId:'h',name:'ウラン',text:'直近'}]
+  };
+  const history=[
+    {id:1,day:1,phase:'discussion',channel:'public',playerId:'h',name:'ウラン',text:'初日にクワガタの話をした'},
+    {id:2,day:1,phase:'vote',channel:'system',playerId:null,name:'村の記録',text:'1日目の投票結果'},
+    {id:50,day:2,phase:'discussion',channel:'public',playerId:'r',name:'レン',text:'その話まだ覚えてる'},
+    {id:99,day:3,phase:'discussion',channel:'public',playerId:'h',name:'ウラン',text:'直近'}
+  ];
+  const input=buildInput(view,{text:'返答',statement:{kind:'reply',replyTo:99}},'reply',history);
+  const payload=JSON.parse(input[1].content);
+  assert.equal(payload.history.length,4);
+  assert.equal(payload.history[0].text,'初日にクワガタの話をした');
+  assert.equal(payload.history[1].channel,'system');
+  assert.match(input[0].content,/試合開始から現在まで/);
+});
