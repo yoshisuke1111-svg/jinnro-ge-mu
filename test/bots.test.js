@@ -279,3 +279,17 @@ test('spontaneous talk under accusation prioritizes defense over unrelated suspi
   if(out.statement?.kind==='question')assert.equal(out.statement.target,human.id);
   assert.match(out.text,/自分|疑|理由|根拠|怪しく/);
 });
+
+
+test('accused casual CPU omits explicit self pronoun',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const accused=bots.find(p=>p.role==='villager')||bots[0];
+  accused.brain.personality={...(accused.brain.personality||{}),tone:'casual'};
+  g.publish(human.id,{kind:'accuse',target:accused.id},g.phaseId,accused.name+'が怪しい');
+  const msg=g.messages.at(-1);
+  accused.brain.replyMessageId=msg.id;
+  const out=Bots.decide(g.botView(accused.id),accused.brain,'reply');
+  assert.ok(out?.text);
+  assert.doesNotMatch(out.text,/自分/);
+  assert.match(out.text,/何で|なんで|怪し|疑/);
+});
