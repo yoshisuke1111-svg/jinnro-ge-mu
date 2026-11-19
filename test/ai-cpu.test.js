@@ -65,7 +65,7 @@ test('reply mode uses the exact human source message',()=>{
   const developer=input[0].content;
   const payload=JSON.parse(input[1].content);
   assert.match(developer,/replySource/);
-  assert.match(developer,/具体的に触れて/);
+  assert.match(developer,/具体的な言葉や話題に反応/);
   assert.equal(payload.replySource.text,'仮病でクワガタムシ');
 });
 
