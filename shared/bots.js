@@ -194,7 +194,9 @@
         analytical:{strong:['疑い優先度が高い','最優先で確認したい','かなり疑い寄り'],mid:['疑い寄りに置く','追加で見たい','少し疑いを上げてる'],weak:['まだ弱いが候補には残す','軽く疑い寄り','保留より少し疑い側']}
       };
       let strengthKey=strength;
-      if(confidence===0&&strengthKey==='strong')strengthKey='mid';
+      const hedging=b.personality?.hedging??1;
+      if((confidence===0||hedging>=2)&&strengthKey==='strong')strengthKey='mid';
+      if(hedging>=2&&strengthKey==='mid'&&score<55)strengthKey='weak';
       const stance=choose(v,key+'-stance',stanceMap[p][strengthKey]);
       lead=choose(v,key+'-lead',[`${n}が${stance}。`,`今は${n}を${stance}。`,`${n}については、${stance}。`]);
     }
@@ -475,7 +477,9 @@
     }
     const target=previous&&previous.score>=top.score-12?previous:top,safe=[...grounded].reverse().find(x=>x.score<=-8)||null;
     const roll=hash(me.id+'|speech-kind|'+v.day+'|'+(b.talks||0)+'|'+(b.topicSalt||0))%100,suspicion=b.personality?.suspicion??1;
-    const trustCut=[30,19,9][suspicion],questionCut=[61,43,27][suspicion];
+    const qBias=b.personality?.questionBias??1,hedging=b.personality?.hedging??1;
+    const trustCut=[32,20,8][suspicion],questionBase=[64,45,28][suspicion];
+    const questionCut=Math.min(88,questionBase+qBias*10+hedging*5);
     let kind='accuse',chosen=target;
     if(roll<trustCut&&safe&&safe.id!==me.id&&safe.score<15){kind='trust';chosen=safe;}
     else if(roll<questionCut&&target.score<70){kind='question';chosen=target;}
