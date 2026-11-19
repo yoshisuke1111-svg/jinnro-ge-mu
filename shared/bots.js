@@ -653,7 +653,8 @@
     const p=b.personality||{tone:'soft',sociability:1,confidence:1,verbosity:1,humor:0};
     let t=String(out.text).replace(/\s+/g,' ').replace(/。\s*。/g,'。').trim();
     const parts=t.split(/[。]+/).map(x=>x.trim()).filter(Boolean);
-    t=parts.slice(0,p.verbosity===0?1:2).join(' ');
+    const keep=out.statement?.kind==='question'?2:(p.verbosity===0?1:2);
+    t=parts.slice(0,keep).join(' ');
     if(p.verbosity===2&&out.statement?.kind==='accuse'&&t.length<48&&!/反応|投票|票|発言|説明/.test(t)){
       const extra=choose(v,'extra-detail-'+(b.talks||0),['もう少し話を聞きたい','ほかの人の見方も聞きたい']);t+=' '+extra;
     }
