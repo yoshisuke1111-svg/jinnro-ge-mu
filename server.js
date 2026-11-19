@@ -407,11 +407,11 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     for(const entry of rooms.values())for(const res of entry.clients.values())res.end();
     return new Promise(resolve=>{server.close(resolve);server.closeAllConnections();});
   }
-  return {server,rooms,close,adminPassword:effectiveAdminPassword};
+  return {server,rooms,close,adminPassword:effectiveAdminPassword,aiStatus:{enabled:ai.enabled,model:ai.model,cpuCount:ai.cpuCount}};
 }
 if(require.main===module){
   const app=createApp();const port=Number(process.env.PORT||3000),host=process.env.HOST||'0.0.0.0';
-  app.server.listen(port,host,()=>console.log(`Werewolf Game v${VERSION}\nGame:  http://localhost:${port}\nAdmin: http://localhost:${port}/admin\nAdmin password: ${app.adminPassword}\nCtrl+C to stop. Rooms are stored in memory.`));
+  app.server.listen(port,host,()=>console.log(`Werewolf Game v${VERSION}\nGame:  http://localhost:${port}\nAdmin: http://localhost:${port}/admin\nAI CPU: ${app.aiStatus.enabled?'enabled':'disabled'} (${app.aiStatus.cpuCount} seats / ${app.aiStatus.model})\nCtrl+C to stop. Rooms are stored in memory.`));
   app.server.on('error',error=>{console.error(error.code==='EADDRINUSE'?'Port is busy. Close the old server or set PORT to another number.':error.message);process.exit(1);});
   process.on('SIGINT',()=>app.close().then(()=>process.exit(0)));
   process.on('SIGTERM',()=>app.close().then(()=>process.exit(0)));
