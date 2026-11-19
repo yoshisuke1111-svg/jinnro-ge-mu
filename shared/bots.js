@@ -207,7 +207,7 @@
         : (confidence===0
             ? (tone(b)==='polite'?['まだ断定はしません。','反応を見てから考えます。']:['まだ断定はしない。','反応を見てから考える。'])
             : (tone(b)==='polite'?['本人の反応も確認したいです。','投票までにもう一度見ます。']:['本人の反応も見たい。','投票までにもう一回見る。']));
-      close=' '+choose(v,key+'-close',closers);
+      if(!/反応|説明|発言|投票|票|もう少し/.test(r))close=' '+choose(v,key+'-close',closers);
     }
     return `${lead} ${bridge}${r}。${close}`.replace(/。\s*。/g,'。').trim();
   }
@@ -464,9 +464,16 @@
       if((b.talks||0)===0)return openingUncertainty(v,b);
       return null;
     }
-    const list=ranked(v,null,b),top=list[0],previous=list.find(x=>x.id===b.announcedTarget);
-    if(!top)return null;
-    const target=previous&&previous.score>=top.score-12?previous:top,safe=list.at(-1);
+    const list=ranked(v,null,b),grounded=list.filter(x=>x.reason||Math.abs(Number(x.score)||0)>=15),top=grounded[0],previous=grounded.find(x=>x.id===b.announcedTarget);
+    if(!top){
+      const latestStructured=[...v.messages].reverse().find(m=>m.day===v.day&&m.channel==='public'&&m.playerId!==me.id&&['report','claim','accuse','trust'].includes(m.meta?.kind));
+      if(latestStructured){
+        const speaker=v.players.find(p=>p.id===latestStructured.playerId);
+        if(speaker?.alive)return composeQuestion(v,b,speaker);
+      }
+      return openingUncertainty(v,b);
+    }
+    const target=previous&&previous.score>=top.score-12?previous:top,safe=[...grounded].reverse().find(x=>x.score<=-8)||null;
     const roll=hash(me.id+'|speech-kind|'+v.day+'|'+(b.talks||0)+'|'+(b.topicSalt||0))%100,suspicion=b.personality?.suspicion??1;
     const trustCut=[30,19,9][suspicion],questionCut=[61,43,27][suspicion];
     let kind='accuse',chosen=target;
@@ -535,8 +542,8 @@
     }
     if(msg.meta?.kind==='report'&&msg.meta.target===me.id){
       if(msg.meta.black){
-        const lead={casual:`${msg.name}の黒は違う。少なくとも自分視点では偽。`,soft:`${msg.name}の黒判定は違うよ。自分視点ではそこははっきりしてる。`,polite:`${msg.name}さんの黒判定は違います。少なくとも自分視点では偽です。`,blunt:`${msg.name}の黒は偽。`,analytical:`${msg.name}の黒判定は自分視点で成立しない。`}[p];
-        return {statement:target?{kind:'accuse',target:target.id}:undefined,text:target?`${lead} ${composeOpinion(v,b,target,'accuse',reason)}`:lead};
+        const lead={casual:`いや、${msg.name}の黒は違う。自分視点だとその占いは偽だよ。`,soft:`${msg.name}の黒判定は違うよ。自分視点ではその占いは偽になる。`,polite:`${msg.name}さんの黒判定は違います。自分視点ではその占いは偽です。`,blunt:`${msg.name}の黒は偽。自分視点では${msg.name}がかなり怪しい。`,analytical:`${msg.name}の黒判定は自分視点で成立しない。少なくとも${msg.name}の占い主張は信用できない。`}[p];
+        return {statement:{kind:'accuse',target:msg.playerId},text:lead};
       }
       return {text:{casual:`${msg.name}の白は見た。でも、その占いまで真だとはまだ思ってない。`,soft:`${msg.name}の白判定は確認したよ。占い自体はもう少し見たいかな。`,polite:`${msg.name}さんの白判定は確認しました。ただ、その占いが真かどうかはもう少し見たいです。`,blunt:`${msg.name}の白は確認。占い真とはまだ決めない。`,analytical:`${msg.name}から白判定。判定と占い師の真偽は分けて考える。`}[p]};
     }
@@ -639,9 +646,7 @@
       }[p];
       return base+pick('tail',tails);
     }
-    const seerReports=v.reports.filter(r=>r.role==='seer');
-    if(seerReports.length)return pick('seer',['占い結果が割れてるし、発言と投票も一緒に見たい。','占いだけで決める気はない。本人の発言と票も見たい。','判定は材料にするけど、占いを出した人の動きも見たい。']);
-    return pick('open',['まだ決め手はない。発言が増えたら変わるかも。','今は仮置き。投票理由が出たら見直したい。','材料が薄いから、まだ様子見寄り。','今のところの候補。本人の反応を見てから決めたい。']);
+    return pick('open',['まだ決め手はない。','今のところは判断材料が薄い。','まだ何とも言えない。','もう少し話を聞いてから考えたい。']);
   }
   function voiced(v,b,out){
     if(!out?.text)return out;
@@ -651,8 +656,8 @@
     if(p.tone==='blunt'||p.verbosity===0){
       const sentences=t.match(/[^。！？]+[。！？]?/g)||[t];t=sentences.slice(0,p.verbosity===0?2:3).join('');
     }
-    if(p.verbosity===2&&out.statement?.kind==='accuse'&&t.length<125){
-      const extra=choose(v,'extra-detail-'+(b.talks||0),[' 票を入れる前に本人の反応も見たい。',' 昨日の投票も合わせて考えたい。',' ほかの人がどう見てるかも聞きたい。']);t+=extra;
+    if(p.verbosity===2&&out.statement?.kind==='accuse'&&t.length<125&&!/反応|投票|票|発言|説明/.test(t)){
+      const extra=choose(v,'extra-detail-'+(b.talks||0),[' もう少し話を聞きたい。',' ほかの人の見方も聞きたい。']);t+=extra;
     }
     if(p.humor===2&&p.tone==='casual'&&out.statement?.kind==='question'&&t.length<105&&out.statement?.aboutTarget)t+=' そこだけちょっと引っかかった。';
     return {...out,text:t.trim()};
