@@ -115,6 +115,11 @@
             <div id="scene" class="board-scene" aria-live="assertive" hidden><div class="scene-inner"><div id="sceneMark" class="scene-mark">☾</div><p id="sceneTitle"></p><h2 id="sceneNames"></h2></div></div>
           </div>
           <div id="boardHint" class="board-hint">プレイヤーをタップすると、その人への主張を矢印で出せます。</div>
+          <form id="boardChatForm" class="board-chat-form">
+            <label class="sr-only" for="boardChatInput">盤面から発言</label>
+            <input id="boardChatInput" maxlength="400" placeholder="盤面から発言…" autocomplete="off">
+            <button id="boardSend" class="primary" type="submit">送信</button>
+          </form>
           <div id="boardActionDock" class="board-action-dock" hidden><span id="boardActionText"></span><button id="boardConfirm" class="primary" type="button">確定</button><button id="boardAbstain" class="quiet" type="button" hidden>棄権</button></div>
           <div id="boardMenu" class="board-menu" hidden>
             <div class="board-menu-head"><strong id="boardMenuName"></strong><button id="boardMenuClose" class="quiet" type="button">閉じる ×</button></div>
