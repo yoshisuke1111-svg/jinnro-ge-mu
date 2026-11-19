@@ -40,13 +40,7 @@ function publicContext(view,draft,mode,history=null){
   const recent=fullHistory
     .filter(m=>m.channel==='public'&&m.day===view.day)
     .slice(-12)
-    .map(m=>({
-      id:Number(m.id)||null,
-      speaker:String(m.name||players.get(m.playerId)?.name||'不明').slice(0,24),
-      text:String(m.text||'').slice(0,180),
-      kind:m.meta?.kind||null,
-      target:m.meta?.target?players.get(m.meta.target)?.name||null:null
-    }));
+    .map(m=>({...m,text:String(m.text||'').slice(0,180)}));
   const statement=draft?.statement?{
     kind:draft.statement.kind||null,
     target:draft.statement.target?players.get(draft.statement.target)?.name||null:null,
