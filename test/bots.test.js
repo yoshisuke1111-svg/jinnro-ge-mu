@@ -173,3 +173,27 @@ test('named CPU answers casual chat directly',()=>{
   assert.equal(scores.filter(([,score])=>score>0).length,1);
   assert.ok(scores.find(([id])=>id===named.id)[1]>=3);
 });
+
+
+test('special-role comment is treated as game conversation',()=>{
+  const {g,human,bots}=makeDiscussion();
+  g.chat(human.id,'チーター怖くね','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  const intents=bots.map(p=>Bots.freeIntent(g.botView(p.id),msg,p));
+  assert.ok(intents.every(i=>i.kind==='opinion'));
+  assert.ok(intents.every(i=>i.gameTalk===true));
+});
+
+test('CPU reply message keeps the exact human message id',()=>{
+  const {g,human,bots}=makeDiscussion();
+  g.chat(human.id,'おなかすいた','public',g.phaseId);
+  const source=g.messages.at(-1);
+  const responder=bots.find(p=>Bots.replyInterest(g.botView(p.id),p.brain,source)>0);
+  assert.ok(responder);
+  responder.brain.replyMessageId=source.id;
+  responder.brain.replyAt=0;
+  g.botTalkAt=0;
+  g.tick(Bots);
+  const reply=[...g.messages].reverse().find(m=>m.playerId===responder.id&&m.meta?.replyTo===source.id);
+  assert.ok(reply);
+});
