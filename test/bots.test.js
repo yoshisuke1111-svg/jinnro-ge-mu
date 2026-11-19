@@ -197,3 +197,50 @@ test('CPU reply message keeps the exact human message id',()=>{
   const reply=[...g.messages].reverse().find(m=>m.playerId===responder.id&&m.meta?.replyTo===source.id);
   assert.ok(reply);
 });
+
+
+test('first spontaneous discussion speech stays uncertain without evidence',()=>{
+  const {g,bots}=makeDiscussion();
+  const p=bots[0];
+  const out=Bots.decide(g.botView(p.id),p.brain,'talk');
+  assert.ok(out?.text);
+  assert.ok(!out.statement||!['accuse','trust'].includes(out.statement.kind));
+  assert.match(out.text,/まだ|分から|材料|判断|話/);
+});
+
+test('asking who is suspicious before evidence does not force a random accusation',()=>{
+  const {g,human,bots}=makeDiscussion();
+  g.chat(human.id,'誰が怪しいかな？','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  const responder=bots.find(p=>Bots.replyInterest(g.botView(p.id),p.brain,msg)>0);
+  assert.ok(responder);
+  responder.brain.replyMessageId=msg.id;
+  const out=Bots.decide(g.botView(responder.id),responder.brain,'reply');
+  assert.ok(out?.text);
+  assert.notEqual(out.statement?.kind,'accuse');
+  assert.match(out.text,/まだ|分から|材料|判断|話/);
+});
+
+test('asking about one player before evidence stays neutral',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const subject=bots[0],responder=bots[1];
+  g.chat(human.id,subject.name+'どう思う？','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  responder.brain.replyMessageId=msg.id;
+  const out=Bots.decide(g.botView(responder.id),responder.brain,'reply');
+  assert.ok(out?.text);
+  assert.ok(!out.statement||!['accuse','trust'].includes(out.statement.kind));
+  assert.match(out.text,/まだ|保留|判断|材料/);
+});
+
+test('special-role chatter does not fabricate a suspect target',()=>{
+  const {g,human,bots}=makeDiscussion();
+  g.chat(human.id,'チーター怖くね','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  const responder=bots.find(p=>Bots.replyInterest(g.botView(p.id),p.brain,msg)>0);
+  assert.ok(responder);
+  responder.brain.replyMessageId=msg.id;
+  const out=Bots.decide(g.botView(responder.id),responder.brain,'reply');
+  assert.ok(out?.text);
+  assert.notEqual(out.statement?.kind,'accuse');
+});
