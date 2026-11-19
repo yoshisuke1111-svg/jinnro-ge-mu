@@ -393,6 +393,8 @@
       this.requireTurn(turn);const p=this.requirePlayer(id,true);
       if(this.phase!=='discussion')throw Error('主張を出せるのは昼の議論中です。');
       const s={kind:statement?.kind};let text;
+      const replyTo=Number(statement?.replyTo||0);
+      if(Number.isInteger(replyTo)&&this.messages.some(m=>m.id===replyTo&&m.channel==='public'&&m.day===this.day))s.replyTo=replyTo;
       if(s.kind==='claim'){
         if(!ROLE_IDS.includes(statement.role))throw Error('役職を選んでください。');
         s.role=statement.role;p.claimed=s.role;
@@ -704,10 +706,10 @@
           const replies=aliveBots.filter(p=>p.brain.replyMessageId&&now>=p.brain.replyAt&&(p.brain.replies||0)<4)
             .sort((a,b)=>a.brain.replyAt-b.brain.replyAt||a.id.localeCompare(b.id));
           if(replies.length){
-            const p=replies[0],b=p.brain,response=bot.decide(this.botView(p.id),b,'reply');
-            if(response?.statement)this.publish(p.id,response.statement,this.phaseId,response.text);
-            else if(response?.text)this.message(p,response.text,'public');
-            b.repliedTo=b.replyMessageId;b.replyMessageId=null;b.replyAt=0;
+            const p=replies[0],b=p.brain,replyTo=b.replyMessageId,response=bot.decide(this.botView(p.id),b,'reply');
+            if(response?.statement)this.publish(p.id,{...response.statement,replyTo},this.phaseId,response.text);
+            else if(response?.text)this.message(p,response.text,'public',{kind:'reply',replyTo});
+            b.repliedTo=replyTo;b.replyMessageId=null;b.replyAt=0;
             if(response?.text||response?.statement){b.talks++;b.replies=(b.replies||0)+1;}
             this.botTalkAt=now+4500+Math.floor(this.random()*4200);
           }else{
