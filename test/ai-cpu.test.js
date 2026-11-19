@@ -90,3 +90,11 @@ test('AI context includes the full public game history',()=>{
   assert.equal(payload.history[1].channel,'system');
   assert.match(input[0].content,/試合開始から現在まで/);
 });
+
+
+test('AI prompt asks for short punctuation-light chat',()=>{
+  const input=buildInput({day:1,me:{name:'CPU A'},players:[],messages:[]},{text:'仮文。長い説明。'},'talk');
+  const developer=input[0].content;
+  assert.match(developer,/8〜45文字/);
+  assert.match(developer,/「。」と「、」は基本使わず/);
+});
