@@ -422,7 +422,7 @@
       const pivot=choose(v,'defense-pivot-'+alt.id+'-'+(b.talks||0),{
         casual:[`それより自分は${spokenName(v,b,alt.id)}の方が気になる。`,`むしろ今見るなら${spokenName(v,b,alt.id)}じゃない？`],
         soft:[`それより、自分は${spokenName(v,b,alt.id)}の方が気になってるかな。`,`今なら${spokenName(v,b,alt.id)}の方を先に見たいかな。`],
-        polite:[`それより、今は${spokenName(v,b,alt.id)}さんの方が気になっています。`,`現時点では${spokenName(v,b,alt.id)}さんの方を先に見たいです。`],
+        polite:[`それより、今は${spokenName(v,b,alt.id)}の方が気になっています。`,`現時点では${spokenName(v,b,alt.id)}の方を先に見たいです。`],
         blunt:[`それより${spokenName(v,b,alt.id)}の方が怪しい。`,`今見るなら${spokenName(v,b,alt.id)}。`],
         analytical:[`比較するなら、今は${spokenName(v,b,alt.id)}の方が疑い材料がある。`,`自分より${spokenName(v,b,alt.id)}を先に確認したい。`]
       }[p]);
