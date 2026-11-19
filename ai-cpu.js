@@ -23,8 +23,17 @@ function chatLikeText(text,fallback=''){
   if(out.length>68)out=out.slice(0,68).replace(/\s+\S*$/,'').trim()||out.slice(0,68).trim();
   return out;
 }
-function cleanAiText(text,fallback){
-  return chatLikeText(text,fallback)||chatLikeText(fallback,'');
+function validAiText(text,draft){
+  const out=String(text||'').trim(),statement=draft?.statement||null;
+  if([...out].length<4)return false;
+  if(/^(占い|霊媒|人狼|村人|白|黒|CO|ＣＯ|了解|なるほど|へえ|そう|うん|はい)[!！?？]*$/.test(out))return false;
+  if(statement?.kind==='report'&&!/(白|黒|人狼ではない|人狼)/.test(out))return false;
+  return true;
+}
+function cleanAiText(text,fallback,draft=null){
+  const out=chatLikeText(text,'');
+  if(validAiText(out,draft))return out;
+  return chatLikeText(fallback,'');
 }
 
 function publicContext(view,draft,mode,history=null){
@@ -81,7 +90,9 @@ function buildInput(view,draft,mode,history=null){
     'history は試合開始から現在までの公開会話と公開システム記録です。直前だけでなく、必要なら数日前・数十発言前の内容も踏まえてください。',
     'history内で以前出た話題、本人の発言、質問、軽い冗談、疑い先、CO、判定、投票公開後の流れを覚えているように自然につなげてください。',
     'personality の archetype・confidence・questionBias・hedging を反応にも反映してください。慎重なCPUまで強く断定しないでください。',
-    '「なるほど」「へえ」「それは大変そう」だけで終わらせず、相手の内容に具体的に触れてください。',
+    '「なるほど」「へえ」「それは大変そう」「それは気になる」だけで終わらせず、replySourceの具体的な言葉や話題に反応してください。',
+    'replySourceが「わろた」「悲しい」のような短い感情なら、その感情に直接返してください。「味噌カツ」「アンドロメダ銀河」のような唐突な単語なら、無理に評価せず「急に○○」のような軽い反応でも構いません。',
+    '雑談に対して人狼の評価語である「気になる」「材料」「判断」を無理に使わないでください。',
     'draftは仮文なので言い回しには従わなくて構いません。statementにtarget・role・black等がある場合、その意味と事実だけは絶対に変えないでください。',
     '会話相手が疑い・黒判定・質問を向けてきた時は、まずその発言への人間らしい反応を優先してください。定型的な「候補には残す」「反応を見る」で済ませないでください。',
     'recentに無い投票、占い結果、役職、死亡理由などのゲーム内事実を作らないでください。自分だけが知る秘密情報も漏らさないでください。',
@@ -142,7 +153,7 @@ function createAiCpu({
         body:JSON.stringify({
           model,
           input:buildInput(view,draft,mode,history),
-          max_output_tokens:80,
+          max_output_tokens:180,
           store:false
         }),
         signal:controller.signal
@@ -153,7 +164,7 @@ function createAiCpu({
         throw Error('OpenAI API '+response.status+(detail?': '+detail:''));
       }
       const data=await response.json();
-      return cleanAiText(extractOutputText(data),fallback);
+      return cleanAiText(extractOutputText(data),fallback,draft);
     }finally{
       clearTimeout(timer);
     }
