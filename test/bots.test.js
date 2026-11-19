@@ -338,3 +338,27 @@ test('CPU name pool includes kanji given names',()=>{
   assert.match(src,/真白/);
   assert.match(src,/千景/);
 });
+
+
+test('casual fallback reacts to the actual short message instead of generic evaluation',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const p=bots[0];
+  g.chat(human.id,'味噌カツ','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  p.brain.replyMessageId=msg.id;
+  const out=Bots.decide(g.botView(p.id),p.brain,'reply');
+  assert.ok(out?.text);
+  assert.match(out.text,/味噌カツ|急に|なんで/);
+  assert.doesNotMatch(out.text,/大変|気になる話|材料|判断/);
+});
+
+test('cheater comment responds to the cheater topic',()=>{
+  const {g,human,bots}=makeDiscussion();
+  const p=bots[0];
+  g.chat(human.id,'チーターおるやんけ','public',g.phaseId);
+  const msg=g.messages.at(-1);
+  p.brain.replyMessageId=msg.id;
+  const out=Bots.decide(g.botView(p.id),p.brain,'reply');
+  assert.ok(out?.text);
+  assert.match(out.text,/チーター|初夜|死|だる|面倒|警戒/);
+});
