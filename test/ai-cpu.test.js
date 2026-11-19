@@ -98,3 +98,12 @@ test('AI prompt asks for short punctuation-light chat',()=>{
   assert.match(developer,/8〜45文字/);
   assert.match(developer,/「。」と「、」は基本使わず/);
 });
+
+
+test('rejects unusably short AI output and keeps meaningful report fallback',async()=>{
+  const ai=createAiCpu({apiKey:'x',enabled:true,model:'test',fetchImpl:async()=>({ok:true,json:async()=>({output_text:'占い'})})});
+  const view={day:1,me:{name:'CPU',personality:{}},players:[{id:'a',name:'CPU'},{id:'b',name:'鈾'}],messages:[]};
+  const out=await ai.rewrite({view,draft:{text:'占い結果 鈾は黒だった',statement:{kind:'report',target:'b',role:'seer',black:true}},mode:'talk'});
+  assert.match(out,/鈾|黒/);
+  assert.notEqual(out,'占い');
+});
