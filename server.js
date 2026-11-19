@@ -91,10 +91,8 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   function ensureAiSeats(entry){
     if(!ai.enabled||entry.game.phase==='lobby'||entry.game.phase==='ended')return [];
     const botIds=entry.game.players.filter(p=>p.bot).map(p=>p.id);
-    const kept=(entry.aiBotIds||[]).filter(id=>botIds.includes(id));
-    const added=botIds.filter(id=>!kept.includes(id)).slice(0,Math.max(0,ai.cpuCount-kept.length));
-    entry.aiBotIds=kept.concat(added).slice(0,ai.cpuCount);
-    return entry.aiBotIds;
+    entry.aiBotIds=botIds;
+    return botIds;
   }
   function queueAiRewrite(entry){
     const ids=ensureAiSeats(entry);if(!ids.length)return false;
@@ -111,7 +109,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       if(m.channel!=='public'||!m.text||entry.aiRewriteSeen.has(m.id)||entry.aiRewritePending.has(m.id))return false;
       return selected.has(m.playerId)||!!humanReplySource(m);
     });
-    for(const message of candidates.slice(-Math.max(6,ai.cpuCount*2))){
+    for(const message of candidates.slice(0,Math.max(1,ai.cpuCount))){
       entry.aiRewritePending.add(message.id);
       const id=message.playerId,view=game.botView(id),source=humanReplySource(message),draft={text:message.text,statement:message.meta||null};
       const mode=source?'reply':'talk';
@@ -421,7 +419,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
 }
 if(require.main===module){
   const app=createApp();const port=Number(process.env.PORT||3000),host=process.env.HOST||'0.0.0.0';
-  app.server.listen(port,host,()=>console.log(`Werewolf Game v${VERSION}\nGame:  http://localhost:${port}\nAdmin: http://localhost:${port}/admin\nAI CPU: ${app.aiStatus.enabled?'enabled':'disabled'} (${app.aiStatus.cpuCount} seats / ${app.aiStatus.model})\nCtrl+C to stop. Rooms are stored in memory.`));
+  app.server.listen(port,host,()=>console.log(`Werewolf Game v${VERSION}\nGame:  http://localhost:${port}\nAdmin: http://localhost:${port}/admin\nAI CPU: ${app.aiStatus.enabled?'enabled':'disabled'} (parallel ${app.aiStatus.cpuCount} / ${app.aiStatus.model})\nCtrl+C to stop. Rooms are stored in memory.`));
   app.server.on('error',error=>{console.error(error.code==='EADDRINUSE'?'Port is busy. Close the old server or set PORT to another number.':error.message);process.exit(1);});
   process.on('SIGINT',()=>app.close().then(()=>process.exit(0)));
   process.on('SIGTERM',()=>app.close().then(()=>process.exit(0)));
