@@ -116,12 +116,14 @@
   $('guestActive').onclick=()=>call('activity');$('stillHere').onclick=()=>{lastActivity=Date.now();call('activity');};$('speed').onclick=()=>{};
   $('again').onclick=async()=>{settingsVersion=-1;await call('reset');};
 
-  $('chatForm').onsubmit=async e=>{
-    e.preventDefault();const input=$('chatInput'),text=input.value.trim();if(!text)return;
+  async function submitChat(inputId,buttonId,targetChannel){
+    const input=$(inputId),text=input.value.trim();if(!text)return;
     input.value='';input.focus();
-    const res=await runButton($('send'),'送信中…',()=>call('chat',{text,channel}));
+    const res=await runButton($(buttonId),'送信中…',()=>call('chat',{text,channel:targetChannel}));
     if(!res){input.value=text;input.focus();}
-  };
+  }
+  $('chatForm').onsubmit=e=>{e.preventDefault();void submitChat('chatInput','send',channel);};
+  $('boardChatForm').onsubmit=e=>{e.preventDefault();void submitChat('boardChatInput','boardSend','public');};
   $('claim').onclick=()=>runButton($('claim'),'CO中…',()=>call('statement',{kind:'claim',role:$('claimRole').value}));
   $('report').onclick=()=>runButton($('report'),'報告中…',()=>call('statement',{kind:'report',role:$('reportKind').value,target:$('reportTarget').value,black:$('reportColor').value==='true'}));
   document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{channel=b.dataset.channel;chatSignature='';if(state)renderChat(state);});
@@ -240,6 +242,10 @@
     if(s.phase==='ended')hint='試合終了。公開チャットで感想を話せます。';
     if(can&&channel==='public'&&s.phase==='discussion')hint='公開チャット。CPUに「誰が怪しい？」「○○どう思う？」のような自由文でも質問できます。';
     $('chatInput').disabled=!can;$('send').disabled=!can;$('chatHint').textContent=hint;$('chatInput').placeholder=can?(channel==='ghost'?'幽霊だけに話す…':channel==='wolves'?'仲間と相談…':'例：誰が怪しいと思う？'):'この時間は読むだけです';$('statementBox').hidden=!(s.phase==='discussion'&&s.me.alive&&channel==='public');
+    const boardCan=['discussion','vote','dawn','execution','ended'].includes(s.phase)&&(s.me.alive||s.phase==='ended');
+    $('boardChatForm').hidden=!['discussion','vote','dawn','execution','ended'].includes(s.phase);
+    $('boardChatInput').disabled=!boardCan;$('boardSend').disabled=!boardCan;
+    $('boardChatInput').placeholder=boardCan?'盤面から発言…':'今は発言できません';
   }
 
   function renderPrivate(s){
@@ -278,7 +284,10 @@
   function handleBoardPlayer(id){
     if(!state||id===state.me.id)return;
     if((state.phase==='vote'||state.phase==='night')&&state.me.alive&&!state.me.auto&&state.targets.includes(id)){selected=id;actionSignature='';renderActions(state);renderBoard(state);return;}
-    if(state.phase==='discussion'&&state.me.alive&&!state.me.auto){boardMenuTarget=id;$('boardMenuName').textContent=playerName(id)+'について';$('boardMenu').hidden=false;$('boardMenu').scrollIntoView({block:'nearest',behavior:reduced?'auto':'smooth'});}
+    if(state.phase==='discussion'&&state.me.alive&&!state.me.auto){
+      boardMenuTarget=id;$('boardMenuName').textContent=playerName(id)+'について';$('boardMenu').hidden=false;
+      if(!matchMedia('(max-width:700px)').matches)$('boardMenu').scrollIntoView({block:'nearest',behavior:reduced?'auto':'smooth'});
+    }
   }
   $('boardMenuClose').onclick=()=>{$('boardMenu').hidden=true;boardMenuTarget=null;};
   document.querySelectorAll('[data-relation]').forEach(b=>b.onclick=()=>runButton(b,'送信中…',async()=>{if(!boardMenuTarget)return;const ok=await call('statement',{kind:b.dataset.relation,target:boardMenuTarget});if(ok){$('boardMenu').hidden=true;boardMenuTarget=null;}return ok;}));
