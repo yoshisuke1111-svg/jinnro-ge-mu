@@ -565,14 +565,12 @@
       return {text:choose(v,'reply-trust-'+msg.id,[`${msg.name}がそう見てるのは分かった。自分もまだ決め打ちはしない。`,`白く見てくれるのはありがたいけど、そこだけで固めなくていいと思う。`,`了解。自分は引き続き発言と投票を見てる。`])};
     }
     if(intent.kind==='casual'){
-      const casual={
-        casual:['へえ、そうなんだ。','それちょっと分かる。','なるほどな。','それはなかなかだな。'],
-        soft:['へえ、そうなんだ。','それちょっと分かるかも。','なるほどね。','それはちょっと大変そう。'],
-        polite:['そうなんですね。','なるほど、分かります。','それは少し大変そうですね。','へえ、そうなんですか。'],
-        blunt:['へえ。','なるほど。','それは大変だな。','まあ分かる。'],
-        analytical:['なるほど。','そういう話か。','それは少し気になるな。','へえ、面白いな。']
-      }[p];
-      return {text:choose(v,'reply-casual-'+msg.id,casual)};
+      const raw=String(msg.text||'').trim(),compact=raw.replace(/\s+/g,'');
+      if(/わろ|笑|草|w{2,}|ｗ{2,}/i.test(compact))return {text:choose(v,'reply-casual-laugh-'+msg.id,['草','何わろてんねん','笑ってるやん'])};
+      if(/悲し|かなしい|つらい|しんどい/.test(compact))return {text:choose(v,'reply-casual-sad-'+msg.id,['どうしたん','急に悲しくなってるやん','何があったん'])};
+      if(/腹減|おなかす|お腹す|飯|ごはん|食べたい/.test(compact))return {text:choose(v,'reply-casual-food-'+msg.id,['腹減ってるん？','飯の話になったな','何食べたいん'])};
+      if([...raw].length<=18&&!/[?？!！]/.test(raw))return {text:choose(v,'reply-casual-noun-'+msg.id,[`急に${raw}`,`${raw}は急すぎる`,`なんで${raw}なん`])};
+      return {text:choose(v,'reply-casual-other-'+msg.id,['急にどうしたん','何の話なんそれ','その話どっから来たん'])};
     }
     if(intent.kind==='greeting'){
       return {text:choose(v,'reply-greeting-'+msg.id,{
@@ -617,7 +615,11 @@
       return {text:choose(v,'reply-empty-'+msg.id,['まだ決め切ってない。もう少し発言を見たい。','今はまだ保留かな。投票理由が出たら考えたい。','材料が少ないから、今の時点では決めてない。'])};
     }
     if(intent.kind==='opinion'){
-      return {text:choose(v,'reply-game-opinion-'+msg.id,['それは気になる話ではあるな。まだ今の公開情報だけでは何とも言えない。','その話は分かる。ただ、今の時点で誰かに結びつける材料はまだないかな。','そこは確かに考えたい。もう少し情報が出てから見たいな。'])};
+      if(/チーター/.test(intent.text)){
+        const firstNightDeath=v.day===1&&v.messages.some(m=>m.channel==='system'&&/亡くな|犠牲者/.test(m.text)&&!/犠牲者はいません/.test(m.text));
+        return {text:choose(v,'reply-cheater-'+msg.id,firstNightDeath?['初夜で死んでるしありそう','この死体だとチーターっぽいな','初夜襲撃なしで死んでるしな']:['いるならだるいな','チーターいたら面倒やな','それは警戒したいな'])};
+      }
+      return {text:choose(v,'reply-game-opinion-'+msg.id,['まだ何とも言えんな','その話はもうちょい見たい','それだけだとまだ分からん'])};
     }
     return null;
   }
