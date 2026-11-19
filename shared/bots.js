@@ -436,7 +436,7 @@
     const subject=v.players.filter(p=>p.id!==me.id&&p.id!==msg?.playerId).sort((a,b)=>b.name.length-a.name.length).find(p=>compact.includes(p.name));
     const direct=msg?.meta?.target===me.id||compact.includes(me.name);
     const question=/[?？]|どう思|どう見|どうする|誰|どこ|教えて|聞きたい|意見|なんで|なぜ|理由|本物|偽|好き|嫌い|何食べ|何して|どうだった/.test(compact);
-    const gameTalk=/人狼|村人|村側|狼|占い|占い師|霊媒|役職|CO|ＣＯ|投票|票先|吊り|処刑|黒|白|怪し|疑|信用|信じ|噛み|襲撃|護衛|守る|対抗|真偽|判定|狂人|妖狐|生存者|投票候補/.test(compact);
+    const gameTalk=/人狼|村人|村側|狼|黒狼|占い|占い師|霊媒|役職|CO|ＣＯ|投票|票先|吊り|処刑|黒|白|怪し|疑|信用|信じ|噛み|襲撃|護衛|守る|対抗|真偽|判定|狂人|狂信者|妖狐|生存者|パン屋|猫又|共有者|てるてる|疫病神|復讐者|恋人|チーター|リセッター|泥棒|墓荒らし|レベラー|投票候補/.test(compact);
     let kind='none';
     if(/^(おは|こんにちは|こんばんは|よろしく|やあ|どうも)/.test(compact))kind='greeting';
     if(/どれに対して|何に対して|何のこと|何について|どの話|どの発言|それって何|何を指して|何の質問|どれの理由/.test(compact)&&question)kind='clarify';
@@ -446,6 +446,7 @@
     else if(subject&&(/怪し|白|黒|村っぽ|人狼|信用|信じ|どう思|どう見/.test(compact)))kind='target';
     else if(/怪し|人狼|黒い|疑って|誰|どこ/.test(compact)&&question&&gameTalk)kind='suspect';
     else if(question&&gameTalk)kind='opinion';
+    else if(gameTalk)kind='opinion';
     else if(compact.length>=2)kind='casual';
     return {kind,direct,subject,question,gameTalk,text:compact};
   }
