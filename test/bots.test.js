@@ -293,3 +293,9 @@ test('accused casual CPU omits explicit self pronoun',()=>{
   assert.doesNotMatch(out.text,/自分/);
   assert.match(out.text,/何で|なんで|怪し|疑/);
 });
+
+
+test('common CPU chat avoids commentator-style suspicion wording',()=>{
+  const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../shared/bots.js'),'utf8');
+  assert.doesNotMatch(src,/今見るなら/);
+});
