@@ -183,7 +183,7 @@
         blunt:['今は白寄り','今は外す','優先度は低い'],
         analytical:['現状の疑い優先度は低い','今の材料では白寄りに置く','他を先に見る']
       }[p]);
-      lead=choose(v,key+'-lead',[`${n}は${stance}。`,`自分は${n}を${stance}。`,`${stance.includes('今')?'': '今は'}${n}については、${stance}。`]);
+      lead=choose(v,key+'-lead',[`${n}は${stance}。`,`${n}は${stance}。`,`${stance.includes('今')?'': '今は'}${n}については、${stance}。`]);
     }else{
       const strength=score>=70?'strong':score>=35?'mid':'weak';
       const stanceMap={
@@ -298,7 +298,7 @@
     let heads;
     if(kind==='trust'){
       heads={
-        casual:[`${n}は今のところそんなに疑ってない。`,`${n}は今は白めかな。`,`自分は${n}をいったん外して見てる。`],
+        casual:[`${n}は今のところそんなに疑ってない。`,`${n}は今は白めかな。`,`${n}はいったん外して見てる。`],
         soft:[`${n}は今のところ白寄りかな。`,`今は${n}をそこまで疑ってないよ。`,`${n}は一回置いて、ほかを見たいかな。`],
         polite:[`${n}は今のところ白寄りで見ています。`,`今は${n}を強く疑ってはいません。`,`${n}はいったん候補から外して見ています。`],
         blunt:[`${n}は今は白寄り。`,`${n}は後回しでいい。`,`今は${n}じゃない。`],
@@ -314,10 +314,10 @@
       }[p];
     }else{
       heads={
-        casual:[`${n}がちょっと気になる。`,`今は${n}を見てる。`,`自分は${n}が少し怪しく見える。`],
+        casual:[`${n}がちょっと気になる。`,`今は${n}を見てる。`,`${n}が少し怪しく見える。`],
         soft:[`${n}が少し引っかかってるかな。`,`今のところ${n}が気になってる。`,`${n}をもう少し見たいかな。`],
         polite:[`今は${n}が少し気になっています。`,`${n}をもう少し見たいです。`,`現時点では${n}を少し疑っています。`],
-        blunt:[`今は${n}を疑ってる。`,`${n}が気になる。`,`自分なら${n}を見る。`],
+        blunt:[`今は${n}を疑ってる。`,`${n}が気になる。`,`今見るなら${n}かな。`],
         analytical:[`今の材料だと${n}を先に見たい。`,`${n}の動きが少し気になる。`,`現状は${n}を疑い寄りに置く。`]
       }[p];
     }
@@ -343,7 +343,7 @@
     if(v.me.role==='madman'&&(evaluate(v).score[target.id]||0)>35)black=false;
     const statement={kind:'report',role:'seer',target:target.id,black};
     b.fakeHistory.push({...statement,day:v.day});b.reportDay=v.day;b.fakeRole='seer';
-    const follow=black?choose(v,'fake-black',['今日はここをちゃんと見てほしい。','自分はこの黒を投票材料にする。','対抗がいるなら結果も聞きたい。']):choose(v,'fake-white',['白だったから、いったん外して考える。','白。発言まで全部信用するわけじゃないけど、今日は別を見たい。','白だった。ほかの候補を見ようと思う。']);
+    const follow=black?choose(v,'fake-black',['今日はここをちゃんと見てほしい。','この黒は投票材料にする。','対抗がいるなら結果も聞きたい。']):choose(v,'fake-white',['白だったから、いったん外して考える。','白。発言まで全部信用するわけじゃないけど、今日は別を見たい。','白だった。ほかの候補を見ようと思う。']);
     return {statement,text:`${reportSentence(v,b,'seer',target.name,black)} ${follow}`};
   }
   function emotion(v,b){
@@ -411,20 +411,20 @@
     const alt=groundedAlternative(v,b,state.last?.playerId?[state.last.playerId]:[]);
     const strong=state.pressure>=3;
     const lead=choose(v,'defense-lead-'+state.pressure+'-'+(b.talks||0),{
-      casual:strong?['いや、さすがに自分に集まりすぎ。まず理由をちゃんと聞きたい。','ちょっと待って、自分を吊る流れは違うと思う。どこがそんなに怪しい？']:['自分を疑うのは分かったけど、どこが怪しく見えた？','そこ自分に来るのか。理由はちゃんと聞きたい。'],
-      soft:strong?['かなり自分に集まってるね。でも、自分を吊る前に理由をちゃんと聞きたいかな。','ちょっと自分に寄りすぎてる気がする。怪しいと思ったところを具体的に聞きたい。']:['自分が気になってるのは分かったよ。どこを怪しく見たのか聞きたいかな。','そこを疑われてるのは分かった。理由をもう少し聞きたい。'],
-      polite:strong?['かなり自分に疑いが集まっていますが、処刑を決める前に理由を具体的に聞きたいです。','少し自分に疑いが寄りすぎています。どこを怪しく見たのか確認したいです。']:['自分が疑われているのは分かりました。どこを怪しく見たのか聞きたいです。','疑われている点は理解しました。理由をもう少し具体的に聞きたいです。'],
-      blunt:strong?['自分に集まりすぎ。まず理由出して。','待って、自分吊りは違う。どこが怪しい？']:['自分疑う理由は？','そこ自分に来るのか。根拠聞きたい。'],
-      analytical:strong?['自分への疑いが集中してる。処刑判断の前に根拠を整理してほしい。','自分に票を寄せるなら、どの発言を根拠にしてるか明確にしてほしい。']:['自分への疑いは把握した。具体的にどの発言を根拠にしてる？','疑い自体は分かった。根拠を確認したい。']
+      casual:strong?['めっちゃ疑われてるやん 何がそんな怪しいん？','そこまで疑うなら理由聞きたい']:['疑われてるんやろうけど何でなん？','なんでそこ怪しいと思ったん？'],
+      soft:strong?['かなり疑われてるね どこがそんなに怪しかった？','そこまで疑う理由ちょっと聞きたい']:['疑われてるみたいだけど何で？','どこが怪しく見えた？'],
+      polite:strong?['かなり疑われていますが理由を具体的に聞きたいです','そこまで疑う理由を聞いてもいいですか？']:['疑われているみたいですが理由を聞いてもいいですか？','どこを怪しく見たのか聞きたいです'],
+      blunt:strong?['疑い集まりすぎ 何で？','そこまで疑う理由は？']:['なんで疑ってる？','どこが怪しい？'],
+      analytical:strong?['疑いが集中してる 根拠はどの発言？','そこまで疑うなら根拠を整理してほしい']:['疑う根拠どこ？','どの発言が怪しかった？']
     }[p]);
     if(alt){
       const why=safeReason(v,alt,b);
       const pivot=choose(v,'defense-pivot-'+alt.id+'-'+(b.talks||0),{
-        casual:[`それより自分は${spokenName(v,b,alt.id)}の方が気になる。`,`むしろ今見るなら${spokenName(v,b,alt.id)}じゃない？`],
-        soft:[`それより、自分は${spokenName(v,b,alt.id)}の方が気になってるかな。`,`今なら${spokenName(v,b,alt.id)}の方を先に見たいかな。`],
-        polite:[`それより、今は${spokenName(v,b,alt.id)}の方が気になっています。`,`現時点では${spokenName(v,b,alt.id)}の方を先に見たいです。`],
-        blunt:[`それより${spokenName(v,b,alt.id)}の方が怪しい。`,`今見るなら${spokenName(v,b,alt.id)}。`],
-        analytical:[`比較するなら、今は${spokenName(v,b,alt.id)}の方が疑い材料がある。`,`自分より${spokenName(v,b,alt.id)}を先に確認したい。`]
+        casual:[`それより${spokenName(v,b,alt.id)}の方が気にならん？`,`むしろ今見るなら${spokenName(v,b,alt.id)}じゃない？`],
+        soft:[`それより${spokenName(v,b,alt.id)}の方が気になるかな`,`今なら${spokenName(v,b,alt.id)}の方を先に見たいかな`],
+        polite:[`それより今は${spokenName(v,b,alt.id)}の方が気になります`,`現時点では${spokenName(v,b,alt.id)}の方を先に見たいです`],
+        blunt:[`それより${spokenName(v,b,alt.id)}の方が怪しい`,`今見るなら${spokenName(v,b,alt.id)}`],
+        analytical:[`比較するなら今は${spokenName(v,b,alt.id)}の方が疑い材料がある`,`${spokenName(v,b,alt.id)}を先に確認したい`]
       }[p]);
       return {statement:{kind:'accuse',target:alt.id},text:`${lead} ${pivot} ${why}`};
     }
@@ -439,7 +439,7 @@
     const fresh=reports.filter(r=>!(b.reported||[]).includes(r.id));
     if(['seer','medium'].includes(me.role)&&fresh.length){
       const r=last(fresh);b.reported=(b.reported||[]).concat(r.id);b.announcedRole=me.role;
-      const follow=r.black?choose(v,'real-black',['ここは今日の投票候補に入れてほしい。','黒だった。自分は今日はここを重く見る。','対抗の結果も聞きたいけど、この黒は無視しないでほしい。']):choose(v,'real-white',['白だったから、いったん疑いは下げる。','白。村確定とまでは言わないけど、今日は優先度を下げたい。',whiteCaveat(v,b)]);
+      const follow=r.black?choose(v,'real-black',['ここは今日の投票候補に入れてほしい。','黒だった 今日はここを重く見る','対抗の結果も聞きたいけど、この黒は無視しないでほしい。']):choose(v,'real-white',['白だったから、いったん疑いは下げる。','白。村確定とまでは言わないけど、今日は優先度を下げたい。',whiteCaveat(v,b)]);
       return {statement:{kind:'report',role:r.kind,target:r.target,black:r.black},text:`${reportSentence(v,b,r.kind,r.name,r.black)} ${follow}`};
     }
     if(shouldFake(v,b))return fakeReport(v,b);
@@ -542,7 +542,7 @@
     }
     if(msg.meta?.kind==='report'&&msg.meta.target===me.id){
       if(msg.meta.black){
-        const lead={casual:`いや、${msg.name}の黒は違う。自分視点だとその占いは偽だよ。`,soft:`${msg.name}の黒判定は違うよ。自分視点ではその占いは偽になる。`,polite:`${msg.name}さんの黒判定は違います。自分視点ではその占いは偽です。`,blunt:`${msg.name}の黒は偽。自分視点では${msg.name}がかなり怪しい。`,analytical:`${msg.name}の黒判定は自分視点で成立しない。少なくとも${msg.name}の占い主張は信用できない。`}[p];
+        const lead={casual:`いやその黒は違うし ${msg.name}偽じゃん`,soft:`その黒は違うよ なら${msg.name}の占いは偽になる`,polite:`その黒判定は違います なので${msg.name}さんの占いは偽です`,blunt:`その黒は違う ${msg.name}偽`,analytical:`その黒判定は成立しない ${msg.name}の占い主張は信用できない`}[p];
         return {statement:{kind:'accuse',target:msg.playerId},text:lead};
       }
       return {text:{casual:`${msg.name}の白は見た。でも、その占いまで真だとはまだ思ってない。`,soft:`${msg.name}の白判定は確認したよ。占い自体はもう少し見たいかな。`,polite:`${msg.name}さんの白判定は確認しました。ただ、その占いが真かどうかはもう少し見たいです。`,blunt:`${msg.name}の白は確認。占い真とはまだ決めない。`,analytical:`${msg.name}から白判定。判定と占い師の真偽は分けて考える。`}[p]};
@@ -550,10 +550,10 @@
     if(msg.meta?.kind==='question'&&msg.meta.target===me.id)intent.kind=/投票|票/.test(msg.text||'')?'vote':intent.kind==='none'?'opinion':intent.kind;
     if(msg.meta?.kind==='accuse'&&msg.meta.target===me.id){
       const alt=groundedAlternative(v,b,[msg.playerId]);
-      const lead={casual:'自分を疑うのは分かったけど、どこが怪しく見えた？',soft:'自分が気になってるのは分かったよ。どこを怪しく見たのか聞きたいかな。',polite:'自分が疑われているのは分かりました。どこを怪しく見たのか聞きたいです。',blunt:'自分疑う理由は？',analytical:'自分への疑いは把握した。具体的な根拠を聞きたい。'}[p];
+      const lead={casual:'疑われてるんやろうけど何でなん？',soft:'疑われてるみたいだけど何で？',polite:'疑われているみたいですが理由を聞いてもいいですか？',blunt:'なんで疑ってる？',analytical:'疑う根拠どこ？'}[p];
       if(alt){
         const why=safeReason(v,alt,b);
-        return {statement:{kind:'accuse',target:alt.id},text:`${lead} それより自分は${spokenName(v,b,alt.id)}の方が気になる。 ${why}`};
+        return {statement:{kind:'accuse',target:alt.id},text:`${lead} それより${spokenName(v,b,alt.id)}の方が気になる ${why}`};
       }
       return {statement:{kind:'question',target:msg.playerId},text:lead};
     }
@@ -589,7 +589,7 @@
     }
     if(intent.kind==='role'){
       const claimed=b.fakeRole||b.announcedRole;
-      if(claimed)return {text:choose(v,'reply-role-known-'+msg.id,[`自分はもう${ROLES[claimed]?.name||claimed}で出てる。`,`${ROLES[claimed]?.name||claimed}として話してるよ。`])};
+      if(claimed)return {text:choose(v,'reply-role-known-'+msg.id,[`もう${ROLES[claimed]?.name||claimed}で出てる。`,`${ROLES[claimed]?.name||claimed}として話してるよ。`])};
       return {text:choose(v,'reply-role-hidden-'+msg.id,{casual:['役職は今は伏せておく。必要になったら出る。','今はまだ役職を出す場面じゃないと思ってる。'],soft:['今はまだ役職は伏せたいかな。必要なら出るよ。','今のところは役職を伏せて、発言を見たいかな。'],polite:['今はまだ役職は伏せておきたいです。必要になれば出ます。','現時点では役職は伏せておきます。'],blunt:['今は伏せる。必要なら出る。','役職はまだ言わない。'],analytical:['現時点では役職公開の利益が薄いので伏せる。','役職はまだ公開しない。必要性が出たら考える。']}[p])};
     }
     if(intent.kind==='seer'){
@@ -630,10 +630,10 @@
       }[p]);
     }
     if(target.reason&&!/仲間|相方|共有者の相方|投票先として/.test(target.reason)){
-      if(target.reason.includes('自分が確認した判定と食い違う'))return pick('own-conflict',{casual:['自分の結果と食い違ってるのが気になる。','自分が持ってる結果と合わない。そこは見過ごせない。'],soft:['自分の結果と食い違ってるのが気になってる。','自分で確認した結果と合わないから、そこは気になるかな。'],polite:['自分で確認した結果と食い違っているのが気になります。','自分の結果と合わないので、そこは確認したいです。'],blunt:['自分の結果と合わない。そこが気になる。','自分の結果と矛盾してる。'],analytical:['自分の確認結果と矛盾してる。ここは重く見る。','自分の結果と整合しない。理由を確認したい。']}[p]);
+      if(target.reason.includes('自分が確認した判定と食い違う'))return pick('own-conflict',{casual:['持ってる結果と食い違ってるのが気になる','持ってる結果と合わない そこは気になる'],soft:['持ってる結果と食い違ってるのが気になる','確認した結果と合わないからそこは気になる'],polite:['確認した結果と食い違っています','結果と合わないのでそこは確認したいです'],blunt:['結果と合わない そこが気になる','結果と矛盾してる'],analytical:['確認結果と矛盾してる ここは重く見る','結果と整合しない 理由を確認したい']}[p]);
       if(target.reason.includes('この配役にない役職'))return pick('impossible-claim',{casual:['その役職、この配役にはいないはず。そこはおかしい。'],soft:['その役職はこの配役にいないはずだから、そこが気になる。'],polite:['その役職はこの配役にいないはずなので、そこが気になります。'],blunt:['その役職はいない。そこはおかしい。'],analytical:['配役に存在しない役職CO。ここは明確な矛盾。']}[p]);
       if(target.reason.includes('私と同じ')&&target.reason.includes('1人だけ'))return pick('counter-role',{casual:['自分と同じ役職で出てるけど、この配役だと1人だけ。対抗として見てる。'],soft:['自分と同じ役職で出てるけど、1人配役だから対抗になるね。'],polite:['自分と同じ役職で出ていますが、1人配役なので対抗として見ています。'],blunt:['同役職の対抗。1人配役だから両方はない。'],analytical:['同役職COが重複してる。1人配役なので対抗関係。']}[p]);
-      if(target.reason.startsWith('自分の占い')&&v.me.role==='seer')return pick('own-seer',{casual:['自分で占った結果がある。ここはかなり重く見てる。'],soft:['自分の占い結果があるから、ここはかなり重く見てるよ。'],polite:['自分の占い結果があるので、ここはかなり重く見ています。'],blunt:['自分の占い結果。ここは重い。'],analytical:['自分の占いで確認済み。最優先で見る。']}[p]);
+      if(target.reason.startsWith('自分の占い')&&v.me.role==='seer')return pick('own-seer',{casual:['占った結果がある ここはかなり重く見てる'],soft:['占い結果があるからここはかなり重く見てる'],polite:['占い結果があるのでここはかなり重く見ています'],blunt:['占い結果 ここは重い'],analytical:['占いで確認済み 最優先で見る']}[p]);
       if(target.reason.startsWith('自分の占い')&&v.me.role!=='seer')return pick('claim',['公開されている占い主張と、その後の発言がつながってるか見たい。','占い主張だけじゃなく、その後の発言も見たい。']);
       const publicMatch=target.reason.match(/^(.+?)から(黒|白)判定の主張がある$/);
       if(publicMatch){const who=publicMatch[1],color=publicMatch[2];return pick('public-report',{casual:[`${who}が${color}を出してる。判定だけじゃなく、出した側の動きも見たい。`,`${who}の${color}判定は見てる。そこだけで決める気はない。`],soft:[`${who}が${color}を出してるね。判定と一緒に、出した人の動きも見たいかな。`,`${who}の${color}判定は確認したよ。まだそれだけでは決めない。`],polite:[`${who}さんが${color}判定を出しています。判定だけでなく、出した側の動きも見たいです。`,`${who}さんの${color}判定は確認していますが、それだけでは決めません。`],blunt:[`${who}の${color}は見てる。でも判定だけでは決めない。`,`${who}が${color}出し。出した側も見る。`],analytical:[`${who}の${color}判定は材料にする。ただし発言と投票も合わせて見る。`,`${who}が${color}判定。判定元の動きも評価する。`]}[p]);}
@@ -714,7 +714,7 @@
       if(v.kind==='meet')return {text:choose(v,'wolf-meet',{casual:['初夜は顔合わせだけだね。明日、占いの出方を見てから噛み先決めよう。'],soft:['今日は顔合わせだけだね。明日の占いと投票の流れを見て、噛み先を決めよう。'],polite:['今夜は顔合わせだけですね。明日の占いと投票の流れを見て、襲撃先を決めましょう。'],blunt:['今日は顔合わせだけ。明日、占いを見て噛み先決めよう。'],analytical:['初夜は襲撃なし。明日は占いの出方と投票理由を見てから噛み先を決める。']}[tone(b)])};
       const target=nightChoice(v,b);if(!target)return null;
       const claim=last(v.claims.filter(c=>c.playerId===target));
-      return {text:claim?choose(v,'wolf-attack-claim',[`${name(v,target)}を噛みたい。${ROLES[claim.role].name}で出てるし、残すと情報が増えそう。護衛だけ少し気になる。`,`${name(v,target)}を候補にしたい。${ROLES[claim.role].name}を名乗ってるから、村の情報源になりそう。`]):choose(v,'wolf-attack-open',[`今夜は${name(v,target)}を噛みたい。発言と投票の流れを見ると、ここを残したくない。`,`自分は${name(v,target)}を候補にする。昨日の流れだと、ここを消すのがよさそう。`])};
+      return {text:claim?choose(v,'wolf-attack-claim',[`${name(v,target)}を噛みたい。${ROLES[claim.role].name}で出てるし、残すと情報が増えそう。護衛だけ少し気になる。`,`${name(v,target)}を候補にしたい。${ROLES[claim.role].name}を名乗ってるから、村の情報源になりそう。`]):choose(v,'wolf-attack-open',[`今夜は${name(v,target)}を噛みたい。発言と投票の流れを見ると、ここを残したくない。`,`${name(v,target)}を候補にする 昨日の流れだとここを消すのがよさそう`])};
     }
     if(mode==='ghost'){
       const result=last(v.me.privateResults.filter(r=>['seer','medium'].includes(r.kind)));
