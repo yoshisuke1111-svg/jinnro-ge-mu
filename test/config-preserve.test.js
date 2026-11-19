@@ -74,3 +74,10 @@ test('board view has a quick public chat form wired to the normal chat API',()=>
   assert.match(html,/id="boardChatInput"/);
   assert.match(app,/submitChat\('boardChatInput','boardSend','public'\)/);
 });
+
+
+test('reply metadata alone is not labeled as an arrow',()=>{
+  const app=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
+  assert.match(app,/\['accuse','trust','question','report','claim'\]\.includes\(m\.meta\?\.kind\)/);
+  assert.doesNotMatch(app,/\$\{m\.meta\?' · 矢印':''\}/);
+});
