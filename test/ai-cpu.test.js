@@ -50,3 +50,21 @@ test('casual prompt prioritizes the latest human message',()=>{
   assert.match(developer,/無理に人狼の話へ戻さない/);
   assert.equal(payload.latestOther.text,'好きな食べ物って何？');
 });
+
+
+test('reply mode uses the exact human source message',()=>{
+  const input=buildInput({
+    day:1,
+    me:{name:'レン'},
+    players:[{id:'r',name:'レン'},{id:'h',name:'ウラン'}],
+    messages:[
+      {id:10,channel:'public',day:1,playerId:'h',name:'ウラン',text:'仮病でクワガタムシ'},
+      {id:11,channel:'public',day:1,playerId:'r',name:'レン',text:'へえ、面白いな。',meta:{kind:'reply',replyTo:10}}
+    ]
+  },{text:'へえ、面白いな。',statement:{kind:'reply',replyTo:10}},'reply');
+  const developer=input[0].content;
+  const payload=JSON.parse(input[1].content);
+  assert.match(developer,/replySource/);
+  assert.match(developer,/具体的に触れて/);
+  assert.equal(payload.replySource.text,'仮病でクワガタムシ');
+});
