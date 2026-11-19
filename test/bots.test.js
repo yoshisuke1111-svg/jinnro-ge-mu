@@ -84,19 +84,14 @@ test('spontaneous CPU talk avoids repeating the same recent topic',()=>{
 });
 
 
-test('a first CPU question of the day is explicit even with no earlier conversation',()=>{
+test('opening CPU talk does not invent a target before anyone has provided evidence',()=>{
   const {g,bots}=makeDiscussion();
   const p=bots.find(x=>x.role==='villager')||bots[0];
-  const view=g.botView(p.id);
-  let question=null;
-  for(let salt=0;salt<120&&!question;salt++){
-    const brain={...p.brain,personality:{...p.brain.personality},talks:0,replies:0,topicSalt:salt,recentSpeechTopics:[]};
-    const out=Bots.decide(view,brain,'talk');
-    if(out?.statement?.kind==='question')question=out;
-  }
-  assert.ok(question,'test seed should be able to produce a question');
-  assert.doesNotMatch(question.text,/その(?:判断|理由|根拠)|それ(?:どういう|って)/);
-  assert.match(question.text,/誰|投票候補|怪しい|入れるなら/);
+  const out=Bots.decide(g.botView(p.id),p.brain,'talk');
+  assert.ok(out?.text);
+  assert.ok(!out.statement||!['accuse','trust','question'].includes(out.statement.kind));
+  assert.match(out.text,/まだ|分から|材料|判断|話/);
+  assert.doesNotMatch(out.text,/を疑って|白寄り|一番怪しいのは/);
 });
 
 test('clarification question is answered by the CPU that asked and names the referenced topic',()=>{
