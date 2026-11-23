@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {createAiCpu,extractOutputText,buildInput}=require('../ai-cpu');
+const {createAiCpu,createProvider,extractOutputText,buildInput}=require('../ai-cpu');
 
 test('extractOutputText reads Responses API output',()=>{
   assert.equal(extractOutputText({output:[{content:[{type:'output_text',text:'自然な発言'}]}]}),'自然な発言');
@@ -106,4 +106,35 @@ test('rejects unusably short AI output and keeps meaningful report fallback',asy
   const out=await ai.rewrite({view,draft:{text:'占い結果 鈾は黒だった',statement:{kind:'report',target:'b',role:'seer',black:true}},mode:'talk'});
   assert.match(out,/鈾|黒/);
   assert.notEqual(out,'占い');
+});
+
+
+test('custom provider can use a replaceable endpoint',async()=>{
+  let called=null;
+  const ai=createAiCpu({
+    enabled:true,
+    provider:'custom',
+    baseUrl:'https://example.invalid/my-ai',
+    apiKey:'mine',
+    model:'my-model',
+    fetchImpl:async(url,options)=>{
+      called={url,options};
+      return {ok:true,json:async()=>({output_text:'その黒は違うと思う'})};
+    }
+  });
+  const out=await ai.rewrite({
+    view:{day:1,me:{name:'CPU',personality:{}},players:[],messages:[]},
+    draft:{text:'元の発言'},
+    mode:'talk'
+  });
+  assert.equal(ai.provider,'custom');
+  assert.equal(called.url,'https://example.invalid/my-ai');
+  assert.match(called.options.headers.authorization,/mine/);
+  assert.equal(out,'その黒は違うと思う');
+});
+
+test('OpenAI remains the default provider and uses its Responses endpoint',()=>{
+  const provider=createProvider({provider:'openai',apiKey:'x',fetchImpl:async()=>{}});
+  assert.equal(provider.kind,'openai');
+  assert.equal(provider.endpoint,'https://api.openai.com/v1/responses');
 });
