@@ -1,7 +1,7 @@
 'use strict';
 
 const DEFAULT_MODEL='gpt-6-luna';
-const OPENAI_URL='https://api.openai.com/v1/responses';
+const DEFAULT_OPENAI_URL='https://api.openai.com/v1/responses';
 
 function extractOutputText(data){
   if(typeof data?.output_text==='string'&&data.output_text.trim())return data.output_text.trim();
@@ -127,15 +127,53 @@ function buildInput(view,draft,mode,history=null){
   ];
 }
 
+function createProvider({
+  provider='openai',
+  apiKey='',
+  baseUrl='',
+  model=DEFAULT_MODEL,
+  fetchImpl=globalThis.fetch
+}={}){
+  const kind=String(provider||'openai').toLowerCase();
+  const endpoint=String(baseUrl||'').trim()||(kind==='openai'?DEFAULT_OPENAI_URL:'');
+  const name=kind==='openai'?'OpenAI':kind==='custom'?'Custom AI':kind;
+  async function generate(input,{signal}={}){
+    if(!endpoint)throw Error(name+' endpoint is not configured');
+    const headers={'content-type':'application/json'};
+    if(apiKey)headers.authorization='Bearer '+apiKey;
+    const response=await fetchImpl(endpoint,{
+      method:'POST',
+      headers,
+      body:JSON.stringify({
+        model,
+        input,
+        max_output_tokens:180,
+        store:false
+      }),
+      signal
+    });
+    if(!response.ok){
+      let detail='';
+      try{detail=(await response.text()).slice(0,240);}catch{}
+      throw Error(name+' API '+response.status+(detail?': '+detail:''));
+    }
+    return extractOutputText(await response.json());
+  }
+  return {kind,name,endpoint,generate};
+}
+
 function createAiCpu({
-  apiKey=process.env.OPENAI_API_KEY||'',
+  provider=process.env.AI_PROVIDER||'openai',
+  apiKey=process.env.AI_API_KEY||process.env.OPENAI_API_KEY||'',
+  baseUrl=process.env.AI_BASE_URL||'',
   enabled=String(process.env.AI_CPU_ENABLED||'')==='1',
-  model=process.env.OPENAI_MODEL||DEFAULT_MODEL,
+  model=process.env.AI_MODEL||process.env.OPENAI_MODEL||DEFAULT_MODEL,
   cpuCount=process.env.AI_CPU_COUNT||3,
   fetchImpl=globalThis.fetch,
   timeoutMs=4500
 }={}){
-  const active=Boolean(enabled&&apiKey&&typeof fetchImpl==='function');
+  const backend=createProvider({provider,apiKey,baseUrl,model,fetchImpl});
+  const active=Boolean(enabled&&typeof fetchImpl==='function'&&(backend.kind==='openai'?apiKey:true)&&backend.endpoint);
   const parsedCpuCount=Number(cpuCount);
   const normalizedCpuCount=Math.max(1,Math.min(6,Number.isFinite(parsedCpuCount)?Math.trunc(parsedCpuCount):3));
   async function rewrite({view,draft,mode='talk',history=null}={}){
@@ -144,32 +182,13 @@ function createAiCpu({
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),timeoutMs);
     try{
-      const response=await fetchImpl(OPENAI_URL,{
-        method:'POST',
-        headers:{
-          'authorization':'Bearer '+apiKey,
-          'content-type':'application/json'
-        },
-        body:JSON.stringify({
-          model,
-          input:buildInput(view,draft,mode,history),
-          max_output_tokens:180,
-          store:false
-        }),
-        signal:controller.signal
-      });
-      if(!response.ok){
-        let detail='';
-        try{detail=(await response.text()).slice(0,240);}catch{}
-        throw Error('OpenAI API '+response.status+(detail?': '+detail:''));
-      }
-      const data=await response.json();
-      return cleanAiText(extractOutputText(data),fallback,draft);
+      const text=await backend.generate(buildInput(view,draft,mode,history),{signal:controller.signal});
+      return cleanAiText(text,fallback,draft);
     }finally{
       clearTimeout(timer);
     }
   }
-  return {enabled:active,model,cpuCount:normalizedCpuCount,rewrite};
+  return {enabled:active,provider:backend.kind,providerName:backend.name,endpoint:backend.endpoint,model,cpuCount:normalizedCpuCount,rewrite};
 }
 
-module.exports={createAiCpu,extractOutputText,buildInput};
+module.exports={createAiCpu,createProvider,extractOutputText,buildInput};
