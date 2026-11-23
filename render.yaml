@@ -14,9 +14,13 @@ services:
         sync: false
       - key: AI_CPU_ENABLED
         value: "1"
+      - key: AI_PROVIDER
+        value: openai
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
         value: gpt-6-luna
+      - key: AI_BASE_URL
+        value: ""
       - key: AI_CPU_COUNT
         value: "3"
