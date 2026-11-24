@@ -104,3 +104,41 @@ test('admin can broadcast a narration to every player view in a room',async()=>{
     }
   }finally{await app.close();}
 });
+
+
+test('admin can download human-only training data while CPU rooms stay excluded',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'test-admin'});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const login=await post(base,'/admin/login',{password:'test-admin'});
+    const cookie=login.res.headers.get('set-cookie').split(';')[0];
+
+    const made=await post(base,'/api',{event:'create',data:{name:'H0',roomCode:'TRAINROOM'}});
+    const {code,token}=made.json;
+    for(const name of ['H1','H2','H3'])await post(base,'/api',{event:'join',data:{name},code,token:''});
+    const entry=app.rooms.get(code),g=entry.game;
+    const counts=Object.fromEntries(Object.keys(g.config.roles).map(k=>[k,0]));
+    counts.villager=2;counts.wolf=1;counts.seer=1;
+    g.applyConfig({...g.config,roles:counts,testRole:''});
+    g.start();g.startDiscussion();
+
+    const phaseId=g.phaseId;
+    const sent=await post(base,'/api',{event:'chat',data:{text:'まだ分からん',channel:'public',turn:phaseId},code,token});
+    assert.equal(sent.res.status,200,JSON.stringify(sent.json));
+    assert.equal(entry.trainingExamples.length,1);
+
+    const res=await fetch(base+'/admin/training?code='+code,{headers:{cookie}});
+    assert.equal(res.status,200);
+    const line=(await res.text()).trim();
+    const sample=JSON.parse(line);
+    assert.equal(sample.action.type,'chat');
+    assert.equal(sample.action.text,'まだ分からん');
+    assert.equal(sample.context.phase,'discussion');
+
+    g.players[1].bot=true;
+    const before=entry.trainingExamples.length;
+    await post(base,'/api',{event:'chat',data:{text:'これは収集しない',channel:'public',turn:g.phaseId},code,token});
+    assert.equal(entry.trainingExamples.length,before);
+  }finally{await app.close();}
+});
