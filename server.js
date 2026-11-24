@@ -10,6 +10,7 @@ const os=require('node:os');
 const {Game,preset,ROLES,ROLE_IDS,WOLF,validName}=require('./shared/rules');
 const Bots=require('./shared/bots');
 const {createAiCpu}=require('./ai-cpu');
+const Training=require('./training-data');
 const VERSION='0.8.4';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
@@ -175,6 +176,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       return {code,phase:g.phase,phaseLabel:g.phase,day:g.day,createdAt:g.createdAt,startedAt:g.startedAt,deadline:g.deadline,gameNow,
         cpuWatch:!!entry.cpuWatch,fastMode:!!entry.fastMode,speed:entry.clock?.getSpeed?.()||1,connected:entry.clients.size,humans:g.humans().length,
         bots:g.players.filter(p=>p.bot).length,alive:g.living().length,total:g.players.length,winner:g.winner,host:g.host?g.name(g.host):(entry.cpuWatch?'CPU観戦':'—'),
+        training:{eligible:Training.isHumanOnly(g),examples:(entry.trainingExamples||[]).length},
         actions:Object.fromEntries(Object.entries(g.actions).map(([id,target])=>[g.realName(id),target?g.realName(target):null])),
         specialActions:Object.fromEntries(Object.entries(g.specialActions||{}).map(([id,actions])=>[g.realName(id),Object.fromEntries(Object.entries(actions).map(([k,ids])=>[k,(ids||[]).map(t=>t?g.realName(t):null)]))])),
         votes:Object.fromEntries(Object.entries(g.votes).map(([id,target])=>[g.realName(id),target?g.realName(target):null])),
@@ -211,6 +213,18 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       if(req.method==='GET'&&url.pathname==='/admin/data'){
         if(!adminAuth(req))return json(res,401,{ok:false,error:'管理者ログインが必要です。'});
         return json(res,200,{ok:true,...adminSnapshot()});
+      }
+      if(req.method==='GET'&&url.pathname==='/admin/training'){
+        if(!adminAuth(req))return json(res,401,{ok:false,error:'管理者ログインが必要です。'});
+        const code=normalizeRoomCode(url.searchParams.get('code')),entry=rooms.get(code);
+        if(!entry)return json(res,404,{ok:false,error:'部屋が見つかりません。'});
+        const body=Training.toJsonl(entry);
+        res.writeHead(200,{
+          'Content-Type':'application/x-ndjson; charset=utf-8',
+          'Content-Disposition':`attachment; filename="werewolf-training-${code}.jsonl"`,
+          'Cache-Control':'no-store'
+        });
+        return res.end(body);
       }
       if(req.method==='POST'&&url.pathname==='/admin/action'){
         if(!adminAuth(req))return json(res,401,{ok:false,error:'管理者ログインが必要です。'});
@@ -373,7 +387,11 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           chatRates.set(secret,Date.now());
         }
         if(event==='state')return json(res,200,{ok:true,state:game.view(pid)});
-        game.command(pid,event,data,Bots);broadcast(entry);
+        const trainingContext=Training.ACTION_EVENTS.has(event)&&Training.isHumanOnly(game)&&!game.byId(pid)?.bot
+          ?Training.captureContext(game,pid):null;
+        game.command(pid,event,data,Bots);
+        if(trainingContext)Training.recordAction(entry,game,pid,event,data,trainingContext);
+        broadcast(entry);
         return json(res,200,{ok:true});
       }
       if((req.method==='GET'||req.method==='HEAD')&&allowed[url.pathname]){
@@ -393,6 +411,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     for(const [code,entry] of rooms){
       try{
         entry.game.tick(Bots);
+        Training.sampleSilence(entry,entry.game);
         queueAiRewrite(entry);
         if(entry.revision!==entry.game.revision)broadcast(entry);
         if((!entry.cpuWatch&&!entry.game.humans().length)||(!entry.cpuWatch&&!entry.clients.size&&Date.now()-entry.lastEmpty>30*60000)){
