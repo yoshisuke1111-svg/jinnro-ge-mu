@@ -97,7 +97,7 @@
     constructor({code='SOLO',seed=Date.now(),random=null,now=()=>Date.now()}={}) {
       this.code=code;this.random=random||seeded(seed);this.now=now;this.players=[];this.host=null;
       this.config={roles:preset(8),times:{...DEFAULT_TIMES},lovers:false,firstNightSafe:true,testRole:''};
-      this.configVersion=1;this.phase='lobby';this.phaseId=0;this.day=0;this.startedAt=0;this.deadline=null;
+      this.configVersion=1;this.phase='lobby';this.phaseId=0;this.day=0;this.startedAt=0;this.matchStartedAt=0;this.deadline=null;
       this.messages=[];this.msgId=0;this.revision=0;this.actions={};this.specialActions={};this.votes={};this.ready=new Set();
       this.reports=[];this.claims=[];this.voteHistory=[];this.winner=null;this.pendingWin=null;
       this.lastScene=null;this.sceneId=0;this.lastExecuted=null;this.infected=new Set();this.round=0;this.dawnSnapshot=null;this.hiddenWolves=new Set();
@@ -240,7 +240,7 @@
       if(this.config.testRole&&!this.isSolo())throw Error('複数人では役職指定は使えません。');
       this.messages=[];this.msgId=0;this.reports=[];this.claims=[];this.voteHistory=[];
       this.infected=new Set();this.lastExecuted=null;this.winner=null;this.pendingWin=null;this.lastScene=null;
-      this.day=1;this.round=0;this.actions={};this.specialActions={};this.votes={};this.dawnSnapshot=null;this.hiddenWolves=new Set();
+      this.matchStartedAt=this.now();this.day=1;this.round=0;this.actions={};this.specialActions={};this.votes={};this.dawnSnapshot=null;this.hiddenWolves=new Set();
       if(roleOrder){
         if(!Array.isArray(roleOrder)||roleOrder.length!==this.players.length||roleOrder.some(r=>!ROLE_IDS.includes(r)))throw Error('手動配役が不正です。');
         const counts=Object.fromEntries(ROLE_IDS.map(k=>[k,0]));for(const r of roleOrder)counts[r]++;
@@ -271,7 +271,7 @@
     reset() {
       if(this.phase!=='ended')throw Error('終了後に待機室へ戻れます。');
       for(const p of this.players){p.role=null;p.alive=true;p.lover=null;p.brain={};p.auto=false;p.privateResults=[];p.lastActive=this.now();p.claimed=null;p.levelerLevel=0;p.cheaterExecutionHit=false;p.cheaterAttackHit=false;p.resetUsed=false;p.implantedFrom=null;}
-      this.messages=[];this.msgId=0;this.day=0;this.winner=null;this.pendingWin=null;this.lastScene=null;this.actions={};this.specialActions={};this.votes={};this.reports=[];this.claims=[];this.voteHistory=[];this.dawnSnapshot=null;this.hiddenWolves=new Set();
+      this.messages=[];this.msgId=0;this.day=0;this.matchStartedAt=0;this.winner=null;this.pendingWin=null;this.lastScene=null;this.actions={};this.specialActions={};this.votes={};this.reports=[];this.claims=[];this.voteHistory=[];this.dawnSnapshot=null;this.hiddenWolves=new Set();
       this.beginPhase('lobby');this.configVersion++;this.system('新しいゲームを準備できます。');
     }
     requireTurn(turn) {if(turn!==undefined&&turn!==this.phaseId)throw Error('画面が次のフェーズに進みました。表示を確認してください。');}
