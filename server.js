@@ -11,6 +11,7 @@ const {Game,preset,ROLES,ROLE_IDS,WOLF,validName}=require('./shared/rules');
 const Bots=require('./shared/bots');
 const {createAiCpu}=require('./ai-cpu');
 const Training=require('./training-data');
+const {createConversationLab}=require('./conversation-lab');
 const VERSION='0.8.4';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
@@ -25,9 +26,10 @@ function makeClock(){
   return {now(){return gameBase+(Date.now()-realBase)*speed;},setSpeed(next){const current=this.now();realBase=Date.now();gameBase=current;speed=next;},getSpeed(){return speed;}};
 }
 
-function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null,collapseDelayMs=5000}={}) {
+function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null,conversationLab=null,collapseDelayMs=5000}={}) {
   const rooms=new Map(),tickets=new Map(),rates=new Map(),chatRates=new Map(),adminSessions=new Map();
   const ai=aiCpu||createAiCpu({fetchImpl});
+  const talk=conversationLab||createConversationLab();
   const startedReal=Date.now(),recentErrors=[];let requestCount=0,apiCount=0;
   const recordError=(scope,error)=>{recentErrors.push({at:Date.now(),scope,message:String(error?.message||error)});if(recentErrors.length>40)recentErrors.splice(0,recentErrors.length-40);};
   const effectiveAdminPassword=adminPassword||crypto.randomBytes(9).toString('base64url');
@@ -73,7 +75,8 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   const allowed={
     '/':'public/index.html','/index.html':'public/index.html','/app.js':'public/app.js','/style.css':'public/style.css',
     '/transport.js':'public/transport.js','/shared/rules.js':'shared/rules.js','/solo.html':'public/solo.html',
-    '/admin':'public/admin.html','/admin.html':'public/admin.html','/admin.js':'public/admin.js','/admin.css':'public/admin.css'
+    '/admin':'public/admin.html','/admin.html':'public/admin.html','/admin.js':'public/admin.js','/admin.css':'public/admin.css',
+    '/talk':'public/talk.html','/talk.html':'public/talk.html','/talk.js':'public/talk.js','/talk.css':'public/talk.css'
   };
   const json=(res,status,obj)=>{if(!res.headersSent)res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj));};
   const send=(res,event,data)=>{
@@ -230,6 +233,30 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         const status=Training.getTursoStatus();
         const summary=await Training.getTursoSummary();
         return json(res,200,{ok:true,state:status.state,pending:status.pending,writesSinceBoot:status.writes,lastWriteAt:status.lastWriteAt,summary});
+      }
+      if(req.method==='GET'&&url.pathname==='/health/talk'){
+        const stats=await talk.stats();
+        return json(res,200,{ok:true,...stats});
+      }
+      if(req.method==='POST'&&url.pathname==='/talk/api'){
+        if(!String(req.headers['content-type']).startsWith('application/json'))return json(res,415,{ok:false,error:'JSONが必要です。'});
+        const body=await readBody(req),action=String(body.action||'');
+        if(action==='start'){
+          budget('talk-start:'+ip,30,300000);
+          const result=await talk.startSession(String(body.name||'').slice(0,32));
+          return json(res,200,{ok:true,...result});
+        }
+        const sessionId=String(body.sessionId||'').slice(0,80);
+        budget('talk:'+sessionId+':'+ip,80,60000);
+        if(action==='send'){
+          const result=await talk.send({sessionId,text:String(body.text||'').slice(0,400)});
+          return json(res,200,{ok:true,...result});
+        }
+        if(action==='feedback'){
+          const result=await talk.feedback({sessionId,turnId:String(body.turnId||'').slice(0,80),value:Number(body.value)});
+          return json(res,200,result);
+        }
+        throw Error('会話ラボの操作が不正です。');
       }
       if(req.method==='POST'&&url.pathname==='/admin/login'){
         budget('admin-login:'+ip,12,300000);
@@ -490,6 +517,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   function close(){
     clearInterval(timer);clearInterval(housekeeping);
     for(const entry of rooms.values())for(const res of entry.clients.values())res.end();
+    void talk.close?.();
     return new Promise(resolve=>{server.close(resolve);server.closeAllConnections();});
   }
   return {server,rooms,close,adminPassword:effectiveAdminPassword,aiStatus:{enabled:ai.enabled,model:ai.model,cpuCount:ai.cpuCount}};
