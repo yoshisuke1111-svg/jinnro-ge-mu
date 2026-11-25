@@ -226,6 +226,11 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     const ip=req.socket.remoteAddress||'local'; // Do not trust arbitrary X-Forwarded-For headers.
     try{
       if(req.method==='GET'&&url.pathname==='/health')return json(res,200,{ok:true,version:VERSION,uptimeMs:Date.now()-startedReal,rooms:rooms.size});
+      if(req.method==='GET'&&url.pathname==='/health/training'){
+        const status=Training.getTursoStatus();
+        const summary=await Training.getTursoSummary();
+        return json(res,200,{ok:true,state:status.state,pending:status.pending,writesSinceBoot:status.writes,lastWriteAt:status.lastWriteAt,summary});
+      }
       if(req.method==='POST'&&url.pathname==='/admin/login'){
         budget('admin-login:'+ip,12,300000);
         if(!String(req.headers['content-type']).startsWith('application/json'))return json(res,415,{ok:false,error:'JSONが必要です。'});
