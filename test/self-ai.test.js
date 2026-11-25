@@ -80,3 +80,18 @@ test('self AI can learn a simple pattern without an AI library',()=>{
   assert.equal(predict(model,[1,0]).label,'silence');
   assert.ok(evaluateModel(model,examples).accuracy>0.95);
 });
+
+
+test('train/test split keeps every game entirely on one side',()=>{
+  const {splitByGame}=require('../ai/train');
+  const examples=[];
+  for(let g=0;g<12;g++)for(let i=0;i<5;i++){
+    examples.push({id:`e-${g}-${i}`,gameId:`game-${g}`,label:i%2?'speak':'silence',features:[1, i%2]});
+  }
+  const split=splitByGame(examples);
+  const trainGames=new Set(split.train.map(x=>x.gameId));
+  const testGames=new Set(split.test.map(x=>x.gameId));
+  assert.ok(trainGames.size>0);
+  assert.ok(testGames.size>0);
+  for(const id of trainGames)assert.equal(testGames.has(id),false);
+});
