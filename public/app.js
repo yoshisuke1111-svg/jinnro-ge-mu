@@ -10,7 +10,7 @@
   let state=null,channel='public',selected=null,settingsDirty=false,settingsVersion=-1,mobileView='board',boardMenuTarget=null;
   let actionSignature='',chatSignature='',recordSignature='',playerSignature='',privateSignature='';
   let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastAdminNarrationId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
-  let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null;
+  let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null,collapseRunning=false;
   const SECRET_ROLE_AUTO_FLIP=4200,SECRET_ROLE_VISIBLE=10500,SECRET_RESULT_AUTO_FLIP=1800,SECRET_RESULT_VISIBLE=7200,SECRET_FADE=720;
   const reducedPref=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
   let reduced=storage('localStorage','getItem','ww-motion')==='off'||reducedPref;
@@ -20,6 +20,41 @@
   function toast(message,error=false){
     $('toast').textContent=message;$('toast').classList.toggle('error',error);$('toast').hidden=false;
     clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,error?6500:4200);
+  }
+  function playRoomCollapse(payload={}){
+    if(collapseRunning)return;collapseRunning=true;
+    const duration=Math.max(1200,Number(payload.durationMs)||5000),room=$('room');
+    const overlay=document.createElement('div');overlay.id='roomCollapseFx';overlay.className='room-collapse-fx';
+    overlay.innerHTML='<div class="collapse-noise"></div><div class="collapse-warning"><small>ADMINISTRATOR OVERRIDE</small><strong>禁忌</strong><span>ROOM COLLAPSE</span></div>';
+    document.body.append(overlay);
+
+    const candidates=room&&!room.hidden?[...room.querySelectorAll('.panel,button,input,select,h1,h2,h3,p,.room-code-label,.tag,.mini-label,.board-player,.message,.records-panel,.room-heading>*')]:[];
+    const fragments=candidates.filter(el=>{const r=el.getBoundingClientRect();return r.width>8&&r.height>8&&r.bottom>0&&r.top<innerHeight;}).slice(0,170);
+    fragments.forEach((el,i)=>{
+      const r=el.getBoundingClientRect(),angle=((i*137.508)%360)*Math.PI/180,dist=90+(i*47)%240;
+      const fx=Math.cos(angle)*dist,fy=Math.sin(angle)*dist*.72,rot=((i*73)%150)-75;
+      const topRatio=Math.max(0,Math.min(1,r.top/Math.max(1,innerHeight)));
+      el.classList.add('collapse-fragment');
+      el.style.setProperty('--fx',fx.toFixed(1)+'px');el.style.setProperty('--fy',fy.toFixed(1)+'px');el.style.setProperty('--fr',rot+'deg');
+      el.style.setProperty('--fly-delay',((i%9)*18)+'ms');el.style.setProperty('--fall-delay',Math.round(topRatio*620+(i%7)*28)+'ms');
+    });
+
+    document.body.classList.add('room-collapsing','collapse-glitch');
+    const finish=()=>{
+      if(session)storage('sessionStorage','removeItem','ww3-'+session.code);
+      session=null;state=null;
+      $('room').hidden=true;$('entrance').hidden=false;
+      if(!offline){const url=new URL(location.href);url.search='';history.replaceState(null,'',url);}
+      document.body.classList.remove('room-collapsing','collapse-glitch','collapse-fly','collapse-freeze','collapse-fall');
+      for(const el of fragments){el.classList.remove('collapse-fragment');for(const k of ['--fx','--fy','--fr','--fly-delay','--fall-delay'])el.style.removeProperty(k);}
+      overlay.classList.add('collapse-finished');setTimeout(()=>overlay.remove(),360);
+      collapseRunning=false;toast('部屋が強制崩壊しました。',true);
+    };
+    if(reduced){overlay.classList.add('reduced');setTimeout(finish,Math.min(1250,duration-100));return;}
+    setTimeout(()=>document.body.classList.add('collapse-fly'),620);
+    setTimeout(()=>document.body.classList.add('collapse-freeze'),2050);
+    setTimeout(()=>{document.body.classList.remove('collapse-freeze','collapse-glitch');document.body.classList.add('collapse-fall');},2550);
+    setTimeout(finish,Math.max(4300,duration-180));
   }
   const transport=WWTransport.create({
     onState:render,
@@ -31,7 +66,8 @@
     onRemoved(message){
       if(session)storage('sessionStorage','removeItem','ww3-'+session.code);
       session=null;state=null;$('room').hidden=true;$('entrance').hidden=false;toast(message,true);
-    }
+    },
+    onRoomCollapse(payload){playRoomCollapse(payload);}
   });
   async function call(event,data={},throwError=false){
     try{return await transport.request(event,{...data,turn:state?.phaseId});}
@@ -365,7 +401,7 @@
   function tick(){
     if(!state)return;const now=Date.now()+timeOffset,left=state.deadline===null?null:Math.max(0,Math.ceil((state.deadline-now)/1000));$('countdown').textContent=left===null?'—':`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;$('timeFill').style.width=state.deadline?`${clamp((state.deadline-now)/(state.deadline-state.startedAt)*100,0,100)}%`:'0%';
     if(state.phase==='night'&&state.kind&&!state.me.acted){const own=Math.max(0,Math.ceil((state.actionDeadline-now)/1000));$('phaseHint').textContent=`あなたの選択期限まで ${own}秒`;}
-    const idle=(now-state.lastActive)/1000;$('idleWarning').hidden=state.phase!=='lobby'||idle<60;if(state.phase==='lobby'&&idle>=60)$('idleText').textContent=`操作がないため、あと${Math.max(0,Math.ceil(75-idle))}秒で待機室を退出します。`;
+    $('idleWarning').hidden=true;
     if(!state.play&&state.phase!=='lobby'){};if(['discussion','vote','execution','dawn','night'].includes(state.phase)){renderBubbles(state);requestAnimationFrame(()=>drawArrows(state));}
   }
   setInterval(tick,500);
