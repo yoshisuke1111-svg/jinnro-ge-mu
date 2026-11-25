@@ -25,7 +25,7 @@ function makeClock(){
   return {now(){return gameBase+(Date.now()-realBase)*speed;},setSpeed(next){const current=this.now();realBase=Date.now();gameBase=current;speed=next;},getSpeed(){return speed;}};
 }
 
-function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null}={}) {
+function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null,collapseDelayMs=5000}={}) {
   const rooms=new Map(),tickets=new Map(),rates=new Map(),chatRates=new Map(),adminSessions=new Map();
   const ai=aiCpu||createAiCpu({fetchImpl});
   const startedReal=Date.now(),recentErrors=[];let requestCount=0,apiCount=0;
@@ -132,6 +132,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     return entry.aiRewritePending.size>0;
   }
   function broadcast(entry) {
+    if(entry.collapsing)return;
     if(entry.aiRewritePending?.size){entry.aiBroadcastDeferred=true;return;}
     entry.aiBroadcastDeferred=false;
     const game=entry.game;
@@ -140,6 +141,34 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       send(res,'state',game.view(pid));
     }
     entry.revision=game.revision;
+  }
+  function forceRemoveSeat(entry,pid){
+    const g=entry.game,p=g.byId(pid);
+    if(!p)throw Error('対象プレイヤーが見つかりません。');
+    const name=p.name,client=entry.clients.get(pid);
+    if(client){
+      send(client,'removed',{message:'管理者により部屋から退出させられました。'});
+      entry.clients.delete(pid);client.end();
+    }
+    for(const [sessionToken,sessionPid] of entry.sessions)if(sessionPid===pid)entry.sessions.delete(sessionToken);
+    for(const [ticketId,ticket] of tickets)if(ticket.code===g.code&&ticket.pid===pid)tickets.delete(ticketId);
+    g.players=g.players.filter(x=>x.id!==pid);
+    delete g.actions[pid];delete g.specialActions[pid];delete g.votes[pid];
+    g.ready.delete(pid);g.infected.delete(pid);g.hiddenWolves.delete(pid);
+    for(const [id,target] of Object.entries(g.actions))if(target===pid)delete g.actions[id];
+    for(const [id,target] of Object.entries(g.votes))if(target===pid)delete g.votes[id];
+    for(const actions of Object.values(g.specialActions||{}))for(const [kind,ids] of Object.entries(actions||{}))actions[kind]=(ids||[]).filter(id=>id!==pid);
+    if(Array.isArray(g.runoff))g.runoff=g.runoff.filter(id=>id!==pid);
+    for(const other of g.players){
+      if(other.lover===pid)other.lover=null;
+      if(other.revengeTarget===pid)other.revengeTarget=null;
+    }
+    if(g.host===pid)g.host=g.humans().find(x=>x.connected)?.id||g.humans()[0]?.id||null;
+    g.configVersion++;
+    if(!['lobby','ended'].includes(g.phase))g.pendingWin=g.computeWin(null);
+    g.system(name+'が管理者により部屋から退出しました。');
+    g.changed();broadcast(entry);
+    return p;
   }
   async function readBody(req) {
     let size=0,chunks=[];
@@ -173,7 +202,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       tickets:tickets.size,adminSessions:adminSessions.size,ai:{enabled:ai.enabled,model:ai.model,cpuCount:ai.cpuCount},recentErrors:recentErrors.slice().reverse()
     },rooms:[...rooms.entries()].map(([code,entry])=>{
       const g=entry.game,gameNow=g.now();
-      return {code,phase:g.phase,phaseLabel:g.phase,day:g.day,createdAt:g.createdAt,startedAt:g.startedAt,deadline:g.deadline,gameNow,
+      return {code,phase:g.phase,phaseLabel:g.phase,day:g.day,createdAt:g.createdAt,startedAt:g.startedAt,deadline:g.deadline,gameNow,collapsing:!!entry.collapsing,collapseStartedAt:entry.collapseStartedAt||null,
         cpuWatch:!!entry.cpuWatch,fastMode:!!entry.fastMode,speed:entry.clock?.getSpeed?.()||1,connected:entry.clients.size,humans:g.humans().length,
         bots:g.players.filter(p=>p.bot).length,alive:g.living().length,total:g.players.length,winner:g.winner,host:g.host?g.name(g.host):(entry.cpuWatch?'CPU観戦':'—'),
         training:{eligible:Training.isHumanOnly(g),examples:(entry.trainingExamples||[]).length},
@@ -308,6 +337,26 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           for(const p of cpuWolves)g.actions[p.id]=target;
           g.system('管理者デバッグ操作によりCPU人狼の襲撃先が指定されました。');g.changed();broadcast(entry);return json(res,200,{ok:true});
         }
+        if(action==='kick_player'){
+          const p=entry.game.byId(String(body.playerId||''));
+          if(!p)throw Error('対象プレイヤーが見つかりません。');
+          if(p.bot)throw Error('追放ボタンは人間プレイヤー用です。');
+          forceRemoveSeat(entry,p.id);
+          return json(res,200,{ok:true,playerId:p.id,name:p.name});
+        }
+        if(action==='collapse_room'){
+          if(entry.collapsing)throw Error('この部屋はすでに崩壊中です。');
+          entry.collapsing=true;entry.collapseStartedAt=Date.now();
+          const payload={code,durationMs:Math.max(1200,Number(collapseDelayMs)||5000),startedAt:entry.collapseStartedAt};
+          for(const client of entry.clients.values())send(client,'room_collapse',payload);
+          const collapseTimer=setTimeout(()=>{
+            if(rooms.get(code)!==entry)return;
+            for(const client of entry.clients.values())client.end();
+            rooms.delete(code);
+          },payload.durationMs);
+          collapseTimer.unref?.();
+          return json(res,200,{ok:true,collapsing:true,durationMs:payload.durationMs});
+        }
         if(action==='delete_room'){
           for(const client of entry.clients.values())client.end();rooms.delete(code);return json(res,200,{ok:true});
         }
@@ -413,6 +462,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   const timer=setInterval(()=>{
     for(const [code,entry] of rooms){
       try{
+        if(entry.collapsing)continue;
         entry.game.tick(Bots);
         Training.sampleSilence(entry,entry.game);
         queueAiRewrite(entry);
