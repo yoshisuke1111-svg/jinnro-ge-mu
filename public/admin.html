@@ -13,25 +13,43 @@
   <p id="loginError" class="error" aria-live="polite"></p>
 </section>
 <section id="dashboard" hidden>
-  <div class="summary"><div><b id="roomCount">0</b><span>部屋</span></div><div><b id="playerCount">0</b><span>参加者</span></div><div><b id="activeCount">0</b><span>対戦中</span></div><div><b id="streamCount">0</b><span>接続</span></div><div><b id="alertCount">0</b><span>要確認</span></div></div>
-  <section class="server-panel">
-    <div class="section-title"><div><h2>サーバー状態</h2><span id="serverStatus">ONLINE</span></div><span id="serverUpdated"></span></div>
-    <div id="serverMetrics" class="server-metrics"></div>
-    <details class="server-errors"><summary>最近のサーバー / APIエラー <span id="errorCount">0</span></summary><div id="serverErrors"></div></details>
-  </section>
-  <section class="cpu-lab">
-    <div><h2>CPU観戦ラボ</h2><p>人間なしでCPUだけの試合を作ります。管理者画面から役職・会話・進行を見ながら早送りできます。</p></div>
-    <form id="cpuWatchForm">
-      <label>CPU人数 <input id="cpuWatchCount" type="number" min="4" max="30" value="8"></label>
-      <label>部屋コード（任意） <input id="cpuWatchCode" maxlength="16" placeholder="CPU-TEST"></label>
-      <label class="manual-role-toggle"><input id="cpuManualRoles" type="checkbox"> CPU役職を手動指定</label>
-      <div id="cpuRoleBuilder" class="cpu-role-builder" hidden></div>
-      <button type="submit">CPUだけの試合を作る</button>
-    </form>
-    <p id="adminNotice" class="admin-notice" aria-live="polite"></p>
-  </section>
+  <div class="summary">
+    <div><b id="roomCount">0</b><span>部屋</span></div>
+    <div><b id="playerCount">0</b><span>参加者</span></div>
+    <div><b id="activeCount">0</b><span>対戦中</span></div>
+    <div><b id="streamCount">0</b><span>接続</span></div>
+    <div><b id="alertCount">0</b><span>要確認</span></div>
+  </div>
+
+  <div class="admin-tool-grid">
+    <details class="server-panel admin-fold">
+      <summary><span><strong>サーバー状態</strong><em id="serverStatus">ONLINE</em></span><small id="serverUpdated"></small></summary>
+      <div id="serverMetrics" class="server-metrics"></div>
+      <details class="server-errors"><summary>最近のサーバー / APIエラー <span id="errorCount">0</span></summary><div id="serverErrors"></div></details>
+    </details>
+
+    <details class="cpu-lab admin-fold">
+      <summary><span><strong>CPU観戦ラボ</strong><small>テスト用のCPU部屋を作成</small></span></summary>
+      <div class="cpu-lab-body">
+        <p>人間なしでCPUだけの試合を作ります。役職・会話・進行を見ながら早送りできます。</p>
+        <form id="cpuWatchForm">
+          <label>CPU人数 <input id="cpuWatchCount" type="number" min="4" max="30" value="8"></label>
+          <label>部屋コード（任意） <input id="cpuWatchCode" maxlength="16" placeholder="CPU-TEST"></label>
+          <label class="manual-role-toggle"><input id="cpuManualRoles" type="checkbox"> CPU役職を手動指定</label>
+          <div id="cpuRoleBuilder" class="cpu-role-builder" hidden></div>
+          <button type="submit">CPUだけの試合を作る</button>
+        </form>
+      </div>
+    </details>
+  </div>
+
+  <p id="adminNotice" class="admin-notice global-notice" aria-live="polite"></p>
+
   <div class="layout">
-    <aside><div class="section-title"><h2>部屋一覧</h2><span id="updated"></span></div><div id="rooms" class="rooms"></div></aside>
+    <aside>
+      <div class="section-title"><div><h2>部屋一覧</h2><small>ROOMS</small></div><span id="updated"></span></div>
+      <div id="rooms" class="rooms"></div>
+    </aside>
     <section id="detail" class="detail"><p class="empty">部屋を選ぶと詳細を表示します。</p></section>
   </div>
 </section>
