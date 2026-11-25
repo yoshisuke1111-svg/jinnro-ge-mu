@@ -136,7 +136,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     entry.aiBroadcastDeferred=false;
     const game=entry.game;
     for(const [pid,res] of entry.clients){
-      if(!game.byId(pid)){send(res,'removed',{message:'待機室で75秒間操作がなかったため退出しました。入り直せます。'});res.end();entry.clients.delete(pid);continue;}
+      if(!game.byId(pid)){send(res,'removed',{message:'この席は部屋から削除されました。参加画面から入り直せます。'});res.end();entry.clients.delete(pid);continue;}
       send(res,'state',game.view(pid));
     }
     entry.revision=game.revision;
@@ -355,23 +355,26 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         const game=entry.game;
         let pid=entry.sessions.get(body.token),secret=body.token;
         if(event==='join'){
-          if(body.token&&!pid)throw Error('復帰用のキーが無効です。参加画面から入り直してください。');
-          if(pid&&!game.byId(pid)){entry.sessions.delete(secret);throw Error('待機室の席は退出済みです。名前を入力して参加し直してください。');}
+          // A stale local token must not trap the player outside the room. Fall back to exact-name reclaim.
+          if(body.token&&!pid)secret='';
+          if(pid&&!game.byId(pid)){entry.sessions.delete(secret);pid=null;secret='';}
           if(!pid){
             const requestedName=validName(data.name);
             const existing=game.players.find(p=>!p.bot&&p.name===requestedName);
-            if(game.phase!=='lobby'){
-              if(!existing)throw Error('対戦中です。参加済みの名前を入力すると自分の席へ復帰できます。');
-              if(existing.connected)throw Error('その名前のプレイヤーは現在接続中です。');
-              if(!existing.auto)throw Error('再接続を待っています。CPU代行に切り替わった後、もう一度参加してください。');
+            if(existing){
+              // Exact-name reclaim is intentionally permissive during the current multiplayer test.
+              // It works in the lobby and during a match, even if the old connection still looks alive.
               pid=existing.id;secret=token();
               for(const [sessionToken,sessionPid] of entry.sessions)if(sessionPid===pid)entry.sessions.delete(sessionToken);
               entry.sessions.set(secret,pid);
+              const previous=entry.clients.get(pid);
+              if(previous){send(previous,'replaced',{message:'同じ名前で参加し直したため、この接続を新しい画面へ引き継ぎます。'});entry.clients.delete(pid);previous.end();}
               existing.auto=false;game.connect(pid);
-              game.system(existing.name+'が対戦に復帰しました。CPU代行を終了します。');
+              if(game.phase!=='lobby')game.system(existing.name+'が対戦に復帰しました。CPU代行を終了します。');
               broadcast(entry);
               return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:game.view(pid),rejoined:true});
             }
+            if(game.phase!=='lobby')throw Error('対戦中です。参加済みの名前を入力すると自分の席へ復帰できます。');
             pid=crypto.randomUUID();secret=token();game.addPlayer({id:pid,name:requestedName});entry.sessions.set(secret,pid);
             // 参加人数が変わっても配役は自動変更しない。必要なら部屋主が配役を調整する。
             game.configVersion++;game.system(`${game.name(pid)}が参加しました。`);
