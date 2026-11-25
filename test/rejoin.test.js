@@ -59,3 +59,44 @@ test('unknown name cannot enter a game already in progress',async()=>{
     assert.match(denied.json.error,/参加済みの名前/);
   }finally{await app.close();}
 });
+
+
+test('stale token can fall back to exact-name reclaim even while the old seat still looks connected',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'x'});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const made=await api(base,'create',{name:'戻る人',roomCode:'REJOIN3'});
+    assert.equal(made.res.status,200,JSON.stringify(made.json));
+    const entry=app.rooms.get(made.json.code),g=entry.game;
+    const originalId=made.json.playerId;
+
+    // Simulate a browser that lost its valid local session while the server still thinks the seat is connected.
+    const p=g.byId(originalId);
+    assert.equal(p.connected,true);
+    const rejoined=await api(base,'join',{name:'戻る人',code:made.json.code},made.json.code,'old-invalid-token');
+
+    assert.equal(rejoined.res.status,200,JSON.stringify(rejoined.json));
+    assert.equal(rejoined.json.rejoined,true);
+    assert.equal(rejoined.json.playerId,originalId);
+    assert.notEqual(rejoined.json.token,'old-invalid-token');
+    assert.equal(g.byId(originalId).connected,true);
+  }finally{await app.close();}
+});
+
+test('lobby inactivity no longer removes a human seat',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'x'});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const made=await api(base,'create',{name:'放置テスト',roomCode:'IDLEKEEP'});
+    assert.equal(made.res.status,200,JSON.stringify(made.json));
+    const entry=app.rooms.get(made.json.code),g=entry.game,p=g.byId(made.json.playerId);
+
+    p.lastActive=g.now()-10*60*1000;
+    g.tick(null);
+
+    assert.ok(g.byId(made.json.playerId));
+    assert.equal(g.players.filter(x=>!x.bot).length,1);
+  }finally{await app.close();}
+});
