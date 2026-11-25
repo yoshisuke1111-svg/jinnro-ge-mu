@@ -13,7 +13,8 @@
     "test:simulation": "node test/simulate.js",
     "test:network": "node test/network.js",
     "build:solo": "node build-solo.js",
-    "test:all": "npm test && npm run test:network && SIM_GAMES=40 npm run test:simulation"
+    "test:all": "npm test && npm run test:network && SIM_GAMES=40 npm run test:simulation",
+    "ai:train": "node ai/train.js"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0"
