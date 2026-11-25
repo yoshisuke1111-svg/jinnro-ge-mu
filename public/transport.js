@@ -30,6 +30,21 @@ window.WWTransport = {
   offline:false,
   create(handlers){
     let auth=null,source=null,reconnectTimer=null,closed=false,reconnecting=false;
+    let pendingState=null,stateTimer=null,lastStateAt=0;
+    const flushState=()=>{
+      stateTimer=null;
+      if(!pendingState||closed)return;
+      const value=pendingState;pendingState=null;lastStateAt=performance.now();handlers.onState(value);
+    };
+    function deliverState(value,immediate=false){
+      pendingState=value;
+      if(immediate){if(stateTimer){clearTimeout(stateTimer);stateTimer=null;}flushState();return;}
+      if(stateTimer)return;
+      const gap=document.hidden?1800:260,delay=Math.max(0,gap-(performance.now()-lastStateAt));
+      stateTimer=setTimeout(flushState,delay);
+    }
+    const onVisibility=()=>{if(!document.hidden&&pendingState)deliverState(pendingState,true);};
+    document.addEventListener('visibilitychange',onVisibility);
     async function post(event,data={},credentials=auth){
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
       try{
@@ -44,10 +59,10 @@ window.WWTransport = {
     function attach(res){
       if(source){source.close();source=null;}
       auth={code:res.code,token:res.token};closed=false;
-      if(res.state)handlers.onState(res.state);
+      if(res.state)deliverState(res.state,true);
       source=new EventSource('/events?ticket='+encodeURIComponent(res.ticket));
       source.onopen=()=>{reconnecting=false;handlers.onStatus('connected');};
-      source.addEventListener('state',event=>{try{handlers.onState(JSON.parse(event.data));}catch(e){console.error(e);}});
+      source.addEventListener('state',event=>{try{deliverState(JSON.parse(event.data));}catch(e){console.error(e);}});
       source.addEventListener('removed',event=>{stop();handlers.onRemoved(JSON.parse(event.data).message);});
       source.addEventListener('replaced',event=>{stop();handlers.onRemoved(JSON.parse(event.data).message);});
       source.addEventListener('room_collapse',event=>{
@@ -69,13 +84,16 @@ window.WWTransport = {
       try{attach(await post('join',{},auth));}
       catch(e){handlers.onError(e.message);reconnectTimer=setTimeout(retry,5000);}
     }
-    function stop(){closed=true;source?.close();source=null;clearTimeout(reconnectTimer);handlers.onStatus('disconnected');}
+    function stop(){
+      closed=true;source?.close();source=null;clearTimeout(reconnectTimer);clearTimeout(stateTimer);stateTimer=null;pendingState=null;
+      document.removeEventListener('visibilitychange',onVisibility);handlers.onStatus('disconnected');
+    }
     return {
       async request(event,data={}){
         const creds=(event==='create')?null:event==='join'?{code:data.code||auth?.code,token:data.token||auth?.token}:auth;
         const res=await post(event,data,creds);
         if(event==='create'||event==='join')attach(res);
-        else if(res.state)handlers.onState(res.state);
+        else if(res.state)deliverState(res.state,true);
         return res;
       },
       stop
