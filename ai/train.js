@@ -28,31 +28,43 @@ function bucket(text){
   return (h>>>0)%10;
 }
 
-async function loadExamples(db,limit=50000){
-  const result=await db.execute({
-    sql:`SELECT example_id, game_id, recorded_at, action_json, context_json
-         FROM training_examples
-         ORDER BY recorded_at ASC
-         LIMIT ?`,
-    args:[limit]
-  });
-
+async function loadExamples(db,limit=50000,{pageSize=250}={}){
   const rows=[];
-  for(const row of result.rows||[]){
-    const context=parseJson(row.context_json);
-    const action=parseJson(row.action_json);
-    const label=actionLabel(action);
-    if(!context||!label)continue;
-    const features=extractFeatures(context);
-    if(!features.every(Number.isFinite))continue;
-    rows.push({
-      id:String(row.example_id||''),
-      gameId:String(row.game_id||''),
-      recordedAt:Number(row.recorded_at||0),
-      phase:String(context.phase||''),
-      label,
-      features
+  const size=Math.max(25,Math.min(500,Number(pageSize)||250));
+  let offset=0;
+
+  while(rows.length<limit){
+    const take=Math.min(size,limit-rows.length);
+    const result=await db.execute({
+      sql:`SELECT example_id, game_id, recorded_at, action_json, context_json
+           FROM training_examples
+           ORDER BY recorded_at ASC, example_id ASC
+           LIMIT ? OFFSET ?`,
+      args:[take,offset]
     });
+    const page=result.rows||[];
+    if(!page.length)break;
+
+    for(const row of page){
+      const context=parseJson(row.context_json);
+      const action=parseJson(row.action_json);
+      const label=actionLabel(action);
+      if(!context||!label)continue;
+      const features=extractFeatures(context);
+      if(!features.every(Number.isFinite))continue;
+      rows.push({
+        id:String(row.example_id||''),
+        gameId:String(row.game_id||''),
+        recordedAt:Number(row.recorded_at||0),
+        phase:String(context.phase||''),
+        label,
+        features
+      });
+      if(rows.length>=limit)break;
+    }
+
+    offset+=page.length;
+    if(page.length<take)break;
   }
   return rows;
 }
