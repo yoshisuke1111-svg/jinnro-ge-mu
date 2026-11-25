@@ -661,7 +661,8 @@
     tick(bot) {
       const now=this.now();
       if(this.phase==='lobby'){
-        for(const p of this.humans().slice())if(now-p.lastActive>=75000)this.removePlayer(p.id);
+        // Temporary during multiplayer testing: never remove a human seat for inactivity.
+        // The seat remains reserved until the room itself is deleted or the game flow resets it.
         return;
       }
       const oldHost=this.byId(this.host);
