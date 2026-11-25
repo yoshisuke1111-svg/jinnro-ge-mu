@@ -347,7 +347,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         if(action==='collapse_room'){
           if(entry.collapsing)throw Error('この部屋はすでに崩壊中です。');
           entry.collapsing=true;entry.collapseStartedAt=Date.now();
-          const payload={code,durationMs:Math.max(1200,Number(collapseDelayMs)||5000),startedAt:entry.collapseStartedAt};
+          const payload={code,durationMs:Math.max(20,Number(collapseDelayMs)||5000),startedAt:entry.collapseStartedAt};
           for(const client of entry.clients.values())send(client,'room_collapse',payload);
           const collapseTimer=setTimeout(()=>{
             if(rooms.get(code)!==entry)return;
