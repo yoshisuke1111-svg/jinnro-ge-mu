@@ -142,3 +142,55 @@ test('admin can download human-only training data while CPU rooms stay excluded'
     assert.equal(entry.trainingExamples.length,before);
   }finally{await app.close();}
 });
+
+
+test('admin can kick a human seat and invalidate its reconnect session',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'test-admin'});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const login=await post(base,'/admin/login',{password:'test-admin'});
+    const cookie=login.res.headers.get('set-cookie').split(';')[0];
+
+    const made=await post(base,'/api',{event:'create',data:{name:'HOST',roomCode:'KICKROOM'}});
+    const joined=await post(base,'/api',{event:'join',data:{name:'GUEST',code:made.json.code},code:made.json.code,token:''});
+    assert.equal(joined.res.status,200,JSON.stringify(joined.json));
+
+    const entry=app.rooms.get('KICKROOM');
+    const oldId=joined.json.playerId,oldToken=joined.json.token;
+    assert.ok(entry.game.byId(oldId));
+
+    const kicked=await post(base,'/admin/action',{action:'kick_player',code:'KICKROOM',playerId:oldId},cookie);
+    assert.equal(kicked.res.status,200,JSON.stringify(kicked.json));
+    assert.equal(entry.game.byId(oldId),undefined);
+    assert.ok(![...entry.sessions.values()].includes(oldId));
+
+    const oldSession=await post(base,'/api',{event:'state',code:'KICKROOM',token:oldToken,data:{}});
+    assert.equal(oldSession.res.status,401);
+
+    const rejoin=await post(base,'/api',{event:'join',data:{name:'GUEST',code:'KICKROOM'},code:'KICKROOM',token:''});
+    assert.equal(rejoin.res.status,200,JSON.stringify(rejoin.json));
+    assert.notEqual(rejoin.json.playerId,oldId);
+  }finally{await app.close();}
+});
+
+test('admin forbidden collapse marks then deletes the entire room',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'test-admin',collapseDelayMs:30});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const login=await post(base,'/admin/login',{password:'test-admin'});
+    const cookie=login.res.headers.get('set-cookie').split(';')[0];
+
+    const made=await post(base,'/api',{event:'create',data:{name:'HOST',roomCode:'COLLAPSE'}});
+    assert.equal(made.res.status,200,JSON.stringify(made.json));
+
+    const collapsed=await post(base,'/admin/action',{action:'collapse_room',code:'COLLAPSE'},cookie);
+    assert.equal(collapsed.res.status,200,JSON.stringify(collapsed.json));
+    assert.equal(collapsed.json.collapsing,true);
+    assert.equal(app.rooms.get('COLLAPSE').collapsing,true);
+
+    await new Promise(resolve=>setTimeout(resolve,70));
+    assert.equal(app.rooms.has('COLLAPSE'),false);
+  }finally{await app.close();}
+});
