@@ -23,6 +23,10 @@ window.WWTransport = {
       source.addEventListener('state',event=>{try{handlers.onState(JSON.parse(event.data));}catch(e){console.error(e);}});
       source.addEventListener('removed',event=>{stop();handlers.onRemoved(JSON.parse(event.data).message);});
       source.addEventListener('replaced',event=>{stop();handlers.onRemoved(JSON.parse(event.data).message);});
+      source.addEventListener('room_collapse',event=>{
+        let payload={};try{payload=JSON.parse(event.data)||{};}catch{}
+        stop();handlers.onRoomCollapse?.(payload);
+      });
       source.onerror=()=>{
         source?.close();if(closed)return;handlers.onStatus('reconnecting');
         clearTimeout(reconnectTimer);
