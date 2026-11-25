@@ -1653,3 +1653,13 @@ body[data-phase="discussion"] .mobile-nav{
   from{transform:translate(-2%,1%)}
   to{transform:translate(3%,-2%)}
 }
+
+
+/* v0.8.5 normal-game performance guard */
+.relation-svg,.bubble-layer{contain:layout paint}
+@media(max-width:700px){
+  .cheater-active .player-name{animation:none!important;will-change:auto!important}
+  .cheater-active .board-name{animation-duration:.72s!important;will-change:auto!important}
+  .chat-form{backdrop-filter:none!important}
+}
+@media(prefers-reduced-motion:reduce){.cheater-active .board-name,.cheater-active .player-name{animation:none!important}}

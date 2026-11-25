@@ -8,9 +8,9 @@
   const storage=(type,method,key,value)=>{try{return window[type][method](key,value);}catch{return null;}};
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   let state=null,channel='public',selected=null,settingsDirty=false,settingsVersion=-1,mobileView='board',boardMenuTarget=null;
-  let actionSignature='',chatSignature='',recordSignature='',playerSignature='',privateSignature='';
+  let actionSignature='',chatSignature='',recordSignature='',playerSignature='',privateSignature='',boardPlayerSignature='',bubbleSignature='';
   let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastAdminNarrationId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
-  let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null,collapseRunning=false;
+  let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null,collapseRunning=false,arrowFrame=0,arrowTimer=0,lastArrowDrawAt=0,lastTickSecond='';
   const SECRET_ROLE_AUTO_FLIP=4200,SECRET_ROLE_VISIBLE=10500,SECRET_RESULT_AUTO_FLIP=1800,SECRET_RESULT_VISIBLE=7200,SECRET_FADE=720;
   const reducedPref=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
   let reduced=storage('localStorage','getItem','ww-motion')==='off'||reducedPref;
@@ -314,6 +314,9 @@
 
   function boardPoint(index,n){const a=-Math.PI/2+index*(Math.PI*2/n),mobile=matchMedia('(max-width:700px)').matches;const rx=mobile?(n>18?42:39):(n>20?46:44),ry=mobile?(n>18?42:40):(n>20?43:40);return {x:50+Math.cos(a)*rx,y:50+Math.sin(a)*ry};}
   function renderBoardPlayers(s){
+    const sig=JSON.stringify([s.me.id,s.me.role,s.players.map(p=>[p.id,p.name,p.alive,p.bot,p.host,p.role||''])]);
+    if(sig===boardPlayerSignature)return;
+    boardPlayerSignature=sig;
     const box=$('boardPlayers');box.innerHTML='';const n=s.players.length;
     s.players.forEach((p,i)=>{const pos=boardPoint(i,n),b=document.createElement('button');b.type='button';b.className=`board-player ${p.alive?'':'dead'} ${p.id===s.me.id?'me':''} ${p.bot?'bot':''} ${n>18?'dense':''}`;b.style.left=pos.x+'%';b.style.top=pos.y+'%';b.dataset.playerId=p.id;const peek=s.me.role==='cheater'&&p.role?`<em class="cheater-role">${esc(ROLES[p.role]?.name||p.role)}</em>`:'';b.innerHTML=`<span class="board-avatar">${esc([...(p.name||'?')][0]||'?')}</span><span class="board-name">${esc(p.name)}</span>${peek}<small>${p.bot?'CPU':''}${p.host?(p.bot?' · ':'')+'HOST':''}${!p.alive?' · 死亡':''}</small>`;b.onclick=()=>handleBoardPlayer(p.id);box.append(b);});
   }
@@ -339,7 +342,24 @@
     if(s.phase==='night'&&s.me.alive&&!s.me.acted&&selected&&s.targets.includes(selected)){const type={divine:'seer',attack:'attack',protect:'protect',infect:'infect'}[s.kind]||'question';out.push({from:s.me.id,to:selected,type,label:{divine:'占う',attack:'襲撃',protect:'護衛',infect:'感染'}[s.kind]||'',opacity:.9,strong:true,private:true});}
     return out.filter(a=>a.from&&a.to&&a.from!==a.to);
   }
+  function boardVisible(){
+    const board=$('board');
+    if(document.hidden||collapseRunning||!board||board.offsetParent===null)return false;
+    if(matchMedia('(max-width:700px)').matches&&mobileView!=='board')return false;
+    return true;
+  }
+  function scheduleArrowDraw(s,force=false){
+    if(!boardVisible())return;
+    if(force&&arrowTimer){clearTimeout(arrowTimer);arrowTimer=0;}
+    if(arrowFrame||arrowTimer)return;
+    const delay=force?0:Math.max(0,1100-(performance.now()-lastArrowDrawAt));
+    arrowTimer=setTimeout(()=>{
+      arrowTimer=0;if(!boardVisible())return;
+      arrowFrame=requestAnimationFrame(()=>{arrowFrame=0;lastArrowDrawAt=performance.now();drawArrows(state||s);});
+    },delay);
+  }
   function drawArrows(s){
+    if(!boardVisible())return;
     const svg=$('relationSvg'),board=$('board'),br=board.getBoundingClientRect();if(br.width<10||br.height<10)return;svg.setAttribute('viewBox',`0 0 ${br.width} ${br.height}`);svg.innerHTML='';
     const defs=svgEl('defs');for(const type of ['accuse','trust','question','seer','medium','vote','attack','protect','infect']){const m=svgEl('marker',{id:'arrow-'+type,viewBox:'0 0 10 10',refX:'8.5',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'}),p=svgEl('path',{d:'M 0 0 L 10 5 L 0 10 z',class:`arrow-head ${type}`});m.append(p);defs.append(m);}svg.append(defs);
     const nodes=Object.fromEntries([...$('boardPlayers').querySelectorAll('.board-player')].map(n=>[n.dataset.playerId,n]));const pairCount={};
@@ -349,10 +369,14 @@
       if(a.label){const tx=(sx+2*mx+ex)/4,ty=(sy+2*my+ey)/4,text=svgEl('text',{x:tx,y:ty,class:`relation-label ${a.type}`});text.textContent=a.label;svg.append(text);}
     }
   }
-  function renderBubbles(s){
+  function renderBubbles(s,force=false){
+    if(document.hidden||collapseRunning)return;
     const box=$('bubbleLayer'),now=Date.now()+timeOffset,latest=[];const seen=new Set();
-    for(const m of s.messages.slice().reverse()){if(m.channel!=='public'||m.day!==s.day||!m.playerId||now-m.at>22000||seen.has(m.playerId))continue;seen.add(m.playerId);latest.push(m);if(latest.length>=3)break;}
-    box.innerHTML='';const n=s.players.length;
+    const limit=matchMedia('(max-width:700px)').matches?2:3;
+    for(const m of s.messages.slice().reverse()){if(m.channel!=='public'||m.day!==s.day||!m.playerId||now-m.at>22000||seen.has(m.playerId))continue;seen.add(m.playerId);latest.push(m);if(latest.length>=limit)break;}
+    const sig=latest.map(m=>m.id).join(',')+'|'+Math.floor(now/4000);
+    if(!force&&sig===bubbleSignature)return;
+    bubbleSignature=sig;box.innerHTML='';const n=s.players.length;
     for(const m of latest.reverse()){const idx=s.players.findIndex(p=>p.id===m.playerId);if(idx<0)continue;const p=boardPoint(idx,n),age=now-m.at,bx=clamp(p.x+(50-p.x)*.38,18,82),by=clamp(p.y+(50-p.y)*.38,18,82),d=document.createElement('div');d.className='board-bubble'+(m.meta?' structured':'');d.style.left=bx+'%';d.style.top=by+'%';d.style.opacity=String(clamp(1-age/26000,.18,1));const short=m.text.length>82?m.text.slice(0,81)+'…':m.text;d.innerHTML=`<strong>${esc(m.name)}</strong><span>${esc(short)}</span>`;box.append(d);}
   }
   function updateBoardDock(s){
@@ -363,9 +387,10 @@
   function renderBoard(s){
     renderBoardPlayers(s);$('boardPhase').textContent=s.phaseLabel||PHASES[s.phase]||s.phase;$('boardSub').textContent=s.phase==='discussion'?'吹き出しと薄い矢印で会議を表示':s.phase==='vote'?'自分の投票候補だけ先に表示します':s.phase==='execution'?'投票矢印を一斉公開':s.phase==='night'?'夜の秘密行動は自分にだけ表示':'進行を確認してください';
     $('boardHint').textContent=s.phase==='discussion'&&s.me.alive?'相手をタップ → 怪しい・白寄り・質問・占い/霊媒の主張':s.phase==='vote'?'相手をタップして投票先を選択。ほかの人の票は結果まで見えません。':s.phase==='night'&&s.kind?'対象をタップして夜行動を選択できます。':'公開された発言と関係を盤面で確認できます。';
-    renderBubbles(s);updateBoardDock(s);requestAnimationFrame(()=>drawArrows(s));
+    renderBubbles(s);updateBoardDock(s);scheduleArrowDraw(s);
   }
-  window.addEventListener('resize',()=>state&&requestAnimationFrame(()=>drawArrows(state)));
+  let resizeTimer=0;
+  window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>state&&scheduleArrowDraw(state,true),180);},{passive:true});
 
   function narrate(text,kicker='SYSTEM',duration=3000){clearTimeout(narrationTimer);$('narrationKicker').textContent=kicker;$('narrationText').textContent=text;$('narration').classList.toggle('admin-message',kicker==='管理者');$('narration').hidden=false;$('narration').classList.remove('fade');narrationTimer=setTimeout(()=>{$('narration').classList.add('fade');setTimeout(()=>$('narration').hidden=true,reduced?0:450);},reduced?900:duration);}
   function playScene(scene){
@@ -375,7 +400,7 @@
   function phaseAnnouncement(s){const m=[...s.messages].reverse().find(x=>x.channel==='system'&&x.phase===s.phase&&x.day===s.day);return m?.text||({reveal:'役職を確認してください。',night:'夜になりました。',dawn:'朝になりました。',discussion:'話し合いを始めます。',vote:'投票を開始します。',execution:'投票結果です。',ended:'ゲーム終了です。'})[s.phase]||'';}
   function render(s){
     const old=state;state=s;document.body.dataset.phase=s.phase;document.body.classList.toggle('cheater-active',!!s.cheaterActive);timeOffset=s.now-Date.now();
-    if(s.phaseId!==old?.phaseId){selected=null;actionSignature='';boardMenuTarget=null;$('boardMenu').hidden=true;
+    if(s.phaseId!==old?.phaseId){selected=null;actionSignature='';bubbleSignature='';lastTickSecond='';boardMenuTarget=null;$('boardMenu').hidden=true;
       if(s.phase==='reveal'){lastSceneId=null;lastPrivateId=null;lastWinner=null;privateSignature='';secretShownPhase=null;}
       if(s.phase==='night'&&['wolf','darkwolf','black_leveler'].includes(s.me.role))channel='wolves';else if(channel==='wolves'&&s.phase!=='night'&&s.phase!=='ended')channel='public';if(old?.me.alive&&!s.me.alive)channel='ghost';if(s.phase==='ended')channel='public';
       if(['discussion','dawn','execution','ended'].includes(s.phase))setMobileView('board');else if(['reveal','night'].includes(s.phase))setMobileView('self');else if(s.phase==='vote')setMobileView('board');
@@ -399,12 +424,23 @@
     tick();
   }
   function tick(){
-    if(!state)return;const now=Date.now()+timeOffset,left=state.deadline===null?null:Math.max(0,Math.ceil((state.deadline-now)/1000));$('countdown').textContent=left===null?'—':`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;$('timeFill').style.width=state.deadline?`${clamp((state.deadline-now)/(state.deadline-state.startedAt)*100,0,100)}%`:'0%';
-    if(state.phase==='night'&&state.kind&&!state.me.acted){const own=Math.max(0,Math.ceil((state.actionDeadline-now)/1000));$('phaseHint').textContent=`あなたの選択期限まで ${own}秒`;}
+    if(!state||document.hidden||collapseRunning)return;
+    const now=Date.now()+timeOffset,left=state.deadline===null?null:Math.max(0,Math.ceil((state.deadline-now)/1000));
+    const own=state.phase==='night'&&state.kind&&!state.me.acted?Math.max(0,Math.ceil((state.actionDeadline-now)/1000)):null;
+    const tickKey=state.phaseId+'|'+left+'|'+own;
+    if(tickKey!==lastTickSecond){
+      lastTickSecond=tickKey;
+      $('countdown').textContent=left===null?'—':`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
+      $('timeFill').style.width=state.deadline?`${clamp((state.deadline-now)/(state.deadline-state.startedAt)*100,0,100)}%`:'0%';
+      if(own!==null)$('phaseHint').textContent=`あなたの選択期限まで ${own}秒`;
+    }
     $('idleWarning').hidden=true;
-    if(!state.play&&state.phase!=='lobby'){};if(['discussion','vote','execution','dawn','night'].includes(state.phase)){renderBubbles(state);requestAnimationFrame(()=>drawArrows(state));}
+    if(['discussion','vote','execution','dawn','night'].includes(state.phase)&&boardVisible()){
+      renderBubbles(state);scheduleArrowDraw(state);
+    }
   }
-  setInterval(tick,500);
+  setInterval(tick,1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state){lastTickSecond='';tick();scheduleArrowDraw(state,true);}});
   const activity=()=>{if(state?.phase==='lobby'&&Date.now()-lastActivity>8000){lastActivity=Date.now();call('activity');}};
   document.addEventListener('pointerdown',activity,{passive:true});document.addEventListener('keydown',activity,{passive:true});document.addEventListener('scroll',activity,{passive:true,capture:true});
   if(!offline&&urlRoom){const oldToken=storage('sessionStorage','getItem','ww3-'+urlRoom.toUpperCase());if(oldToken)call('join',{code:urlRoom,token:oldToken,name:$('name').value}).then(res=>{if(res)enter(res);else storage('sessionStorage','removeItem','ww3-'+urlRoom.toUpperCase());});}
