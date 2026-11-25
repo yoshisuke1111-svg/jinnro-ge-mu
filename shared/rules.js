@@ -124,7 +124,7 @@
     name(id){
       const p=this.byId(id);
       if(!p)return '不明';
-      return LEVELER.has(p.role)&&(p.levelerLevel||0)>=6&&p.alive?'？？？':p.name;
+      return LEVELER.has(p.role)&&(p.levelerLevel||0)>=6&&this.phase!=='ended'?'？？？':p.name;
     }
     realName(id){return this.byId(id)?.name||'不明';}
     roleState(p){return {levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,implantedFrom:p.implantedFrom||null};}
@@ -144,7 +144,7 @@
     }
     system(text){this.message(null,text,'system');}
     message(p,text,channel='public',meta=null) {
-      const m={id:++this.msgId,day:this.day,phase:this.phase,at:this.now(),playerId:p?.id||null,name:p?.name||'村の記録',channel,text:cleanText(text)};
+      const m={id:++this.msgId,day:this.day,phase:this.phase,at:this.now(),playerId:p?.id||null,name:p?this.name(p.id):'村の記録',channel,text:cleanText(text)};
       if(meta)m.meta=clone(meta);
       this.messages.push(m);if(this.messages.length>1800)this.messages.splice(0,200);
       this.changed();return m;
@@ -469,13 +469,13 @@
       this.changed();return deaths;
     }
     captureDawnSnapshot(){
-      this.dawnSnapshot={day:this.day,messageCount:this.messages.length,msgId:this.msgId,voteHistory:clone(this.voteHistory),reports:clone(this.reports),claims:clone(this.claims),
+      this.dawnSnapshot={day:this.day,messageCount:this.messages.length,msgId:this.msgId,voteHistory:clone(this.voteHistory),reports:clone(this.reports),claims:clone(this.claims),lastScene:clone(this.lastScene),
         infected:[...this.infected],lastExecuted:this.lastExecuted,wasBakerAlive:this.wasBakerAlive,players:this.players.map(p=>({id:p.id,role:p.role,alive:p.alive,privateResults:clone(p.privateResults),lover:p.lover,revengeDone:p.revengeDone,deathAt:p.deathAt,deathCause:p.deathCause,claimed:p.claimed,...this.roleState(p)}))};
     }
     restoreDawnSnapshot(resetterId){
       const s=this.dawnSnapshot;if(!s)return false;
       this.day=s.day;this.messages=this.messages.slice(0,s.messageCount);this.msgId=s.msgId;this.voteHistory=clone(s.voteHistory);this.reports=clone(s.reports);this.claims=clone(s.claims);
-      this.infected=new Set(s.infected);this.lastExecuted=s.lastExecuted;this.wasBakerAlive=s.wasBakerAlive;this.pendingWin=null;this.winner=null;this.actions={};this.specialActions={};this.votes={};
+      this.infected=new Set(s.infected);this.lastExecuted=s.lastExecuted;this.wasBakerAlive=s.wasBakerAlive;this.lastScene=clone(s.lastScene);this.pendingWin=null;this.winner=null;this.actions={};this.specialActions={};this.votes={};
       for(const row of s.players){const p=this.byId(row.id);if(!p)continue;p.role=row.role;p.alive=row.alive;p.privateResults=clone(row.privateResults);p.lover=row.lover;p.revengeDone=row.revengeDone;p.deathAt=row.deathAt;p.deathCause=row.deathCause;p.claimed=row.claimed;p.levelerLevel=row.levelerLevel||0;p.cheaterExecutionHit=!!row.cheaterExecutionHit;p.cheaterAttackHit=!!row.cheaterAttackHit;p.resetUsed=!!row.resetUsed;p.implantedFrom=row.implantedFrom||null;}
       const r=this.byId(resetterId);if(r){r.resetUsed=true;r.privateResults.push({id:'reset-'+this.phaseId+'-'+r.id,kind:'notice',day:this.day,text:'時間を直前の朝まで巻き戻しました。あなただけが巻き戻しを覚えています。'});}
       this.beginPhase('dawn');this.system('時間軸に異常が発生し、直前の朝まで巻き戻りました。');this.changed();return true;
@@ -633,7 +633,13 @@
     autoSpecial(p){
       const used=this.specialActions[p.id]||{};
       for(const kind of this.specialKinds(p)){
-        if(kind==='reset'||kind==='priest')continue;
+        if(kind==='reset'){
+          // CPUリセッターは、直前の昼に処刑が発生していれば最初の機会に巻き戻す。
+          // resetUsed が保存されるので同じゲームで何度もループすることはない。
+          if(this.dawnSnapshot&&this.lastExecuted&&!p.resetUsed&&!this.specialCount(p.id,'reset'))this.submitSpecialAction(p.id,'reset',null,null,this.phaseId);
+          continue;
+        }
+        if(kind==='priest')continue;
         const limit=this.specialLimit(p,kind),valid=this.specialTargets(p,kind).filter(id=>!(used[kind]||[]).includes(id));
         while(this.specialCount(p.id,kind)<limit&&valid.length){const idx=Math.floor(this.random()*valid.length),target=valid.splice(idx,1)[0];this.submitSpecialAction(p.id,kind,target,null,this.phaseId);}
       }
