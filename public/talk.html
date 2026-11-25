@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111923">
+<meta name="description" content="人狼の実戦会話から育てる、自作会話AIの実験室。">
+<title>会話AI LAB</title>
+<link rel="stylesheet" href="/talk.css">
+<script src="/talk.js" defer></script>
+</head>
+<body>
+<header class="lab-header">
+  <a href="/" class="back">← 人狼ゲーム</a>
+  <div class="brand"><span class="pulse"></span><strong>会話AI LAB</strong><small>SELF-TRAINING CHAT</small></div>
+  <span id="status" class="status">準備中</span>
+</header>
+
+<main>
+  <section id="startPanel" class="start-card">
+    <p class="eyebrow">CONVERSATION LAB</p>
+    <h1>会話だけを育てる場所</h1>
+    <p class="lead">人狼の実戦で集めた人間の発言から、入力に近い会話例を探して返します。今は文章生成AIではなく、外部APIを使わない検索型の第1段階です。</p>
+    <div class="notice">
+      <strong>この会話は学習用に保存されます</strong>
+      <span>入力文・AIの返答・👍/👎評価を今後の会話AI改善に使います。個人情報や秘密は入力しないでください。</span>
+    </div>
+    <form id="startForm">
+      <label for="name">表示名 <small>会話ラボ内だけで使用</small></label>
+      <div class="start-row"><input id="name" maxlength="24" placeholder="名前" autocomplete="nickname"><button type="submit">会話を始める</button></div>
+    </form>
+  </section>
+
+  <section id="chatPanel" class="chat-shell" hidden>
+    <div class="lab-info">
+      <div><span class="dot"></span><strong>自作会話AI v0</strong><small id="corpus">会話例を読み込み中</small></div>
+      <button id="newChat" type="button">新しい会話</button>
+    </div>
+    <div id="messages" class="messages" role="log" aria-live="polite"></div>
+    <form id="chatForm" class="composer">
+      <textarea id="input" maxlength="400" rows="1" placeholder="何か話しかけてみる…" autocomplete="off"></textarea>
+      <button id="send" type="submit">送信</button>
+    </form>
+    <p class="hint">返答の下の 👍 / 👎 がそのまま学習データになります。</p>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<footer>会話AI LAB · 人狼ゲーム学習実験</footer>
+</body>
+</html>
