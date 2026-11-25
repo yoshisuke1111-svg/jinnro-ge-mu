@@ -268,12 +268,23 @@ function createTursoStore({
     };
   }
 
+  async function summary(){
+    const totals=await counts();
+    if(!(await init()))return {...totals,actions:{}};
+    const result=await db.execute(
+      'SELECT action_type, COUNT(*) AS count FROM training_examples GROUP BY action_type ORDER BY count DESC'
+    );
+    const actions={};
+    for(const row of result.rows||[])actions[String(row.action_type||'unknown')]=Number(row.count||0);
+    return {...totals,actions};
+  }
+
   async function close(){
     await tail;
     try{db?.close?.();}catch{}
   }
 
-  return {enabled,init,persistExample,status,counts,close};
+  return {enabled,init,persistExample,status,counts,summary,close};
 }
 
 const tursoStore=createTursoStore();
@@ -406,5 +417,6 @@ module.exports={
   createTursoStore,
   tursoStore,
   getTursoStatus:()=>tursoStore.status(),
-  getTursoCounts:()=>tursoStore.counts()
+  getTursoCounts:()=>tursoStore.counts(),
+  getTursoSummary:()=>tursoStore.summary()
 };
