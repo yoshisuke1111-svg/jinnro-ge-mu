@@ -15,7 +15,9 @@
     "build:solo": "node build-solo.js",
     "test:all": "npm test && npm run test:network && SIM_GAMES=40 npm run test:simulation"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@libsql/client": "^0.18.0"
+  },
   "devDependencies": {},
   "license": "UNLICENSED"
 }
