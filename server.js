@@ -496,7 +496,32 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
 }
 if(require.main===module){
   const app=createApp();const port=Number(process.env.PORT||3000),host=process.env.HOST||'0.0.0.0';
-  app.server.listen(port,host,()=>console.log(`Werewolf Game v${VERSION}\nGame:  http://localhost:${port}\nAdmin: http://localhost:${port}/admin\nAI CPU: ${app.aiStatus.enabled?'enabled':'disabled'} (parallel ${app.aiStatus.cpuCount} / ${app.aiStatus.model})\nCtrl+C to stop. Rooms are stored in memory.`));
+  app.server.listen(port,host,()=>{
+    console.log(`Werewolf Game v${VERSION}\nGame:  http://localhost:${port}\nAdmin: http://localhost:${port}/admin\nAI CPU: ${app.aiStatus.enabled?'enabled':'disabled'} (parallel ${app.aiStatus.cpuCount} / ${app.aiStatus.model})\nCtrl+C to stop. Rooms are stored in memory.`);
+    if(process.env.AI_TRAIN_ON_BOOT==='1'){
+      const {trainAndStoreLatest}=require('./ai/train');
+      console.log('SELF_AI_TRAIN_START');
+      void trainAndStoreLatest().then(bundle=>{
+        const t=bundle.training;
+        console.log('SELF_AI_TRAIN_RESULT '+JSON.stringify({
+          modelId:bundle.saved?.modelId||null,
+          reused:!!bundle.saved?.reused,
+          usableExamples:t.usableExamples,
+          trainExamples:t.trainExamples,
+          testExamples:t.testExamples,
+          trainGames:t.trainGames,
+          testGames:t.testGames,
+          trainAccuracy:t.trainAccuracy,
+          testAccuracy:t.testAccuracy,
+          baselineLabel:t.baselineLabel,
+          baselineAccuracy:t.baselineAccuracy,
+          discussionSpeakSilence:t.discussionSpeakSilence,
+          labelCounts:t.labelCounts,
+          byLabel:t.byLabel
+        }));
+      }).catch(error=>console.error('SELF_AI_TRAIN_ERROR',error?.stack||error));
+    }
+  });
   app.server.on('error',error=>{console.error(error.code==='EADDRINUSE'?'Port is busy. Close the old server or set PORT to another number.':error.message);process.exit(1);});
   process.on('SIGINT',()=>app.close().then(()=>process.exit(0)));
   process.on('SIGTERM',()=>app.close().then(()=>process.exit(0)));
