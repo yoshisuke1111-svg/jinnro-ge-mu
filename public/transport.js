@@ -1,4 +1,31 @@
 /* Online transport: POST commands + one-use-ticket SSE; no CDN or client dependency. */
+(()=>{
+  const collapseSelector='.panel,button,input,select,h1,h2,h3,p,.room-code-label,.tag,.mini-label,.board-player,.message,.records-panel,.room-heading>*';
+  const nativeQuery=Element.prototype.querySelectorAll;
+  Element.prototype.querySelectorAll=function(selector){
+    const result=nativeQuery.call(this,selector);
+    if(this.id!=='room'||selector!==collapseSelector)return result;
+    const all=[...result],preferred=all.filter(element=>element.matches('.panel,.room-heading>*,.phase-bar,.records-panel,.mobile-nav,.board-player,.message'));
+    const source=preferred.length?preferred:all,max=matchMedia('(max-width:700px)').matches?14:28,stride=Math.max(1,Math.ceil(source.length/max));
+    return source.filter((_,index)=>index%stride===0).slice(0,max);
+  };
+  const style=document.createElement('style');style.id='collapse-performance-fix';
+  style.textContent=`
+    .collapse-glitch #room{animation:collapse-lite-shake .11s steps(2,end) 5!important;filter:none!important}
+    .collapse-fragment,.collapse-fly .collapse-fragment,.collapse-freeze .collapse-fragment,.collapse-fall .collapse-fragment{animation:none!important;filter:none!important;will-change:auto!important;transform:none!important}
+    .collapse-fly #room{animation:collapse-lite-shake .12s steps(2,end) 6!important}
+    .collapse-freeze #room{animation:none!important;transform:translate3d(0,-3px,0) scale(.995)!important}
+    .collapse-fall #room{animation:collapse-lite-fall .82s cubic-bezier(.55,.02,.9,.42) forwards!important}
+    .room-collapse-fx .collapse-noise{animation:none!important;mix-blend-mode:normal!important;opacity:.055!important;background:linear-gradient(105deg,#ef405016,#0000 34%,#40c8ef12 67%,#0000)!important}
+    .room-collapse-fx .collapse-warning{animation:collapse-lite-title .16s steps(2,end) 7!important}
+    @keyframes collapse-lite-shake{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(3px,-2px,0)}}
+    @keyframes collapse-lite-fall{0%{transform:translate3d(0,-3px,0) scale(.995);opacity:1}100%{transform:translate3d(0,115vh,0) rotate(2deg);opacity:.06}}
+    @keyframes collapse-lite-title{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(calc(-50% + 3px),calc(-50% - 2px))}}
+    @media(max-width:700px){.room-collapse-fx .collapse-noise{display:none!important}.collapse-glitch #room,.collapse-fly #room{animation:collapse-lite-shake .14s steps(2,end) 3!important}}
+  `;
+  document.head.append(style);
+})();
+
 window.WWTransport = {
   offline:false,
   create(handlers){
