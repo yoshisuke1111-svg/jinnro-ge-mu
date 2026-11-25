@@ -27,7 +27,7 @@
     thief: { name:'泥棒', team:'third', icon:'♜', text:'夜に1度だけ、生存者1人から役職そのものを奪います。奪われた相手は村人になり、自分は奪った役職と陣営へ移ります。', win:'奪った役職の勝利条件を引き継ぐ。盗まずに終わった場合は勝利なし。' },
     grave_robber: { name:'墓荒らし', team:'third', icon:'†', text:'夜に1度だけ、死亡者1人の役職を奪います。墓を荒らされた死者は村人扱いになり、自分は奪った役職と陣営へ移ります。', win:'奪った役職の勝利条件を引き継ぐ。盗まずに終わった場合は勝利なし。' },
     cheater: { name:'チーター', team:'third', icon:'⌁', text:'全員の本当の役職が見え、夜に人狼陣営以外を1人殺害できます。人狼の通常襲撃では死亡しませんが、昼の投票で処刑されると死亡します。生存中は占い結果をチーター判定へ改変し、他陣営の勝利を止めます。', win:'自分が生存し、人狼陣営以外の他プレイヤーが全滅する。' },
-    resetter: { name:'リセッター', team:'third', icon:'↶', text:'ゲーム中1回だけ、夜に直前の朝まで時間を巻き戻せます。死亡・投票・役職変化などが朝の状態へ戻り、リセッター自身だけ巻き戻し前を経験したまま残ります。', win:'通常決着時に生存していれば追加勝利。' },
+    resetter: { name:'リセッター', team:'third', icon:'↶', text:'ゲーム中1回だけ、自分が死亡する瞬間に自動で直前の朝まで時間を巻き戻します。死亡・投票・役職変化などが朝の状態へ戻り、リセッター自身だけ巻き戻し前を経験したまま残ります。手動発動はできません。', win:'通常決着時に生存していれば追加勝利。' },
     white_leveler: { name:'白レベラー', team:'village', icon:'⬆', text:'一夜明けるたびに成長する村人陣営。Lv2完全占い、Lv3聖職者進化（護衛・蘇生・浄化）、Lv4二重占い、Lv5不死、Lv6名前消失、Lv7で生存中の黒レベラーと相打ち。', win:'村人陣営と同じ。' },
     black_leveler: { name:'黒レベラー', team:'wolves', icon:'⬆', text:'一夜明けるたびに成長する人狼陣営。Lv2人狼を匿う、Lv3人狼植え付け、Lv4一晩に2人を殺害、Lv5不死、Lv6名前消失、Lv7で生存中の白レベラーと相打ち。', win:'人狼陣営と同じ。' }
   };
@@ -286,7 +286,6 @@
       if(p.role==='thief')out.push('steal_live');
       if(p.role==='grave_robber')out.push('steal_dead');
       if(p.role==='cheater')out.push('cheat_kill');
-      if(p.role==='resetter'&&!p.resetUsed&&this.dawnSnapshot)out.push('reset');
       if(p.role==='white_leveler'){
         const lv=p.levelerLevel||1;if(lv>=2)out.push('leveler_divine');if(lv>=3)out.push('priest');
       }
@@ -301,7 +300,6 @@
       return 1;
     }
     specialTargets(p,kind){
-      if(kind==='reset')return [];
       if(kind==='steal_dead')return this.players.filter(t=>!t.alive&&t.id!==p.id).map(t=>t.id);
       if(kind==='priest_revive')return this.players.filter(t=>!t.alive).map(t=>t.id);
       return this.living().filter(t=>{
@@ -325,7 +323,6 @@
       }else if(!available.includes(kind))throw Error('今夜はその能力を使えません。');
       const arr=(this.specialActions[id]||(this.specialActions[id]={}))[kind]||(this.specialActions[id][kind]=[]);
       if(arr.length>=this.specialLimit(p,kind))throw Error('この能力は今夜の上限まで使っています。');
-      if(kind==='reset'){arr.push(null);this.changed();return;}
       const valid=this.specialTargets(p,kind);if(!valid.includes(target))throw Error('その相手は選べません。');
       if(arr.includes(target))throw Error('同じ相手は選べません。');arr.push(target);this.changed();
     }
@@ -452,6 +449,9 @@
       const queue=initial.slice(),deaths=[];
       while(queue.length){
         const {id,cause}=queue.shift();const p=this.byId(id);if(!p?.alive)continue;
+        // リセッターは死亡が成立する直前に1度だけ自動発動する。
+        // restoreDawnSnapshot が現在の死亡連鎖も含めて直前の朝へ戻すため、ここで処理を打ち切る。
+        if(p.role==='resetter'&&!p.resetUsed&&this.dawnSnapshot&&this.restoreDawnSnapshot(p.id))return deaths;
         if(LEVELER.has(p.role)&&(p.levelerLevel||0)>=5&&cause!=='leveler_duel')continue;
         if(p.role==='cheater'&&cause!=='leveler_duel'){
           if(cause==='execution')p.cheaterExecutionHit=true;
@@ -483,8 +483,6 @@
     resolveNight() {
       if(this.phase!=='night')return;
       const active=this.living().slice();
-      const resetter=active.find(p=>p.role==='resetter'&&(this.specialActions[p.id]?.reset||[]).length);
-      if(resetter&&this.restoreDawnSnapshot(resetter.id))return;
       const initial=[],guards=new Set(),attackCount={};this.hiddenWolves=new Set();
       for(const p of active){
         const specials=this.specialActions[p.id]||{};
@@ -518,9 +516,13 @@
       const attackers=this.living().filter(p=>WOLF.has(p.role)&&this.actions[p.id]===target).map(p=>p.id);
       if(target&&!guards.has(target)&&this.byId(target)?.role!=='fox')initial.push({id:target,cause:'attack'});
       let deaths=this.killMany(initial,attackers);
+      if(this.phase!=='night')return; // リセッターが死亡して時間が巻き戻った。
       for(const p of this.living().filter(p=>LEVELER.has(p.role)))p.levelerLevel=Math.min(7,(p.levelerLevel||1)+1);
       const white=this.living().find(p=>p.role==='white_leveler'&&(p.levelerLevel||0)>=7),black=this.living().find(p=>p.role==='black_leveler'&&(p.levelerLevel||0)>=7);
-      if(white&&black)deaths=deaths.concat(this.killMany([{id:white.id,cause:'leveler_duel'},{id:black.id,cause:'leveler_duel'}]));
+      if(white&&black){
+        deaths=deaths.concat(this.killMany([{id:white.id,cause:'leveler_duel'},{id:black.id,cause:'leveler_duel'}]));
+        if(this.phase!=='night')return;
+      }
       this.beginPhase('dawn');
       this.lastScene={id:++this.sceneId,type:'dawn',victims:deaths.map(id=>({id,name:this.name(id)})),title:deaths.length?'夜が明けました':'穏やかな朝'};
       this.system(deaths.length?`朝、${deaths.map(id=>this.name(id)).join('、')}が亡くなっているのが見つかりました。`:'昨夜の犠牲者はいませんでした。');
@@ -547,6 +549,7 @@
         this.lastExecuted=top[0];
         for(const p of this.players)if(p.role==='avenger'&&p.revengeTarget===top[0])p.revengeDone=true;
         deaths=this.killMany([{id:top[0],cause:'execution'}]);
+        if(this.phase!=='vote')return; // リセッターの自動巻き戻しが発動した。
       }
       this.beginPhase('execution');
       this.lastScene={id:++this.sceneId,type:'execution',victims:deaths.map(id=>({id,name:this.name(id)})),title:this.lastExecuted?'投票が確定しました':'処刑なし'};
@@ -598,7 +601,6 @@
     isBot(p){return p.bot||p.auto;}
     specialDone(p){
       for(const kind of this.specialKinds(p)){
-        if(kind==='reset')continue;
         if(kind==='priest'){
           const any=Object.keys(this.specialActions[p.id]||{}).some(k=>k.startsWith('priest_'));if(!any)return false;continue;
         }
@@ -633,12 +635,6 @@
     autoSpecial(p){
       const used=this.specialActions[p.id]||{};
       for(const kind of this.specialKinds(p)){
-        if(kind==='reset'){
-          // CPUリセッターは、直前の昼に処刑が発生していれば最初の機会に巻き戻す。
-          // resetUsed が保存されるので同じゲームで何度もループすることはない。
-          if(this.dawnSnapshot&&this.lastExecuted&&!p.resetUsed&&!this.specialCount(p.id,'reset'))this.submitSpecialAction(p.id,'reset',null,null,this.phaseId);
-          continue;
-        }
         if(kind==='priest')continue;
         const limit=this.specialLimit(p,kind),valid=this.specialTargets(p,kind).filter(id=>!(used[kind]||[]).includes(id));
         while(this.specialCount(p.id,kind)<limit&&valid.length){const idx=Math.floor(this.random()*valid.length),target=valid.splice(idx,1)[0];this.submitSpecialAction(p.id,kind,target,null,this.phaseId);}
