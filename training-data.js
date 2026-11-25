@@ -255,16 +255,86 @@ function createTursoStore({
     return enqueue(client=>client.batch(statements,'write'));
   }
 
+  async function counts(){
+    if(!(await init()))return {games:0,players:0,examples:0};
+    const read=async table=>{
+      const result=await db.execute(`SELECT COUNT(*) AS count FROM ${table}`);
+      return Number(result.rows?.[0]?.count||0);
+    };
+    return {
+      games:await read('training_games'),
+      players:await read('training_players'),
+      examples:await read('training_examples')
+    };
+  }
+
   async function close(){
     await tail;
     try{db?.close?.();}catch{}
   }
 
-  return {enabled,init,persistExample,status,close};
+  return {enabled,init,persistExample,status,counts,close};
 }
 
 const tursoStore=createTursoStore();
 void tursoStore.init();
+
+function appendMemoryExample(entry,example){
+  entry.trainingExamples=entry.trainingExamples||[];
+  entry.trainingExamples.push(example);
+  if(entry.trainingExamples.length>20000)entry.trainingExamples.splice(0,entry.trainingExamples.length-20000);
+}
+
+function lifecycleExample(game,player,action){
+  return {
+    schemaVersion:2,
+    recordedAt:Date.now(),
+    roomCode:game.code,
+    playerId:player.id,
+    context:captureContext(game,player.id),
+    action
+  };
+}
+
+function trackLifecycle(entry,game){
+  if(!isHumanOnly(game))return 0;
+  const key=gameKey(game);
+  if(!entry.trainingLifecycle||entry.trainingLifecycle.key!==key){
+    entry.trainingLifecycle={key,started:false,ended:false,lastPhaseId:null};
+  }
+  const state=entry.trainingLifecycle;
+  let recorded=0;
+
+  if(!state.started){
+    state.started=true;
+    for(const p of game.players){
+      const example=lifecycleExample(game,p,{type:'game_start',playerCount:game.players.length});
+      void tursoStore.persistExample(example,game);
+      recorded++;
+    }
+  }
+
+  if(state.lastPhaseId!==game.phaseId){
+    state.lastPhaseId=game.phaseId;
+    for(const p of game.players){
+      const example=lifecycleExample(game,p,{type:'phase_start',phase:game.phase,day:game.day});
+      void tursoStore.persistExample(example,game);
+      recorded++;
+    }
+  }
+
+  if(game.phase==='ended'&&!state.ended){
+    state.ended=true;
+    const winners=new Set(game.winner?.winners||[]);
+    for(const p of game.players){
+      const example=lifecycleExample(game,p,{type:'game_end',winner:clone(game.winner||null),won:winners.has(p.id)});
+      void tursoStore.persistExample(example,game);
+      recorded++;
+    }
+  }
+
+  return recorded;
+}
 
 function recordAction(entry,game,playerId,event,data,context=null){
   if(!ACTION_EVENTS.has(event)||!isHumanOnly(game))return null;
@@ -280,9 +350,7 @@ function recordAction(entry,game,playerId,event,data,context=null){
     context:context||captureContext(game,playerId),
     action
   };
-  entry.trainingExamples=entry.trainingExamples||[];
-  entry.trainingExamples.push(example);
-  if(entry.trainingExamples.length>20000)entry.trainingExamples.splice(0,entry.trainingExamples.length-20000);
+  appendMemoryExample(entry,example);
   entry.trainingLastAction=entry.trainingLastAction||new Map();
   entry.trainingLastAction.set(playerId,game.now());
   void tursoStore.persistExample(example,game);
@@ -290,6 +358,7 @@ function recordAction(entry,game,playerId,event,data,context=null){
 }
 
 function sampleSilence(entry,game,{minIdleMs=12000,intervalMs=20000}={}){
+  trackLifecycle(entry,game);
   if(!isHumanOnly(game)||game.phase!=='discussion')return 0;
   entry.trainingExamples=entry.trainingExamples||[];
   entry.trainingLastAction=entry.trainingLastAction||new Map();
@@ -313,12 +382,11 @@ function sampleSilence(entry,game,{minIdleMs=12000,intervalMs=20000}={}){
       context:captureContext(game,p.id),
       action:{type:'silence',durationMs:Math.round(now-lastAction)}
     };
-    entry.trainingExamples.push(example);
+    appendMemoryExample(entry,example);
     void tursoStore.persistExample(example,game);
     entry.trainingLastSilence.set(p.id,now);
     added++;
   }
-  if(entry.trainingExamples.length>20000)entry.trainingExamples.splice(0,entry.trainingExamples.length-20000);
   return added;
 }
 
@@ -326,4 +394,17 @@ function toJsonl(entry){
   return (entry.trainingExamples||[]).map(x=>JSON.stringify(x)).join('\n')+((entry.trainingExamples||[]).length?'\n':'');
 }
 
-module.exports={ACTION_EVENTS,isHumanOnly,captureContext,normalizeAction,recordAction,sampleSilence,toJsonl,createTursoStore,tursoStore,getTursoStatus:()=>tursoStore.status()};
+module.exports={
+  ACTION_EVENTS,
+  isHumanOnly,
+  captureContext,
+  normalizeAction,
+  recordAction,
+  sampleSilence,
+  trackLifecycle,
+  toJsonl,
+  createTursoStore,
+  tursoStore,
+  getTursoStatus:()=>tursoStore.status(),
+  getTursoCounts:()=>tursoStore.counts()
+};
