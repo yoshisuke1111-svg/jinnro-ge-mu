@@ -42,7 +42,7 @@
         <p class="caption room-code-help">3〜16文字。文字・数字・「-」「_」が使えます。同じコードの部屋がある場合は作成できません。</p>
         <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加する部屋コード" maxlength="16"><button id="join" class="secondary">参加</button></div>
       </div>
-      <p id="entryNote" class="entry-note">招待URLを開くと、部屋コードが自動で入ります。対戦中に切断されCPU代行になった場合は、同じ部屋コードと同じ名前で自分の席へ復帰できます。</p>
+      <p id="entryNote" class="entry-note">招待URLを開くと、部屋コードが自動で入ります。切断した場合も、同じ部屋コードと同じ名前で自分の席へすぐ復帰できます。</p>
     </div>
   </section>
 
@@ -85,7 +85,7 @@
           <button id="start" class="primary large">この配役でゲームを始める <span>→</span></button>
         </div>
         <div id="guestControls" hidden><p>部屋主が配役を準備しています。右の参加者を確認してお待ちください。</p><div id="guestConfig" class="caption"></div><button id="guestActive" class="secondary">準備できています</button></div>
-        <p class="small-note">待機室は60秒無操作で警告、75秒で退出。対戦中の無言・選択時間切れでは追放しません。</p>
+        <p class="small-note">現在のテスト期間中は、待機室で無操作でも自動退出しません。切断後も同じ部屋コードと名前で席へ戻れます。</p>
       </div>
       <aside class="panel lobby-members"><div class="section-heading"><h2>参加者</h2><span class="mini-label">HUMAN + CPU</span></div><div id="lobbyPlayers" class="player-list"></div><p class="caption">CPUは公開情報と自分の能力結果だけを使います。ほかの人の役職をこっそり読むことはしません。</p></aside>
     </section>
