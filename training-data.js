@@ -68,7 +68,7 @@ function normalizeAction(event,data={}){
 }
 
 function gameKey(game){
-  return `${game.code}:${Number(game.startedAt||game.createdAt||0)}`;
+  return `${game.code}:${Number(game.matchStartedAt||game.createdAt||0)}`;
 }
 
 function truthSnapshot(game){
@@ -229,7 +229,7 @@ function createTursoStore({
           config_json=excluded.config_json,
           winner_json=excluded.winner_json,
           updated_at=excluded.updated_at`,
-      args:[gameId,game.code,Number(game.startedAt||game.createdAt||now),endedAt,SOURCE_VERSION,game.players.length,game.humans().length,safeJson(game.config),safeJson(game.winner||null),now,now]
+      args:[gameId,game.code,Number(game.matchStartedAt||game.createdAt||now),endedAt,SOURCE_VERSION,game.players.length,game.humans().length,safeJson(game.config),safeJson(game.winner||null),now,now]
     }];
     for(const p of game.players){
       statements.push({
