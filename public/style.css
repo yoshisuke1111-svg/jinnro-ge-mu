@@ -1663,3 +1663,5 @@ body[data-phase="discussion"] .mobile-nav{
   .chat-form{backdrop-filter:none!important}
 }
 @media(prefers-reduced-motion:reduce){.cheater-active .board-name,.cheater-active .player-name{animation:none!important}}
+
+.quiet-link{color:#c9b37e;text-decoration:none;border-bottom:1px solid #665a40;padding-bottom:2px}.quiet-link:hover{color:#f1d99f;border-color:#b59a60}
