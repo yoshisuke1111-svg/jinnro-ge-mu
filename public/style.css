@@ -1597,3 +1597,59 @@ body[data-phase="discussion"] .mobile-nav{
   .board-chat-form input{min-height:50px;font-size:16px}
   .board-chat-form button{min-height:50px;font-size:14px}
 }
+
+
+/* Admin-forced room collapse: inspired by the Akazuno Hako forbidden-destruction sequence. */
+.room-collapsing{overflow:hidden!important}
+.room-collapsing #room{pointer-events:none;user-select:none}
+.room-collapse-fx{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden;background:transparent;opacity:1;transition:opacity .32s}
+.room-collapse-fx.collapse-finished{opacity:0}
+.room-collapse-fx .collapse-noise{position:absolute;inset:-20%;opacity:.18;mix-blend-mode:screen;background:
+  repeating-linear-gradient(0deg,#fff0 0 3px,#fff2 4px,#0000 5px 8px),
+  repeating-linear-gradient(90deg,#ef405022 0 2px,#40c8ef11 2px 5px,#0000 5px 9px);
+  animation:collapse-noise-shift .08s steps(2,end) infinite}
+.room-collapse-fx .collapse-warning{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;gap:2px;text-align:center;text-shadow:-4px 0 #e84b5b88,4px 0 #4bcbe888;animation:collapse-warning-jitter .11s steps(2,end) infinite}
+.room-collapse-fx .collapse-warning small{font-size:10px;letter-spacing:.24em;color:#cbd2d3}
+.room-collapse-fx .collapse-warning strong{font:900 clamp(54px,13vw,150px)/.9 system-ui,sans-serif;letter-spacing:.12em;color:#eef0ed}
+.room-collapse-fx .collapse-warning span{font-size:11px;letter-spacing:.4em;color:#e7b8b8}
+.collapse-fragment{will-change:transform,filter,opacity;transform-origin:center!important}
+.collapse-glitch #room{animation:collapse-screen-glitch .095s steps(2,end) infinite;filter:saturate(1.45) contrast(1.12)}
+.collapse-glitch .collapse-fragment{filter:drop-shadow(-2px 0 #ef4f5d99) drop-shadow(2px 0 #42bddd77)}
+.collapse-fly .collapse-fragment{animation:collapse-fragment-fly 1.3s cubic-bezier(.18,.76,.17,1) var(--fly-delay,0ms) forwards}
+.collapse-freeze .collapse-fragment{animation-play-state:paused!important}
+.collapse-fall .collapse-fragment{animation:collapse-fragment-fall 1.25s cubic-bezier(.5,.02,.85,.38) var(--fall-delay,0ms) forwards!important}
+.collapse-fall .room-collapse-fx .collapse-warning{animation:collapse-warning-fall 1.15s ease-in forwards}
+.room-collapse-fx.reduced{background:#101318}
+.room-collapse-fx.reduced .collapse-noise{display:none}
+.room-collapse-fx.reduced .collapse-warning{animation:none}
+@keyframes collapse-screen-glitch{
+  0%{transform:translate(0,0);filter:hue-rotate(0deg)}
+  25%{transform:translate(-3px,2px);filter:hue-rotate(24deg)}
+  50%{transform:translate(4px,-2px);filter:hue-rotate(-18deg)}
+  75%{transform:translate(-2px,-1px);filter:hue-rotate(8deg)}
+  100%{transform:translate(2px,3px);filter:hue-rotate(-8deg)}
+}
+@keyframes collapse-fragment-fly{
+  0%{transform:translate(0,0) rotate(0);opacity:1}
+  18%{transform:translate(-5px,4px) rotate(-2deg)}
+  42%{transform:translate(7px,-5px) rotate(3deg)}
+  100%{transform:translate(var(--fx),var(--fy)) rotate(var(--fr));opacity:1}
+}
+@keyframes collapse-fragment-fall{
+  0%{transform:translate(var(--fx),var(--fy)) rotate(var(--fr));opacity:1}
+  72%{opacity:1}
+  100%{transform:translate(var(--fx),calc(var(--fy) + 125vh)) rotate(calc(var(--fr) + 105deg));opacity:.08}
+}
+@keyframes collapse-warning-jitter{
+  0%{transform:translate(-50%,-50%) skewX(0)}
+  33%{transform:translate(calc(-50% - 5px),calc(-50% + 2px)) skewX(-3deg)}
+  66%{transform:translate(calc(-50% + 4px),calc(-50% - 3px)) skewX(4deg)}
+  100%{transform:translate(-50%,-50%) skewX(0)}
+}
+@keyframes collapse-warning-fall{
+  to{transform:translate(-50%,110vh) rotate(9deg);opacity:0}
+}
+@keyframes collapse-noise-shift{
+  from{transform:translate(-2%,1%)}
+  to{transform:translate(3%,-2%)}
+}
