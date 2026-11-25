@@ -47,6 +47,27 @@ test('silence is recorded as a learnable action for connected humans',()=>{
   assert.ok(entry.trainingExamples.every(x=>x.action.type==='silence'));
 });
 
+test('training lifecycle records each human perspective once per phase',()=>{
+  const g=humanGame(),entry={};
+  const first=Training.trackLifecycle(entry,g);
+  assert.equal(first,8); // 4 game_start + 4 phase_start
+  assert.equal(Training.trackLifecycle(entry,g),0);
+  g.beginPhase('vote');
+  assert.equal(Training.trackLifecycle(entry,g),4);
+  assert.equal(Training.trackLifecycle(entry,g),0);
+});
+
+test('training lifecycle marks the end only once',()=>{
+  const g=humanGame(),entry={};
+  Training.trackLifecycle(entry,g);
+  g.phase='ended';
+  g.phaseId++;
+  g.winner={team:'village',winners:g.players.slice(0,2).map(p=>p.id)};
+  const ended=Training.trackLifecycle(entry,g);
+  assert.equal(ended,8); // 4 ended-phase snapshots + 4 game_end snapshots
+  assert.equal(Training.trackLifecycle(entry,g),0);
+});
+
 test('training exports newline-delimited JSON',()=>{
   const entry={trainingExamples:[{a:1},{b:2}]};
   const out=Training.toJsonl(entry);
