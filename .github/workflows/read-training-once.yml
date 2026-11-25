@@ -1,4 +1,5 @@
 name: read-training-once
+# second push triggers this newly registered workflow
 on:
   push:
     paths:
