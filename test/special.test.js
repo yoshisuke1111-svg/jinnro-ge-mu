@@ -83,48 +83,65 @@ test('level 7 white and black levelers mutually destroy each other',()=>{
 });
 
 
-test('resetter rewinds to the captured dawn state and can only use it once',()=>{
+test('resetter automatically rewinds when execution would kill it',()=>{
   const g=makeGame(['resetter','wolf','seer','villager']);
-  const resetter=byRole(g,'resetter'),seer=byRole(g,'seer'),villager=byRole(g,'villager');
+  const resetter=byRole(g,'resetter'),seer=byRole(g,'seer');
 
   g.lastScene={id:10,type:'dawn',victims:[],title:'穏やかな朝'};
-  g.startDiscussion(); // captures the dawn snapshot
-
+  g.startDiscussion(); // ここを「直前の朝」として保存
   g.giveRole(seer,'wolf',{implantedFrom:{role:'seer',state:{}}});
-  g.killMany([{id:villager.id,cause:'execution'}]);
-  g.lastExecuted=villager.id;
-  g.lastScene={id:11,type:'execution',victims:[{id:villager.id,name:villager.name}],title:'投票が確定しました'};
+  g.startVote();
 
-  g.startNight();
-  assert.ok(g.specialKinds(resetter).includes('reset'));
-  g.submitSpecialAction(resetter.id,'reset',null,null,g.phaseId);
-  g.resolveNight();
+  const beforePhase=g.phaseId;
+  const deaths=g.killMany([{id:resetter.id,cause:'execution'}]);
 
+  assert.deepEqual(deaths,[]);
   assert.equal(g.phase,'dawn');
-  assert.equal(villager.alive,true);
-  assert.equal(seer.role,'seer');
+  assert.ok(g.phaseId>beforePhase);
+  assert.equal(resetter.alive,true);
   assert.equal(resetter.resetUsed,true);
+  assert.equal(seer.role,'seer');
   assert.equal(g.lastScene.id,10);
-
-  g.startDiscussion();
-  g.startNight();
   assert.ok(!g.specialKinds(resetter).includes('reset'));
 });
 
-test('CPU resetter actually queues a rewind after an execution',()=>{
+test('resetter also rewinds automatically from a wolf attack',()=>{
   const g=makeGame(['resetter','wolf','seer','villager']);
-  const resetter=byRole(g,'resetter'),villager=byRole(g,'villager');
-
+  const resetter=byRole(g,'resetter');
   g.startDiscussion();
-  g.killMany([{id:villager.id,cause:'execution'}]);
-  g.lastExecuted=villager.id;
   g.startNight();
 
-  g.autoSpecial(resetter);
-  assert.equal(g.specialActions[resetter.id].reset.length,1);
-  g.resolveNight();
+  g.killMany([{id:resetter.id,cause:'attack'}]);
+
+  assert.equal(g.phase,'dawn');
+  assert.equal(resetter.alive,true);
   assert.equal(resetter.resetUsed,true);
-  assert.equal(villager.alive,true);
+});
+
+test('resetter only rewinds once; the next death is real',()=>{
+  const g=makeGame(['resetter','wolf','seer','villager']);
+  const resetter=byRole(g,'resetter');
+  g.startDiscussion();
+  g.startVote();
+
+  g.killMany([{id:resetter.id,cause:'execution'}]);
+  assert.equal(resetter.alive,true);
+  assert.equal(resetter.resetUsed,true);
+
+  // 巻き戻り後にもう一度朝の状態を保存しても、使用済みフラグは維持される。
+  g.startDiscussion();
+  const deaths=g.killMany([{id:resetter.id,cause:'execution'}]);
+  assert.deepEqual(deaths,[resetter.id]);
+  assert.equal(resetter.alive,false);
+});
+
+test('resetter has no manual special-action button or selectable reset ability',()=>{
+  const g=makeGame(['resetter','wolf','seer','villager']);
+  const resetter=byRole(g,'resetter');
+  g.startDiscussion();
+  g.startNight();
+  assert.ok(!g.specialKinds(resetter).includes('reset'));
+  assert.throws(()=>g.submitSpecialAction(resetter.id,'reset',null,null,g.phaseId),/使えません/);
 });
 
 test('black leveler Lv2 can hide a wolf from exact leveler divination',()=>{
