@@ -18,3 +18,7 @@ services:
         value: disabled
       - key: AI_CPU_COUNT
         value: "3"
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
