@@ -127,10 +127,10 @@ function createTursoStore({
       }
       try{
         if(!db){
-          const factory=clientFactory||async config=>{
+          const factory=clientFactory||(async config=>{
             const mod=await import('@libsql/client');
             return mod.createClient(config);
-          };
+          });
           db=await factory({url:String(url),authToken:String(authToken)});
         }
         await db.batch([
