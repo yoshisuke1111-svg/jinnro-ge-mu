@@ -26,18 +26,24 @@
     if(collapseRunning)return;collapseRunning=true;
     const duration=Math.max(1200,Number(payload.durationMs)||5000),room=$('room');
     const overlay=document.createElement('div');overlay.id='roomCollapseFx';overlay.className='room-collapse-fx';
-    overlay.innerHTML='<div class="collapse-noise"></div><div class="collapse-warning"><small>ADMINISTRATOR OVERRIDE</small><strong>禁忌</strong><span>ROOM COLLAPSE</span></div>';
+    overlay.innerHTML='<div class="collapse-noise"></div><div class="collapse-edge"></div><div class="collapse-warning"><small>ADMINISTRATOR OVERRIDE</small><strong>禁忌</strong><span>ROOM COLLAPSE</span></div>';
     document.body.append(overlay);
 
     const candidates=room&&!room.hidden?[...room.querySelectorAll('.panel,button,input,select,h1,h2,h3,p,.room-code-label,.tag,.mini-label,.board-player,.message,.records-panel,.room-heading>*')]:[];
-    const fragments=candidates.filter(el=>{const r=el.getBoundingClientRect();return r.width>8&&r.height>8&&r.bottom>0&&r.top<innerHeight;}).slice(0,170);
-    fragments.forEach((el,i)=>{
-      const r=el.getBoundingClientRect(),angle=((i*137.508)%360)*Math.PI/180,dist=90+(i*47)%240;
-      const fx=Math.cos(angle)*dist,fy=Math.sin(angle)*dist*.72,rot=((i*73)%150)-75;
-      const topRatio=Math.max(0,Math.min(1,r.top/Math.max(1,innerHeight)));
+    const measured=candidates.map(el=>({el,r:el.getBoundingClientRect()}))
+      .filter(x=>x.r.width>8&&x.r.height>8&&x.r.bottom>0&&x.r.top<innerHeight)
+      .sort((a,b)=>a.r.top-b.r.top||a.r.left-b.r.left);
+    const top=measured[0]?.r.top||0,bottom=measured.at(-1)?.r.top||innerHeight,span=Math.max(1,bottom-top);
+    const fragments=measured.map(x=>x.el);
+    measured.forEach(({el,r},i)=>{
+      const topRatio=Math.max(0,Math.min(1,(r.top-top)/span));
+      const side=i%2?1:-1;
+      const drift=side*(14+(i*29)%58),rot=side*(8+(i*17)%28);
+      const delay=Math.round(topRatio*1850+(i%4)*28);
       el.classList.add('collapse-fragment');
-      el.style.setProperty('--fx',fx.toFixed(1)+'px');el.style.setProperty('--fy',fy.toFixed(1)+'px');el.style.setProperty('--fr',rot+'deg');
-      el.style.setProperty('--fly-delay',((i%9)*18)+'ms');el.style.setProperty('--fall-delay',Math.round(topRatio*620+(i%7)*28)+'ms');
+      el.style.setProperty('--collapse-x',drift+'px');
+      el.style.setProperty('--collapse-rot',rot+'deg');
+      el.style.setProperty('--collapse-delay',delay+'ms');
     });
 
     document.body.classList.add('room-collapsing','collapse-glitch');
@@ -47,14 +53,14 @@
       $('room').hidden=true;$('entrance').hidden=false;$('roomBrowser').hidden=offline;
       if(!offline){const url=new URL(location.href);url.search='';history.replaceState(null,'',url);}
       document.body.classList.remove('room-collapsing','collapse-glitch','collapse-fly','collapse-freeze','collapse-fall');
-      for(const el of fragments){el.classList.remove('collapse-fragment');for(const k of ['--fx','--fy','--fr','--fly-delay','--fall-delay'])el.style.removeProperty(k);}
+      for(const el of fragments){el.classList.remove('collapse-fragment');for(const k of ['--collapse-x','--collapse-rot','--collapse-delay'])el.style.removeProperty(k);}
       overlay.classList.add('collapse-finished');setTimeout(()=>overlay.remove(),360);
       collapseRunning=false;toast('部屋が強制崩壊しました。',true);
     };
     if(reduced){overlay.classList.add('reduced');setTimeout(finish,Math.min(1250,duration-100));return;}
-    setTimeout(()=>document.body.classList.add('collapse-fly'),620);
-    setTimeout(()=>document.body.classList.add('collapse-freeze'),2050);
-    setTimeout(()=>{document.body.classList.remove('collapse-freeze','collapse-glitch');document.body.classList.add('collapse-fall');},2550);
+    setTimeout(()=>document.body.classList.add('collapse-fly'),520);
+    setTimeout(()=>document.body.classList.remove('collapse-glitch'),900);
+    setTimeout(()=>document.body.classList.add('collapse-fall'),3050);
     setTimeout(finish,Math.max(4300,duration-180));
   }
   const transport=WWTransport.create({
