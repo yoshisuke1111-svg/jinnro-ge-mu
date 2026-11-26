@@ -64,7 +64,7 @@ test('conversation aliases normalize known shorthand and session-only nicknames'
 
 
 test('conversation reply templates replace old player names with current names',()=>{
-  const pair=makePersonTemplate('伊織どう思う？','伊織ちょっと怪しい',['伊織','真白']);
+  const pair=makePersonTemplate('伊織どう思う？','伊織ちょっと怪しい',['真白','伊織']);
   assert.equal(pair.prompt,'{{person1}}どう思う？');
   assert.equal(pair.reply,'{{person1}}ちょっと怪しい');
 
