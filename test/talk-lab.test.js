@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createApp}=require('../server');
-const {normalizeText,scoreExample,semanticNormalize,paraphraseReply,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING}=require('../conversation-lab');
+const {normalizeText,scoreExample,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING}=require('../conversation-lab');
 
 async function post(base,body){
   const res=await fetch(base+'/talk/api',{
@@ -107,4 +107,42 @@ test('retrieved human lines are paraphrased instead of copied verbatim when voca
   const unknown=paraphraseReply('まだ分からないかな',{seed:'case-2'});
   assert.notEqual(unknown,'まだ分からないかな');
   assert.ok(/判断|読め|何とも/.test(unknown));
+});
+
+
+test('the bad chat examples are routed by intent instead of copied from old game logs',()=>{
+  assert.equal(classifyIntent('こんにちは').type,'greeting');
+  assert.equal(classifyIntent('なにしようね？').type,'activity');
+
+  const wolf=classifyIntent('俺人狼');
+  assert.equal(wolf.type,'role_claim');
+  assert.equal(wolf.role,'wolf');
+
+  const jester=classifyIntent('てるてるです');
+  assert.equal(jester.type,'role_claim');
+  assert.equal(jester.role,'jester');
+
+  const intro=classifyIntent('鈾と申します');
+  assert.equal(intro.type,'self_intro');
+  assert.equal(intro.name,'鈾');
+
+  assert.equal(classifyIntent('妖狐はいねぇよ').type,'search');
+});
+
+test('intent replies stay on the user intent',()=>{
+  assert.match(intentReply(classifyIntent('こんにちは'),{seed:'hello'}),/こんにちは|どうも|やあ/);
+  assert.match(intentReply(classifyIntent('なにしようね？'),{seed:'activity'}),/話題|人狼|雑談|話/);
+  assert.match(intentReply(classifyIntent('俺人狼'),{seed:'wolf'}),/人狼/);
+  assert.match(intentReply(classifyIntent('てるてるです'),{seed:'jester'}),/てるてる坊主/);
+  assert.match(intentReply(classifyIntent('鈾と申します'),{seed:'intro'}),/鈾/);
+});
+
+test('unrelated roles and numbers heavily penalize retrieved replies',()=>{
+  const bad=relevancePenalty('俺人狼','流石に狂人3はやりすぎかぁ');
+  assert.ok(bad.factor<0.2);
+  assert.deepEqual(bad.foreignRoles,['madman']);
+  assert.deepEqual(bad.foreignNumbers,['3']);
+
+  const good=relevancePenalty('俺人狼','人狼なんだね');
+  assert.equal(good.factor,1);
 });
