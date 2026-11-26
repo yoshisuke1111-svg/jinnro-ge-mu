@@ -16,6 +16,9 @@ test('forced room collapse has no warning text and falls from top to bottom',()=
   assert.match(collapse,/topRatio\*1650/);
   assert.match(collapse,/collapse-fall/);
   assert.match(transport,/collapse-topdown-piece/);
-  assert.match(transport,/118vh/);
+  assert.match(transport,/128vh/);
+  assert.match(collapse,/Math\.max\(6200,requested\)/);
+  assert.match(collapse,/Math\.max\(6500,duration-180\)/);
+  assert.match(transport,/1\.68s/);
   assert.doesNotMatch(transport,/collapse-lite-fall/);
 });
