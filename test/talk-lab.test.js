@@ -112,7 +112,12 @@ test('retrieved human lines are paraphrased instead of copied verbatim when voca
 
 test('the bad chat examples are routed by intent instead of copied from old game logs',()=>{
   assert.equal(classifyIntent('こんにちは').type,'greeting');
+  assert.equal(classifyIntent('初めまして').type,'greeting');
+  assert.equal(classifyIntent('久しぶり～').type,'greeting');
   assert.equal(classifyIntent('なにしようね？').type,'activity');
+  assert.equal(classifyIntent('人間はそんなしゃべり方しません').type,'critique');
+  assert.equal(classifyIntent('うーんまだおかしいか').type,'critique');
+  assert.equal(classifyIntent('お前怪しい').type,'accusation');
 
   const wolf=classifyIntent('俺人狼');
   assert.equal(wolf.type,'role_claim');
@@ -131,6 +136,10 @@ test('the bad chat examples are routed by intent instead of copied from old game
 
 test('intent replies stay on the user intent',()=>{
   assert.match(intentReply(classifyIntent('こんにちは'),{seed:'hello'}),/こんにちは|どうも|やあ/);
+  assert.match(intentReply(classifyIntent('初めまして'),{seed:'first'}),/初めまして/);
+  assert.match(intentReply(classifyIntent('久しぶり～'),{seed:'reunion'}),/久しぶり/);
+  assert.match(intentReply(classifyIntent('人間はそんなしゃべり方しません'),{seed:'critique'}),/不自然|変|唐突|文脈/);
+  assert.match(intentReply(classifyIntent('お前怪しい'),{seed:'accuse'}),/怪しく|理由|どこ|そう思/);
   assert.match(intentReply(classifyIntent('なにしようね？'),{seed:'activity'}),/話題|人狼|雑談|話/);
   assert.match(intentReply(classifyIntent('俺人狼'),{seed:'wolf'}),/人狼/);
   assert.match(intentReply(classifyIntent('てるてるです'),{seed:'jester'}),/てるてる坊主/);
