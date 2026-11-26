@@ -15,9 +15,9 @@ const STATIC_ALIASES=[
   ['medium',['霊媒師','霊媒']],
   ['seer',['占い師','占い']],
   ['guard',['騎士','狩人']],
-  ['madman',['狂人','狂']],
+  ['madman',['狂人']],
   ['wolf',['人狼','狼']],
-  ['villager',['村人','村']],
+  ['villager',['村人']],
   ['cpu',['CPU','cpu','ボット','bot']],
   ['co',['CO','co','カミングアウト']]
 ];
