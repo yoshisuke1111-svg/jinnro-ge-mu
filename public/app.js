@@ -42,7 +42,7 @@
 
     document.body.classList.add('room-collapsing','collapse-glitch');
     const finish=()=>{
-      if(session)storage('sessionStorage','removeItem','ww3-'+session.code);
+      if(session){storage('sessionStorage','removeItem','ww3-'+session.code);storage('localStorage','removeItem','ww3-recovery-'+session.code);}
       session=null;state=null;
       $('room').hidden=true;$('entrance').hidden=false;$('roomBrowser').hidden=offline;
       if(!offline){const url=new URL(location.href);url.search='';history.replaceState(null,'',url);}
@@ -65,7 +65,7 @@
     },
     onError(message){toast(message,true);},
     onRemoved(message){
-      if(session)storage('sessionStorage','removeItem','ww3-'+session.code);
+      if(session){storage('sessionStorage','removeItem','ww3-'+session.code);storage('localStorage','removeItem','ww3-recovery-'+session.code);}
       session=null;state=null;$('room').hidden=true;$('entrance').hidden=false;$('roomBrowser').hidden=offline;refreshRooms();toast(message,true);
     },
     onRoomCollapse(payload){playRoomCollapse(payload);}
@@ -85,8 +85,9 @@
   }
   function enter(res){
     if(!res)return;
-    session={code:res.code,token:res.token};
+    session={code:res.code,token:res.token,recoveryKey:res.recoveryKey||''};
     storage('sessionStorage','setItem','ww3-'+res.code,res.token);
+    if(res.recoveryKey)storage('localStorage','setItem','ww3-recovery-'+res.code,res.recoveryKey);
     storage('localStorage','setItem','ww3-name',$('name').value.trim());
     if(!offline){const url=new URL(location.href);url.search='?room='+encodeURIComponent(res.code);history.replaceState(null,'',url);}
     $('entrance').hidden=true;$('roomBrowser').hidden=true;$('room').hidden=false;
@@ -514,5 +515,8 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state){lastTickSecond='';tick();scheduleArrowDraw(state,true);}});
   const activity=()=>{if(state?.phase==='lobby'&&Date.now()-lastActivity>8000){lastActivity=Date.now();call('activity');}};
   document.addEventListener('pointerdown',activity,{passive:true});document.addEventListener('keydown',activity,{passive:true});document.addEventListener('scroll',activity,{passive:true,capture:true});
-  if(!offline&&urlRoom){const oldToken=storage('sessionStorage','getItem','ww3-'+urlRoom.toUpperCase());if(oldToken)call('join',{code:urlRoom,token:oldToken,name:$('name').value}).then(res=>{if(res)enter(res);else storage('sessionStorage','removeItem','ww3-'+urlRoom.toUpperCase());});}
+  if(!offline&&urlRoom){
+    const code=urlRoom.toUpperCase(),oldToken=storage('sessionStorage','getItem','ww3-'+code),recoveryKey=storage('localStorage','getItem','ww3-recovery-'+code);
+    if(oldToken||recoveryKey)call('join',{code,token:oldToken||'',recoveryKey:recoveryKey||'',name:$('name').value}).then(res=>{if(res){enter(res);if(res.rejoined)toast('対戦に復帰しました。');}else storage('sessionStorage','removeItem','ww3-'+code);});
+  }
 })();
