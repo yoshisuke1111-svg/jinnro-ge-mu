@@ -22,8 +22,8 @@
     <h1>会話だけを育てる場所</h1>
     <p class="lead">人狼の実戦で集めた人間の発言から、入力に近い会話例を探して返します。今は文章生成AIではなく、外部APIを使わない検索型の第1段階です。</p>
     <div class="notice">
-      <strong>この会話は学習用に保存されます</strong>
-      <span>入力文・AIの返答・👍/👎評価を今後の会話AI改善に使います。個人情報や秘密は入力しないでください。</span>
+      <strong>現在はオンライン学習を停止中</strong>
+      <span>会話ログと👍/👎評価は記録しますが、今はその場で返答AIへ反映しません。十分たまってからまとめて再学習します。個人情報や秘密は入力しないでください。</span>
     </div>
     <form id="startForm">
       <label for="name">表示名 <small>会話ラボ内だけで使用</small></label>
@@ -41,7 +41,7 @@
       <textarea id="input" maxlength="400" rows="1" placeholder="何か話しかけてみる…" autocomplete="off"></textarea>
       <button id="send" type="submit">送信</button>
     </form>
-    <p class="hint">返答の下の 👍 / 👎 がそのまま学習データになります。</p>
+    <p class="hint">👍 / 👎 は評価として記録します。現在は返答AIへの即時反映を停止しています。</p>
   </section>
 </main>
 
