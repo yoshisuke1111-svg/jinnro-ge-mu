@@ -490,7 +490,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           const name=validName(data.name);
           if(game.players.some(p=>!p.bot&&p.name===name))throw Error('同じ名前の参加者がすでにいます。');
           const existing=[...(entry.joinRequests||new Map()).values()].find(r=>r.name===name&&r.status==='pending'&&r.expiresAt>Date.now());
-          if(existing)return json(res,200,{ok:true,code,requestId:existing.id,status:'pending'});
+          if(existing)throw Error('同じ名前の参加申請がすでに届いています。申請した画面で許可を待ってください。');
           const requestId=token(),createdAt=Date.now();
           entry.joinRequests=entry.joinRequests||new Map();
           entry.joinRequests.set(requestId,{id:requestId,name,createdAt,expiresAt:createdAt+5*60000,status:'pending',approvalToken:null,approvalUntil:0,decidedAt:0});
