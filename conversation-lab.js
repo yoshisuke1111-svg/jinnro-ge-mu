@@ -288,13 +288,9 @@ function classifyIntent(text){
   }
 
   const roles=roleMentions(raw);
-  const roleClaim=/^(?:俺|僕|ぼく|私|わたし|自分)?(?:は|が)?(?:役職は)?/u.test(raw)&&
-    (/(?:です|だよ|だ|co|ＣＯ)?[。.!！?？]*$/iu.test(raw));
-  if(roles.length&&(
-    /^(?:俺|僕|ぼく|私|わたし|自分)(?:は|が)?/u.test(raw)||
-    /(?:です|だよ|だ|co|ＣＯ)[。.!！?？]*$/iu.test(raw)||
-    roleClaim
-  )){
+  const selfRolePrefix=/^(?:俺|僕|ぼく|私|わたし|自分)(?:は|が)?(?:役職は)?/u.test(raw);
+  const roleEnding=/(?:です|だよ|だ|co|ＣＯ)[。.!！?？]*$/iu.test(raw);
+  if(roles.length&&(selfRolePrefix||roleEnding)){
     return {type:'role_claim',role:roles[0]};
   }
 
