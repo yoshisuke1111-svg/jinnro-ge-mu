@@ -54,8 +54,8 @@ test('conversation aliases normalize known shorthand and session-only nicknames'
   assert.equal(normalizeText('霊媒どう思う？'),'mediumどう思う');
   assert.equal(normalizeText('村田は怪しい'),'村田は怪しい');
 
-  const aliases=inferAliasesFromText('今日は黒ちゃん=黒レベラーって呼ぶ');
-  assert.equal(aliases['黒ちゃん'],'黒レベラーって呼ぶ');
+  const aliases=inferAliasesFromText('黒ちゃん=黒レベラーって呼ぶ');
+  assert.equal(aliases['黒ちゃん'],'黒レベラー');
 
   const explicit=inferAliasesFromText('クロは黒レベラーの略');
   assert.equal(explicit['クロ'],'黒レベラー');
