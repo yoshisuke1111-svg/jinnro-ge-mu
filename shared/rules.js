@@ -149,12 +149,12 @@
       this.messages.push(m);if(this.messages.length>1800)this.messages.splice(0,200);
       this.changed();return m;
     }
-    addPlayer({id,name,bot=false}) {
+    addPlayer({id,name,bot=false,silent=false}) {
       if(this.phase!=='lobby')throw Error('対戦中は新規参加できません。');
       if(this.players.length>=MAX_PLAYERS)throw Error('満員です。');
       name=validName(name);if(this.players.some(p=>p.name===name))throw Error('同じ名前の人がいます。別の名前にしてください。');
       if(!id||this.byId(id))throw Error('プレイヤーIDが不正です。');
-      const p={id,name,bot,connected:true,alive:true,role:null,lastActive:this.now(),disconnectedAt:null,auto:false,
+      const p={id,name,bot,silent:!!(bot&&silent),connected:true,alive:true,role:null,lastActive:this.now(),disconnectedAt:null,auto:false,
         privateResults:[],lover:null,revengeTarget:null,revengeDone:false,brain:bot?{personality:this.makePersonality(id)}:{},deathAt:null,claimed:null,
         levelerLevel:0,cheaterExecutionHit:false,cheaterAttackHit:false,resetUsed:false,implantedFrom:null};
       this.players.push(p);if(!this.host&&!bot)this.host=id;
@@ -168,18 +168,19 @@
       if(this.host===id)this.host=this.humans().find(p=>p.connected)?.id||this.humans()[0]?.id||null;
       this.configVersion++;this.system(`${p.name}が待機室を退出しました。`);
     }
-    setBots(count) {
+    setBots(count,silent=false) {
       if(!Number.isInteger(count)||count<0||count>MAX_PLAYERS-this.humans().length)throw Error('CPUの人数が不正です。');
       if(this.phase!=='lobby')throw Error('CPUの変更は待機室で行ってください。');
       const old=this.players.filter(p=>p.bot);
       if(old.length>count){const ids=new Set(old.slice(count).map(p=>p.id));this.players=this.players.filter(p=>!ids.has(p.id));}
+      for(const p of old)p.silent=!!silent;
       for(let i=old.length;i<count;i++){
         const used=new Set(this.players.map(p=>p.name));
         const available=BOT_NAMES.filter(n=>!used.has(n));
         let base=this.pick(available)||`村人${i+1}`;
         let name=base,suffix=2;
         while(this.players.some(p=>p.name===name))name=base+suffix++;
-        this.addPlayer({id:`cpu-${this.code}-${i}-${Math.floor(this.random()*1e9)}`,name,bot:true});
+        this.addPlayer({id:`cpu-${this.code}-${i}-${Math.floor(this.random()*1e9)}`,name,bot:true,silent});
       }
       // CPU人数と配役は別設定。人数変更だけでは役職数や練習役職を勝手に書き換えない。
       // 人数と配役数がずれた場合は validation で知らせ、部屋主が配役を調整する。
@@ -201,7 +202,7 @@
     prepareSolo(role='seer',n=8) {
       if(!this.isSolo()||this.phase!=='lobby')throw Error('ソロ練習用の操作です。');
       if(!ROLE_IDS.includes(role)&&role!==''&&role!=='lover')throw Error('不明な練習役職です。');
-      this.setBots(n-1);
+      this.setBots(n-1,true);
       const r=preset(n);
       if(role&&role!=='lover'&&!r[role]) {
         if(role==='mason'){r.mason=2;r.villager-=2;}else{r[role]=1;r.villager--;}
@@ -254,7 +255,7 @@
       deck=this.shuffled(deck);
       for(let pi=0;pi<this.players.length;pi++){const p=this.players[pi];
         if(roleOrder)p.role=roleOrder[pi];else if(!(pinned&&p.id===human.id))p.role=deck.pop();
-        p.alive=true;p.privateResults=[];p.lover=null;p.revengeTarget=null;p.revengeDone=false;p.auto=!p.connected;
+        p.alive=true;p.privateResults=[];p.lover=null;p.revengeTarget=null;p.revengeDone=false;p.auto=false;
         const personality=p.bot?(p.brain?.personality||this.makePersonality(p.id)):null;p.brain=personality?{personality}:{};p.deathAt=null;p.claimed=null;p.implantedFrom=null;
         p.levelerLevel=LEVELER.has(p.role)?1:0;p.cheaterExecutionHit=false;p.cheaterAttackHit=false;p.resetUsed=false;
       }
@@ -650,11 +651,16 @@
       if(this.phase!=='night')return;
       for(const p of this.living().filter(p=>this.nightKind(p)&&!Object.hasOwn(this.actions,p.id))){
         if(onlyExpired&&this.now()<this.actionDeadline(p))continue;
-        const choice=bot.decide(this.botView(p.id),p.brain,'night');
         const targets=this.targets(p);
-        const t=this.nightKind(p)==='meet'?null:(targets.includes(choice?.target)?choice.target:targets[0]||null);
+        let t=null;
+        if(this.nightKind(p)!=='meet'){
+          if(this.isBot(p)){
+            const choice=bot.decide(this.botView(p.id),p.brain,'night');
+            t=targets.includes(choice?.target)?choice.target:(targets[0]||null);
+          }else t=this.pick(targets)||null;
+        }
         this.submitAction(p.id,t,this.phaseId,true);
-        if(!p.bot)p.privateResults.push({id:`auto-${this.phaseId}-${p.id}`,kind:'notice',day:this.day,text:'時間切れのため、この夜の行動はCPUが代行しました。'});
+        if(!p.bot)p.privateResults.push({id:`auto-${this.phaseId}-${p.id}`,kind:'notice',day:this.day,text:'時間切れのため、この夜の行動は自動選択されました。'});
       }
       for(const p of this.living().filter(p=>this.isBot(p)))this.autoSpecial(p);
     }
@@ -671,14 +677,14 @@
         if(next){this.host=next.id;this.system(`部屋主を${next.name}に引き継ぎました。`);}
       }
       if(this.phase==='ended')return;
-      for(const p of this.humans())if(!p.connected&&p.disconnectedAt!==null&&now-p.disconnectedAt>=15000&&!p.auto){p.auto=true;this.changed();}
       const bots=this.players.filter(p=>this.isBot(p));
-      const botWolves=bots.filter(p=>p.alive&&PACK.has(p.role));
+      const speakingBots=bots.filter(p=>!p.silent);
+      const botWolves=speakingBots.filter(p=>p.alive&&PACK.has(p.role));
       for(const p of bots){
         const b=p.brain;
         if(['reveal','dawn','execution'].includes(this.phase)&&now>=b.actionAt)this.ready.add(p.id);
         if(!p.alive){
-          if(this.phase==='discussion'&&now>=b.actionAt&&b.ghostDay!==this.day){
+          if(!p.silent&&this.phase==='discussion'&&now>=b.actionAt&&b.ghostDay!==this.day){
             const c=bot.decide(this.botView(p.id),b,'ghost');
             if(c?.text)this.message(p,c.text,'ghost');
             b.ghostDay=this.day;
@@ -686,7 +692,7 @@
           continue;
         }
         if(this.phase==='night'){
-          if(PACK.has(p.role)&&!b.nightSaid&&this.wolfTalkCount<Math.min(2,botWolves.length)&&now>=this.wolfTalkAt){
+          if(!p.silent&&PACK.has(p.role)&&!b.nightSaid&&this.wolfTalkCount<Math.min(2,botWolves.length)&&now>=this.wolfTalkAt){
             const msg=bot.decide(this.botView(p.id),b,'wolfChat');
             if(msg?.text)this.message(p,msg.text,'wolves');
             b.nightSaid=true;this.wolfTalkCount++;this.wolfTalkAt=now+3500+Math.floor(this.random()*2500);
@@ -704,7 +710,7 @@
         }
       }
       if(this.phase==='discussion'){
-        const aliveBots=bots.filter(p=>p.alive);
+        const aliveBots=speakingBots.filter(p=>p.alive);
         // A CPU only reacts when a public message actually points at it. The response is
         // queued for a few seconds later so it does not look like an instant chatbot.
         for(const p of aliveBots){
@@ -767,9 +773,8 @@
         case 'solo':this.prepareSolo(data.role,Number(data.count)||8);break;
         case 'preset':{
           if(this.phase!=='lobby')throw Error('待機室で選んでください。');
-          const n=Number(data.count);if(!Number.isInteger(n)||n<4||n>30||n<this.humans().length)throw Error('人数が不正です。');
-          this.setBots(n-this.humans().length);
-          this.applyConfig({...this.config,roles:preset(n,String(data.kind)),lovers:data.kind==='all',testRole:''});break;
+          const n=this.players.length;if(n<4||n>30)throw Error('配役プリセットは4人以上集まってから使えます。');
+          this.applyConfig({...this.config,roles:preset(n,String(data.kind)),lovers:data.kind==='all',testRole:this.isSolo()?this.config.testRole:''});break;
         }
         case 'start':this.start();break;
         case 'reset':this.reset();break;
@@ -790,7 +795,7 @@
       const knownMasons=p.role==='mason'?this.players.filter(t=>t.role==='mason'&&t.id!==p.id).map(t=>t.id):[];
       const cheaterSight=p.role==='cheater'&&p.alive;
       const publicPlayers=this.players.map(t=>{
-        const row={id:t.id,name:this.name(t.id),bot:t.bot,connected:t.connected,alive:t.alive,auto:t.auto,host:t.id===this.host};
+        const row={id:t.id,name:this.name(t.id),bot:t.bot,silent:!!t.silent,connected:t.connected,alive:t.alive,auto:t.auto,host:t.id===this.host};
         if(ended||cheaterSight){row.role=t.role;row.lover=ended?t.lover:null;row.won=ended?(this.winner?.winners.includes(t.id)||false):false;}
         return row;
       });
@@ -800,7 +805,7 @@
         if(m.channel==='wolves')return ended||(PACK.has(p.role)&&(p.alive||m.id<=p.deathAt));
         return false;
       }).slice(-300);
-      const me={id:p.id,name:this.name(p.id),realName:p.name,role:p.role,alive:p.alive,bot:p.bot,auto:p.auto,lover:p.lover,revengeTarget:p.revengeTarget,revengeDone:p.revengeDone,
+      const me={id:p.id,name:this.name(p.id),realName:p.name,role:p.role,alive:p.alive,bot:p.bot,silent:!!p.silent,auto:p.auto,lover:p.lover,revengeTarget:p.revengeTarget,revengeDone:p.revengeDone,
         privateResults:clone(p.privateResults),knownWolves,knownMasons,levelerLevel:p.levelerLevel||0,cheaterExecutionHit:!!p.cheaterExecutionHit,cheaterAttackHit:!!p.cheaterAttackHit,resetUsed:!!p.resetUsed,
         infected:p.role==='plague'?[...this.infected]:[],
         acted:Object.hasOwn(this.actions,p.id),actionTarget:this.actions[p.id]??null,
