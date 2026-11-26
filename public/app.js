@@ -24,27 +24,34 @@
   }
   function playRoomCollapse(payload={}){
     if(collapseRunning)return;collapseRunning=true;
-    const duration=Math.max(1200,Number(payload.durationMs)||5000),room=$('room');
+    const requested=Number(payload.durationMs)||7600;
+    const duration=Math.max(6200,requested),room=$('room');
     const overlay=document.createElement('div');overlay.id='roomCollapseFx';overlay.className='room-collapse-fx';
-    overlay.innerHTML='<div class="collapse-noise"></div>';
+    overlay.innerHTML='<div class="collapse-noise"></div><div class="collapse-dust"></div>';
     document.body.append(overlay);
 
-    const candidates=room&&!room.hidden?[...room.querySelectorAll('.panel,button,input,select,h1,h2,h3,p,.room-code-label,.tag,.mini-label,.board-player,.message,.records-panel,.room-heading>*')]:[];
+    const candidates=room&&!room.hidden
+      ?[...room.querySelectorAll('.panel,button,input,select,h1,h2,h3,p,.room-code-label,.tag,.mini-label,.board-player,.message,.records-panel,.room-heading>*')]
+      :[];
     const fragments=candidates
       .map(el=>({el,rect:el.getBoundingClientRect()}))
       .filter(x=>x.rect.width>8&&x.rect.height>8&&x.rect.bottom>0&&x.rect.top<innerHeight)
       .sort((a,b)=>a.rect.top-b.rect.top)
       .map(x=>x.el);
 
+    const cascadeSpan=Math.max(2500,Math.min(4300,duration-2600));
     fragments.forEach((el,i)=>{
       const r=el.getBoundingClientRect();
-      const topRatio=Math.max(0,Math.min(1,r.top/Math.max(1,innerHeight)));
-      const x=((i*37)%81)-40;
-      const rot=((i*53)%38)-19;
+      const centerY=r.top+r.height*.5;
+      const topRatio=Math.max(0,Math.min(1,centerY/Math.max(1,innerHeight)));
+      const x=((i*47)%121)-60;
+      const rot=((i*61)%54)-27;
+      const delay=Math.round(320+topRatio*cascadeSpan+(i%3)*65);
       el.classList.add('collapse-fragment');
       el.style.setProperty('--fall-x',x+'px');
       el.style.setProperty('--fall-r',rot+'deg');
-      el.style.setProperty('--fall-delay',Math.round(topRatio*1650+(i%4)*34)+'ms');
+      el.style.setProperty('--fall-delay',delay+'ms');
+      el.style.setProperty('--break-x',(((i*29)%17)-8)+'px');
     });
 
     document.body.classList.add('room-collapsing');
@@ -56,14 +63,24 @@
       document.body.classList.remove('room-collapsing','collapse-fall');
       for(const el of fragments){
         el.classList.remove('collapse-fragment');
-        for(const k of ['--fall-x','--fall-r','--fall-delay'])el.style.removeProperty(k);
+        for(const k of ['--fall-x','--fall-r','--fall-delay','--break-x'])el.style.removeProperty(k);
       }
-      overlay.classList.add('collapse-finished');setTimeout(()=>overlay.remove(),360);
+      overlay.classList.add('collapse-finished');setTimeout(()=>overlay.remove(),420);
       collapseRunning=false;toast('部屋が強制崩壊しました。',true);
     };
-    if(reduced){overlay.classList.add('reduced');setTimeout(finish,Math.min(900,duration-100));return;}
-    requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('collapse-fall')));
-    setTimeout(finish,Math.max(3600,duration-180));
+
+    // Accessibility setting still reduces the movement, but never makes the forced collapse a blink.
+    if(reduced){
+      overlay.classList.add('reduced');
+      document.body.classList.add('collapse-fall');
+      setTimeout(finish,Math.min(3400,duration-120));
+      return;
+    }
+
+    // A brief still moment makes the first upper pieces visibly detach before the failure cascades downward.
+    setTimeout(()=>document.body.classList.add('collapse-fall'),260);
+    setTimeout(()=>overlay.classList.add('collapse-deep'),Math.max(2500,duration*.48));
+    setTimeout(finish,Math.max(6500,duration-180));
   }
   const transport=WWTransport.create({
     onState:render,
