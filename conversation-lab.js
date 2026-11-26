@@ -22,25 +22,40 @@ const STATIC_ALIASES=[
   ['co',['CO','co','カミングアウト']]
 ];
 
-function applyAliases(text,sessionAliases={}){
-  let out=String(text||'').normalize('NFKC').toLowerCase();
+function staticAliasPairs(){
   const pairs=[];
   for(const [canonical,names] of STATIC_ALIASES){
     for(const name of names)pairs.push([String(name).normalize('NFKC').toLowerCase(),canonical]);
   }
+  return pairs.sort((a,b)=>b[0].length-a[0].length);
+}
+
+function applyStaticAliases(text){
+  let out=String(text||'').normalize('NFKC').toLowerCase();
+  for(const [from,to] of staticAliasPairs())if(from)out=out.split(from).join(to);
+  return out;
+}
+
+function applyAliases(text,sessionAliases={}){
+  let out=String(text||'').normalize('NFKC').toLowerCase();
+  const pairs=[...staticAliasPairs()];
   for(const [alias,canonical] of Object.entries(sessionAliases||{})){
-    if(alias&&canonical)pairs.push([String(alias).normalize('NFKC').toLowerCase(),String(canonical).normalize('NFKC').toLowerCase()]);
+    if(alias&&canonical)pairs.push([
+      String(alias).normalize('NFKC').toLowerCase(),
+      applyStaticAliases(canonical)
+    ]);
   }
   pairs.sort((a,b)=>b[0].length-a[0].length);
   for(const [from,to] of pairs)if(from)out=out.split(from).join(to);
-  return out;
+  // セッション別名の展開先がさらに既知略称だった場合も正式形へ寄せる。
+  return applyStaticAliases(out);
 }
 
 function inferAliasesFromText(text){
   const raw=String(text||'').normalize('NFKC').trim();
   const found={};
   const patterns=[
-    /([^\s=＝「」『』]{1,16})\s*[=＝]\s*([^\s=＝「」『』]{1,24})/g,
+    /([^\s=＝「」『』]{1,16})\s*[=＝]\s*([^\s=＝「」『』]{1,24}?)(?=って|と呼|$|[。、,.!！?？])/g,
     /([^\s「」『』]{1,16})って([^\s「」『』]{1,24})のこと/g,
     /([^\s「」『』]{1,16})は([^\s「」『』]{1,24})の略/g
   ];
@@ -361,4 +376,4 @@ function createConversationLab({
   return {init,startSession,send,feedback,stats,loadCorpus,close};
 }
 
-module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,inferAliasesFromText,ONLINE_LEARNING};
+module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,inferAliasesFromText,ONLINE_LEARNING};
