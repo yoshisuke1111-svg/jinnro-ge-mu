@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createApp}=require('../server');
-const {normalizeText,scoreExample}=require('../conversation-lab');
+const {normalizeText,scoreExample,inferAliasesFromText,ONLINE_LEARNING}=require('../conversation-lab');
 
 async function post(base,body){
   const res=await fetch(base+'/talk/api',{
@@ -45,4 +45,19 @@ test('conversation lab API starts, replies, and records feedback',async()=>{
     assert.equal(rated.json.rowsAffected,1);
     assert.deepEqual(calls.slice(0,3).map(x=>x[0]),['start','send','feedback']);
   }finally{await app.close();}
+});
+
+
+test('conversation aliases normalize known shorthand and session-only nicknames',()=>{
+  assert.equal(ONLINE_LEARNING,false);
+  assert.equal(normalizeText('黒レベが怪しい'),'black_levelerが怪しい');
+  assert.equal(normalizeText('霊媒どう思う？'),'mediumどう思う');
+  assert.equal(normalizeText('村田は怪しい'),'村田は怪しい');
+
+  const aliases=inferAliasesFromText('今日は黒ちゃん=黒レベラーって呼ぶ');
+  assert.equal(aliases['黒ちゃん'],'黒レベラーって呼ぶ');
+
+  const explicit=inferAliasesFromText('クロは黒レベラーの略');
+  assert.equal(explicit['クロ'],'黒レベラー');
+  assert.equal(normalizeText('クロ怪しくない？',explicit),'black_leveler怪しくない');
 });
