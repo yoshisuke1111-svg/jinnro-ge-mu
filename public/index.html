@@ -65,12 +65,12 @@ button,input,select,summary,a{-webkit-tap-highlight-color:transparent}
   .statement-row select{flex:1 1 calc(50% - 4px);width:auto;min-width:110px}
   .statement-row button{flex:1 1 100%;width:100%}
   .record-grid{grid-template-columns:1fr}
-  body[data-phase] main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}
+  body[data-phase]:not([data-phase="lobby"]) main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}
   .mobile-nav{position:fixed!important;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:90;margin:0!important;box-shadow:0 8px 30px #0008}
   .chat-form{bottom:calc(72px + env(safe-area-inset-bottom))!important}
   .board-chat-form{bottom:calc(72px + env(safe-area-inset-bottom))!important}
   .board-action-dock{bottom:calc(136px + env(safe-area-inset-bottom))!important}
-  body[data-phase] .toast{bottom:calc(82px + env(safe-area-inset-bottom))}
+  body[data-phase]:not([data-phase="lobby"]) .toast{bottom:calc(82px + env(safe-area-inset-bottom))}
   .site-footer{padding-bottom:max(16px,env(safe-area-inset-bottom))}
 }
 @media(max-width:430px){
@@ -116,7 +116,7 @@ button,input,select,summary,a{-webkit-tap-highlight-color:transparent}
     <div class="entry-card panel">
       <div class="entry-heading"><p class="eyebrow">PLAY</p><h2>ゲームを始める</h2><p>まずプレイヤー名を決めてください。</p></div>
       <label for="name">プレイヤー名 <span class="muted">1〜16文字</span></label>
-      <input id="name" maxlength="16" placeholder="名前を入力" autocomplete="nickname" aria-describedby="nameHelp">
+      <input id="name" maxlength="16" placeholder="名前を入力" autocomplete="nickname" enterkeyhint="next" aria-describedby="nameHelp">
       <p id="nameHelp" class="field-note"><span>空白だけの名前は使えません。</span><output id="nameCount" for="name">0 / 16</output></p>
       <div class="entry-section-label"><span>一人で練習</span><small>無言参加者と進行確認</small></div>
       <label for="practiceRole">練習する役職</label>
@@ -126,10 +126,10 @@ button,input,select,summary,a{-webkit-tap-highlight-color:transparent}
       <div id="onlineEntry">
         <div class="divider"><span>オンラインで遊ぶ</span></div>
         <label for="customCode" class="custom-code-label">作る部屋のコード <span class="muted">空欄なら自動生成</span></label>
-        <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done">
         <button id="create" class="secondary full">オンラインの部屋を作る</button>
         <p class="caption room-code-help">3〜16文字。文字・数字・「-」「_」が使えます。同じコードの部屋がある場合は作成できません。</p>
-        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加申請する部屋コード" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="join" class="secondary">参加申請</button></div>
+        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加申請する部屋コード" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go"><button id="join" class="secondary">参加申請</button></div>
       </div>
       <p id="entryNote" class="entry-note">新規参加は部屋主の許可が必要です。切断後は、この端末で同じ招待URLを開くと保存済みの復帰情報で席に戻れます。</p>
     </div>
@@ -283,6 +283,22 @@ window.addEventListener('DOMContentLoaded',()=>{
   const updateCount=()=>{if(count&&name)count.textContent=`${[...name.value].length} / 16`;};
   name?.addEventListener('input',updateCount);
   updateCount();
+
+  // The first field has several possible destinations, so Enter must not silently start solo practice.
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Enter'||event.isComposing)return;
+    const target=event.target;
+    const roomCode=document.getElementById('code');
+    if(target===name){
+      event.preventDefault();event.stopImmediatePropagation();
+      if(roomCode?.value.trim())document.getElementById('join')?.click();
+      else document.getElementById('practiceRole')?.focus();
+    }else if(target===roomCode){
+      event.preventDefault();document.getElementById('join')?.click();
+    }else if(target===document.getElementById('customCode')){
+      event.preventDefault();document.getElementById('create')?.click();
+    }
+  },true);
 
   const nav=document.getElementById('mobileNav');
   const updateNavState=()=>nav?.querySelectorAll('[data-mobile-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.classList.contains('active'))));
