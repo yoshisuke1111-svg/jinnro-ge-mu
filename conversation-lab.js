@@ -144,13 +144,13 @@ function inferPersonNames(text,known=[]){
   // 人狼会話で頻出する「Xどう思う」「X怪しい」など。
   // 文頭や句読点の後だけを見ることで、普通の文章を人名扱いしすぎない。
   const triggers='(?:どう思|怪し|白い|黒い|吊り|吊る|投票|噛み|噛む|占う|占い先|守る|護衛|狼っぽ|村っぽ)';
-  const re=new RegExp('(?:^|[\\s、。,.!！?？])([\\p{L}\\p{N}_ー・.-]{2,8}?)(?:さん|くん|君|ちゃん|氏)?(?='+triggers+')','gu');
+  const re=new RegExp('(?:^|[\\s、。,.!！?？])([\\p{L}\\p{N}_ー・.-]{2,8}?)(?:さん|くん|君|ちゃん|氏)?(?:は|が|を|に|へ|って)?(?='+triggers+')','gu');
   for(const m of raw.matchAll(re))add(m[1]);
 
   // 会話の冒頭にある軽い前置きを除去してもう一度見る。
   const stripped=raw.replace(/^(?:正直|今は?|じゃあ|てか|ちなみに|ところで|個人的には?|俺は|私は)[、,\s]*/u,'');
   if(stripped!==raw){
-    const m=stripped.match(new RegExp('^([\\p{L}\\p{N}_ー・.-]{2,8}?)(?:さん|くん|君|ちゃん|氏)?(?='+triggers+')','u'));
+    const m=stripped.match(new RegExp('^([\\p{L}\\p{N}_ー・.-]{2,8}?)(?:さん|くん|君|ちゃん|氏)?(?:は|が|を|に|へ|って)?(?='+triggers+')','u'));
     if(m)add(m[1]);
   }
   return out;
