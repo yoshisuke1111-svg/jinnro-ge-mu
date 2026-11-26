@@ -273,7 +273,18 @@ function numericMentions(text){
   return [...String(text||'').normalize('NFKC').matchAll(/\d+(?:\.\d+)?/g)].map(m=>m[0]);
 }
 
-function classifyIntent(text){
+const GAME_TOPIC_RE=/(?:人狼|狼|村人|村目|黒っぽ|白っぽ|怪しい|疑わしい|吊り|吊る|処刑|投票|票|噛み|噛む|襲撃|占い|占う|霊媒|騎士|狩人|護衛|狂人|狂信|妖狐|狐|てるてる|役職|co|ＣＯ|対抗|チーター|リセッター|レベラー|墓荒らし|泥棒)/iu;
+
+function hasGameTopic(text){
+  return GAME_TOPIC_RE.test(String(text||''));
+}
+
+function historyText(history=[]){
+  return (Array.isArray(history)?history:[]).slice(-3).map(turn=>[turn?.user,turn?.ai].filter(Boolean).join(' ')).join(' ');
+}
+
+function classifyIntent(text,{history=[]}={}){
+  const prior=historyText(history);
   const raw=cleanReply(text).normalize('NFKC');
   const compact=raw.replace(/[\s　。、,.!！?？~〜～…]+/g,'');
   if(!compact)return {type:'empty'};
@@ -305,6 +316,33 @@ function classifyIntent(text){
     return {type:'activity'};
   }
 
+  if(/(?:なんとかなる|何とかなる|どうにかなる|大丈夫(?:だよ|さ|だ)?)/u.test(raw)){
+    return {type:'reassurance'};
+  }
+
+  if(/(?:答えられない|答えれない|答えられん|答えれん|分からないよね|わからないよね|知らないよね)/u.test(raw)){
+    return {type:'meta_limit'};
+  }
+
+  if(/(?:どこまで|どのくらい|どれくらい|何を|なにを).*(?:知りたい|聞きたい|知りたいの|聞きたいの)/u.test(raw)){
+    return {type:'scope_question',askedForDetail:/(?:詳しく|具体的|もう少し)/u.test(prior)};
+  }
+
+  if(/^(?:私|わたし|僕|ぼく|俺|自分)(?:には|は|も)?.*(?:想像(?:が)?つかない|想像できない|分からない|わからない|知らない)/u.test(raw)){
+    return {type:'uncertainty'};
+  }
+
+  if(
+    /(?:あなた|君|きみ|お前|あんた).*(?:いつか|将来|これから).*(?:大人|成長|変わ|なれる|なる|できる|知る)/u.test(raw)||
+    /(?:いつか|将来|これから).*(?:あなた|君|きみ|お前|あんた).*(?:大人|成長|変わ|なれる|なる|できる|知る)/u.test(raw)
+  ){
+    return {type:'personal_future'};
+  }
+
+  if(/(?:だろうね|だろうな|かもしれないね|かもね)[。.!！?？]*$/u.test(raw)&&!hasGameTopic(raw)){
+    return {type:'soft_prediction'};
+  }
+
   const roles=roleMentions(raw);
   const selfRolePrefix=/^(?:俺|僕|ぼく|私|わたし|自分)(?:は|が)?(?:役職は)?/u.test(raw);
   const roleEnding=/(?:です|だよ|だ|co|ＣＯ)[。.!！?？]*$/iu.test(raw);
@@ -319,6 +357,10 @@ function classifyIntent(text){
   }
 
   if(/^[?？]+$/u.test(compact))return {type:'confused'};
+  if(!hasGameTopic(raw)&&!hasGameTopic(prior)){
+    if(/[?？]\s*$/u.test(raw))return {type:'general_question'};
+    return {type:'general_statement'};
+  }
   return {type:'search'};
 }
 
@@ -329,11 +371,19 @@ const INTENT_LABELS={
   self_intro:'自己紹介',
   confused:'聞き返し',
   critique:'会話への指摘',
-  accusation:'疑われた時の返答'
+  accusation:'疑われた時の返答',
+  personal_future:'将来についての雑談',
+  uncertainty:'不確かさへの相づち',
+  scope_question:'聞き返しへの返答',
+  meta_limit:'答えられなさへの返答',
+  reassurance:'励ましへの返答',
+  soft_prediction:'推測への返答',
+  general_question:'一般的な質問',
+  general_statement:'一般的な雑談'
 };
 
-function intentReply(intent,{seed=''}={}){
-  const n=stableNumber(seed+'\u0000'+JSON.stringify(intent));
+function intentReply(intent,{seed='',history=[]}={}){
+  const n=stableNumber(seed+'\u0000'+JSON.stringify(intent)+'\u0000'+historyText(history));
   const pick=arr=>arr[n%arr.length];
   if(intent.type==='greeting'){
     if(intent.variant==='first_meeting')return pick(['初めまして、よろしく。','どうも、初めまして。','初めまして。よろしくね。']);
@@ -349,6 +399,44 @@ function intentReply(intent,{seed=''}={}){
     'え、どの辺が怪しく見えた？',
     'そう見える？ 理由は聞きたい。',
     'まじ？ どこでそう思った？'
+  ]);
+  if(intent.type==='personal_future')return pick([
+    'どうだろう。今はまだ想像つかないけど、少しずつ変わってはいくのかもな。',
+    'いつかは今と違ってるかもしれないな。まだ自分でも想像はつかないけど。',
+    '分からないな。でも、ずっと今のままってこともない気はする。'
+  ]);
+  if(intent.type==='uncertainty')return pick([
+    'まあ、そうだよな。先のことはなかなか想像つかない。',
+    'うん、それは分かる。まだ見えないことの方が多いし。',
+    'そうだな。今の段階じゃ想像しにくいよな。'
+  ]);
+  if(intent.type==='scope_question')return intent.askedForDetail
+    ?pick(['ざっくりでいいよ。どうしてそう思ったのか、その辺が聞ければ十分。','そこまで細かくなくていいよ。考えた理由が少し分かれば十分。'])
+    :pick(['ざっくりでいいよ。','気になるところだけでいいよ。','話せる範囲で十分。']);
+  if(intent.type==='meta_limit')return pick([
+    'まあ、今はまだ答えきれないな。',
+    'そうだな。今の自分じゃ分からないことも多い。',
+    'うん、そこはまだちゃんとは答えられない。'
+  ]);
+  if(intent.type==='reassurance')return pick([
+    'そうだな。なんとかなると思っとくか。',
+    'うん。まあ、案外なんとかなるかもな。',
+    'そうだな。先のことはその時考えればいいか。'
+  ]);
+  if(intent.type==='soft_prediction')return pick([
+    'そうかもな。まだ知らないことの方が多いと思う。',
+    'たしかに、今はまだそんな段階かもな。',
+    'まあ、その見方はわりと合ってる気がする。'
+  ]);
+  if(intent.type==='general_question')return pick([
+    'どうだろう。今の自分にはまだ何とも言えないな。',
+    'うーん、そこはまだ分からないな。',
+    '今のところは、はっきりとは答えられない。'
+  ]);
+  if(intent.type==='general_statement')return pick([
+    'そうだな。',
+    'うん、なるほど。',
+    'まあ、そういう見方もあるな。'
   ]);
   if(intent.type==='activity')return pick([
     '何か話題決める？ 人狼の話でも雑談でもいいよ',
@@ -367,7 +455,7 @@ function intentReply(intent,{seed=''}={}){
   return '';
 }
 
-function relevancePenalty(input,reply){
+function relevancePenalty(input,reply,context=''){
   const inputRoles=new Set(roleMentions(input));
   const replyRoles=roleMentions(reply);
   const foreignRoles=replyRoles.filter(role=>!inputRoles.has(role));
@@ -379,7 +467,9 @@ function relevancePenalty(input,reply){
   let factor=1;
   if(foreignRoles.length)factor*=Math.max(.12,1-foreignRoles.length*.42);
   if(foreignNumbers.length)factor*=.28;
-  return {factor,foreignRoles,foreignNumbers};
+  const gameLeak=hasGameTopic(reply)&&!hasGameTopic(input)&&!hasGameTopic(context);
+  if(gameLeak)factor*=.04;
+  return {factor,foreignRoles,foreignNumbers,gameLeak};
 }
 
 const RESERVED_NAME_WORDS=new Set([
@@ -478,6 +568,7 @@ function createConversationLab({
   const sessionPeople=new Map();
   const liveSessions=new Map();
   const memoryReplies=new Map();
+  const sessionTurns=new Map();
 
   function rememberReply(sessionId,text){
     const list=memoryReplies.get(sessionId)||[];
@@ -653,6 +744,7 @@ function createConversationLab({
     sessionPeople.set(sessionId,[]);
     liveSessions.set(sessionId,{displayName,createdAt:Date.now()});
     memoryReplies.set(sessionId,[]);
+    sessionTurns.set(sessionId,[]);
     if(await init()){
       await softDb('session save',()=>db.execute({
         sql:'INSERT INTO conversation_lab_sessions (session_id,created_at,display_name) VALUES (?,?,?)',
@@ -674,14 +766,15 @@ function createConversationLab({
     return Boolean(result?.rows?.length);
   }
 
-  function chooseReply(input,corpus,recent,aliases={},people=[]){
+  function chooseReply(input,corpus,recent,aliases={},people=[],history=[]){
     const runtime=runtimePersonTemplate(input,people);
+    const context=historyText(history);
     const comparisonInput=runtime.text;
     const ranked=[];
     for(const e of corpus){
       const rendered=renderPersonTemplate(e.reply,runtime.names);
       const repeatPenalty=recent.has(normalizeText(rendered))?0.35:1;
-      const relevance=relevancePenalty(input,rendered);
+      const relevance=relevancePenalty(input,rendered,context);
       const score=scoreExample(comparisonInput,e,aliases)*repeatPenalty*relevance.factor;
       ranked.push({...e,score,runtimeNames:runtime.names,relevance});
     }
@@ -728,16 +821,17 @@ function createConversationLab({
       args:[userTurnId,sessionId,now,'user',clean]
     }));
 
-    const intent=classifyIntent(clean);
+    const history=sessionTurns.get(sessionId)||[];
+    const intent=classifyIntent(clean,{history});
     const [corpus,recent]=await Promise.all([loadCorpus(),recentReplies(sessionId)]);
     let picked,reply,mode='retrieval';
 
     if(intent.type!=='search'){
       mode='intent';
-      reply=intentReply(intent,{seed:sessionId+'\u0000'+clean});
+      reply=intentReply(intent,{seed:sessionId+'\u0000'+clean,history});
       picked={id:'intent:'+intent.type,score:null,origin:'intent',lowConfidence:false};
     }else{
-      picked=chooseReply(clean,corpus,recent,aliases,people);
+      picked=chooseReply(clean,corpus,recent,aliases,people,history);
       const renderedReply=renderPersonTemplate(picked.reply,picked.runtimeNames||people);
       reply=picked.origin==='fallback'
         ? renderedReply
@@ -746,6 +840,9 @@ function createConversationLab({
     }
     const aiTurnId=crypto.randomUUID();
     rememberReply(sessionId,reply);
+    history.push({user:clean,ai:reply});
+    if(history.length>6)history.splice(0,history.length-6);
+    sessionTurns.set(sessionId,history);
     if(await init())await softDb('ai turn save',()=>db.execute({
       sql:`INSERT INTO conversation_lab_turns
            (turn_id,session_id,created_at,speaker,text,reply_to,source_example_id,confidence)
@@ -806,4 +903,4 @@ function createConversationLab({
   return {init,startSession,send,feedback,stats,loadCorpus,close};
 }
 
-module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,roleMentions,numericMentions,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING};
+module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,roleMentions,numericMentions,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,hasGameTopic,historyText,ONLINE_LEARNING};
