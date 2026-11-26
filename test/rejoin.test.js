@@ -12,16 +12,18 @@ async function api(base,event,data={},code='',token=''){
   return {res,json:await res.json()};
 }
 
-test('disconnected human can reclaim the same CPU-proxied seat by room code and exact name',async()=>{
+test('disconnected human can securely reclaim the same seat with the recovery key',async()=>{
   const app=createApp({tickMs:1000000,adminPassword:'x'});
   await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+app.server.address().port;
   try{
     const made=await api(base,'create',{name:'復帰テスト',roomCode:'REJOIN1'});
     assert.equal(made.res.status,200,JSON.stringify(made.json));
-    const {code,playerId}=made.json;
+    const {code,playerId,recoveryKey}=made.json;
+    assert.ok(recoveryKey);
+
     const entry=app.rooms.get(code),g=entry.game;
-    g.setBots(3);
+    g.setBots(3,true);
     g.applyConfig({...g.config,roles:preset(4)});
     g.start();
 
@@ -29,13 +31,12 @@ test('disconnected human can reclaim the same CPU-proxied seat by room code and 
     const originalRole=p.role;
     p.privateResults.push({id:'keep-me',kind:'notice',day:g.day,text:'復帰後も残る'});
     g.disconnect(playerId);
-    p.disconnectedAt=g.now()-16000;
-    p.auto=true;
 
-    const rejoined=await api(base,'join',{name:'復帰テスト',code},code,'');
+    const rejoined=await api(base,'join',{name:'復帰テスト',code,recoveryKey},code,'');
     assert.equal(rejoined.res.status,200,JSON.stringify(rejoined.json));
     assert.equal(rejoined.json.rejoined,true);
     assert.equal(rejoined.json.playerId,playerId);
+    assert.equal(rejoined.json.recoveryKey,recoveryKey);
     assert.equal(p.connected,true);
     assert.equal(p.auto,false);
     assert.equal(p.role,originalRole);
@@ -50,37 +51,51 @@ test('unknown name cannot enter a game already in progress',async()=>{
   try{
     const made=await api(base,'create',{name:'ホスト',roomCode:'REJOIN2'});
     const entry=app.rooms.get(made.json.code),g=entry.game;
-    g.setBots(3);
+    g.setBots(3,true);
     g.applyConfig({...g.config,roles:preset(4)});
     g.start();
 
     const denied=await api(base,'join',{name:'知らない人',code:made.json.code},made.json.code,'');
     assert.equal(denied.res.status,400);
-    assert.match(denied.json.error,/参加済みの名前/);
+    assert.match(denied.json.error,/対戦中/);
   }finally{await app.close();}
 });
 
-
-test('stale token can fall back to exact-name reclaim even while the old seat still looks connected',async()=>{
+test('matching a visible player name is not enough to steal that seat',async()=>{
   const app=createApp({tickMs:1000000,adminPassword:'x'});
   await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+app.server.address().port;
   try{
     const made=await api(base,'create',{name:'戻る人',roomCode:'REJOIN3'});
     assert.equal(made.res.status,200,JSON.stringify(made.json));
-    const entry=app.rooms.get(made.json.code),g=entry.game;
-    const originalId=made.json.playerId;
 
-    // Simulate a browser that lost its valid local session while the server still thinks the seat is connected.
-    const p=g.byId(originalId);
-    assert.equal(p.connected,true);
-    const rejoined=await api(base,'join',{name:'戻る人',code:made.json.code},made.json.code,'old-invalid-token');
+    const denied=await api(base,'join',{
+      name:'戻る人',
+      code:made.json.code,
+      recoveryKey:'not-the-real-recovery-key'
+    },made.json.code,'');
+
+    assert.equal(denied.res.status,400);
+    assert.match(denied.json.error,/同じ名前の席/);
+  }finally{await app.close();}
+});
+
+test('a stale session token can still recover when the stable recovery key is valid',async()=>{
+  const app=createApp({tickMs:1000000,adminPassword:'x'});
+  await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+app.server.address().port;
+  try{
+    const made=await api(base,'create',{name:'復帰キー',roomCode:'REJOIN4'});
+    const rejoined=await api(base,'join',{
+      name:'復帰キー',
+      code:made.json.code,
+      recoveryKey:made.json.recoveryKey
+    },made.json.code,'stale-session-token');
 
     assert.equal(rejoined.res.status,200,JSON.stringify(rejoined.json));
     assert.equal(rejoined.json.rejoined,true);
-    assert.equal(rejoined.json.playerId,originalId);
-    assert.notEqual(rejoined.json.token,'old-invalid-token');
-    assert.equal(g.byId(originalId).connected,true);
+    assert.equal(rejoined.json.playerId,made.json.playerId);
+    assert.notEqual(rejoined.json.token,'stale-session-token');
   }finally{await app.close();}
 });
 
@@ -94,7 +109,7 @@ test('lobby inactivity no longer removes a human seat',async()=>{
     const entry=app.rooms.get(made.json.code),g=entry.game,p=g.byId(made.json.playerId);
 
     p.lastActive=g.now()-10*60*1000;
-    g.tick(null);
+    g.tick(require('../shared/bots'));
 
     assert.ok(g.byId(made.json.playerId));
     assert.equal(g.players.filter(x=>!x.bot).length,1);
