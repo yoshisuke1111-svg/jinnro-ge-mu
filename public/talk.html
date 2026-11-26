@@ -2,18 +2,29 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#111923">
 <meta name="description" content="人狼の実戦会話から育てる、自作会話AIの実験室。">
 <title>会話AI LAB</title>
 <link rel="stylesheet" href="/talk.css">
+<style>
+body{min-height:100dvh}
+.chat-shell{height:min(780px,calc(100dvh - 120px))}
+.toast{max-width:min(560px,calc(100vw - 24px));overflow-wrap:anywhere}
+@media(max-width:620px){
+  main{margin-bottom:calc(28px + env(safe-area-inset-bottom))}
+  .chat-shell{height:calc(100dvh - 88px)}
+  .composer{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  footer{padding-bottom:max(22px,env(safe-area-inset-bottom))}
+}
+</style>
 <script src="/talk.js" defer></script>
 </head>
 <body>
 <header class="lab-header">
   <a href="/" class="back">← 人狼ゲーム</a>
   <div class="brand"><span class="pulse"></span><strong>会話AI LAB</strong><small>SELF-TRAINING CHAT</small></div>
-  <span id="status" class="status">準備中</span>
+  <span id="status" class="status" role="status" aria-live="polite">準備中</span>
 </header>
 
 <main>
@@ -27,7 +38,7 @@
     </div>
     <form id="startForm">
       <label for="name">表示名 <small>会話ラボ内だけで使用</small></label>
-      <div class="start-row"><input id="name" maxlength="24" placeholder="名前" autocomplete="nickname"><button type="submit">会話を始める</button></div>
+      <div class="start-row"><input id="name" maxlength="24" placeholder="名前" autocomplete="nickname" enterkeyhint="go"><button type="submit">会話を始める</button></div>
     </form>
   </section>
 
@@ -45,7 +56,7 @@
   </section>
 </main>
 
-<div id="toast" class="toast" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <footer>会話AI LAB · 人狼ゲーム学習実験</footer>
 </body>
 </html>
