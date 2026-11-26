@@ -15,7 +15,18 @@ const STATIC_ALIASES=[
   ['medium',['霊媒師','霊媒']],
   ['seer',['占い師','占い']],
   ['guard',['騎士','狩人']],
+  ['baker',['パン屋']],
+  ['cat',['猫又']],
+  ['mason',['共有者','共有']],
   ['madman',['狂人']],
+  ['fanatic',['狂信者','狂信']],
+  ['fox',['妖狐','狐']],
+  ['jester',['てるてる坊主','てるてる','テルテル']],
+  ['plague',['疫病神']],
+  ['survivor',['生存者']],
+  ['avenger',['復讐者']],
+  ['thief',['泥棒']],
+  ['darkwolf',['黒狼']],
   ['wolf',['人狼','狼']],
   ['villager',['村人']],
   ['cpu',['CPU','cpu','ボット','bot']],
@@ -237,6 +248,108 @@ function scoreExample(input,example,sessionAliases={}){
 
 function cleanReply(text){
   return String(text||'').replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim().slice(0,180);
+}
+
+const ROLE_DISPLAY={
+  white_leveler:'白レベラー',black_leveler:'黒レベラー',grave_robber:'墓荒らし',
+  resetter:'リセッター',cheater:'チーター',medium:'霊媒師',seer:'占い師',
+  guard:'騎士',baker:'パン屋',cat:'猫又',mason:'共有者',madman:'狂人',
+  fanatic:'狂信者',fox:'妖狐',jester:'てるてる坊主',plague:'疫病神',
+  survivor:'生存者',avenger:'復讐者',thief:'泥棒',darkwolf:'黒狼',
+  wolf:'人狼',villager:'村人'
+};
+
+function roleMentions(text){
+  const raw=String(text||'').normalize('NFKC').toLowerCase();
+  const found=[];
+  for(const [canonical,names] of STATIC_ALIASES){
+    if(!ROLE_DISPLAY[canonical])continue;
+    if(names.some(name=>raw.includes(String(name).normalize('NFKC').toLowerCase()))&&!found.includes(canonical))found.push(canonical);
+  }
+  return found;
+}
+
+function numericMentions(text){
+  return [...String(text||'').normalize('NFKC').matchAll(/\d+(?:\.\d+)?/g)].map(m=>m[0]);
+}
+
+function classifyIntent(text){
+  const raw=cleanReply(text).normalize('NFKC');
+  const compact=raw.replace(/[\s　。、,.!！?？]+/g,'');
+  if(!compact)return {type:'empty'};
+
+  if(/^(?:こんにちは|こんちは|こんばんは|おはよう|おはよ|やあ|どうも|はじめまして|よろしく|よろしくお願いします)$/u.test(compact)){
+    return {type:'greeting'};
+  }
+
+  if(/^(?:何|なに)(?:を)?(?:しよう|する|しよ|やろう|やる)(?:ね|か|かな)?$/u.test(compact)||
+     /^(?:何|なに)(?:か)?(?:しよう|する|やろう)(?:ね|か|かな)?$/u.test(compact)){
+    return {type:'activity'};
+  }
+
+  const roles=roleMentions(raw);
+  const roleClaim=/^(?:俺|僕|ぼく|私|わたし|自分)?(?:は|が)?(?:役職は)?/u.test(raw)&&
+    (/(?:です|だよ|だ|co|ＣＯ)?[。.!！?？]*$/iu.test(raw));
+  if(roles.length&&(
+    /^(?:俺|僕|ぼく|私|わたし|自分)(?:は|が)?/u.test(raw)||
+    /(?:です|だよ|だ|co|ＣＯ)[。.!！?？]*$/iu.test(raw)||
+    roleClaim
+  )){
+    return {type:'role_claim',role:roles[0]};
+  }
+
+  const intro=raw.match(/^(?:俺|僕|ぼく|私|わたし|自分)?(?:は)?\s*([^\s、。,.!！?？「」『』]{1,16}?)(?:と申します|といいます|と言います|っていいます|って言います|です)[。.!！]*$/u);
+  if(intro){
+    const name=String(intro[1]||'').trim();
+    if(name&&!roleMentions(name).length&&!/^(?:俺|僕|私|自分)$/u.test(name))return {type:'self_intro',name};
+  }
+
+  if(/^[?？]+$/u.test(compact))return {type:'confused'};
+  return {type:'search'};
+}
+
+const INTENT_LABELS={
+  greeting:'挨拶',
+  activity:'話題相談',
+  role_claim:'役職申告',
+  self_intro:'自己紹介',
+  confused:'聞き返し'
+};
+
+function intentReply(intent,{seed=''}={}){
+  const n=stableNumber(seed+'\u0000'+JSON.stringify(intent));
+  const pick=arr=>arr[n%arr.length];
+  if(intent.type==='greeting')return pick(['こんにちは','どうも こんにちは','やあ こんにちは']);
+  if(intent.type==='activity')return pick([
+    '何か話題決める？ 人狼の話でも雑談でもいいよ',
+    '何しようか 人狼の話か普通の雑談でもする？',
+    'とりあえず何か一個話題出してみる？'
+  ]);
+  if(intent.type==='role_claim'){
+    const role=ROLE_DISPLAY[intent.role]||intent.role||'その役職';
+    return pick([role+'なんだ',role+'か なるほど',role+'なんだね']);
+  }
+  if(intent.type==='self_intro'){
+    const name=intent.name||'';
+    return pick(['よろしく '+name,name+'ね よろしく','どうも '+name+' よろしく']);
+  }
+  if(intent.type==='confused')return pick(['どうした？','ん？','何か変だった？']);
+  return '';
+}
+
+function relevancePenalty(input,reply){
+  const inputRoles=new Set(roleMentions(input));
+  const replyRoles=roleMentions(reply);
+  const foreignRoles=replyRoles.filter(role=>!inputRoles.has(role));
+
+  const inputNumbers=new Set(numericMentions(input));
+  const replyNumbers=numericMentions(reply);
+  const foreignNumbers=replyNumbers.filter(n=>!inputNumbers.has(n));
+
+  let factor=1;
+  if(foreignRoles.length)factor*=Math.max(.12,1-foreignRoles.length*.42);
+  if(foreignNumbers.length)factor*=.28;
+  return {factor,foreignRoles,foreignNumbers};
 }
 
 const RESERVED_NAME_WORDS=new Set([
@@ -502,22 +615,26 @@ function createConversationLab({
     for(const e of corpus){
       const rendered=renderPersonTemplate(e.reply,runtime.names);
       const repeatPenalty=recent.has(normalizeText(rendered))?0.35:1;
-      const score=scoreExample(comparisonInput,e,aliases)*repeatPenalty;
-      ranked.push({...e,score,runtimeNames:runtime.names});
+      const relevance=relevancePenalty(input,rendered);
+      const score=scoreExample(comparisonInput,e,aliases)*repeatPenalty*relevance.factor;
+      ranked.push({...e,score,runtimeNames:runtime.names,relevance});
     }
     ranked.sort((a,b)=>b.score-a.score);
     const best=ranked[0];
-    if(!best||best.score<0.045){
-      const candidates=corpus
-        .filter(e=>!recent.has(normalizeText(renderPersonTemplate(e.reply,runtime.names))))
-        .filter(e=>e.reply.length>=2&&e.reply.length<=38);
-      if(candidates.length){
-        const e=candidates[stableNumber(input)%candidates.length];
-        return {...e,score:0.02,lowConfidence:true,runtimeNames:runtime.names};
-      }
-      return {id:null,reply:'まだこの話題の会話例が少ないみたい',score:0,origin:'system',lowConfidence:true};
+
+    // 弱い一致では過去ログをランダムに返さない。意味不明な飛躍の主因だった。
+    if(!best||best.score<0.22){
+      return {
+        id:null,
+        reply:'その話はまだ合う会話例が少ないな もう少し詳しく聞かせて',
+        score:best?.score||0,
+        origin:'fallback',
+        lowConfidence:true,
+        runtimeNames:runtime.names
+      };
     }
-    const pool=ranked.filter(x=>x.score>=best.score-0.08).slice(0,5);
+
+    const pool=ranked.filter(x=>x.score>=Math.max(.22,best.score-0.06)).slice(0,4);
     return pool[stableNumber(input+'\u0000'+best.id)%pool.length]||best;
   }
 
@@ -542,10 +659,22 @@ function createConversationLab({
       args:[userTurnId,sessionId,now,'user',clean]
     });
 
+    const intent=classifyIntent(clean);
     const [corpus,recent]=await Promise.all([loadCorpus(),recentReplies(sessionId)]);
-    const picked=chooseReply(clean,corpus,recent,aliases,people);
-    const renderedReply=renderPersonTemplate(picked.reply,picked.runtimeNames||people);
-    const reply=paraphraseReply(renderedReply,{seed:sessionId+'\u0000'+clean+'\u0000'+picked.id});
+    let picked,reply,mode='retrieval';
+
+    if(intent.type!=='search'){
+      mode='intent';
+      reply=intentReply(intent,{seed:sessionId+'\u0000'+clean});
+      picked={id:'intent:'+intent.type,score:null,origin:'intent',lowConfidence:false};
+    }else{
+      picked=chooseReply(clean,corpus,recent,aliases,people);
+      const renderedReply=renderPersonTemplate(picked.reply,picked.runtimeNames||people);
+      reply=picked.origin==='fallback'
+        ? renderedReply
+        : paraphraseReply(renderedReply,{seed:sessionId+'\u0000'+clean+'\u0000'+picked.id});
+      if(picked.origin==='fallback')mode='fallback';
+    }
     const aiTurnId=crypto.randomUUID();
     await db.execute({
       sql:`INSERT INTO conversation_lab_turns
@@ -561,6 +690,9 @@ function createConversationLab({
       confidence:picked.score,
       lowConfidence:!!picked.lowConfidence,
       source:picked.origin||'game',
+      mode,
+      intent:intent.type!=='search'?intent.type:null,
+      intentLabel:intent.type!=='search'?(INTENT_LABELS[intent.type]||intent.type):null,
       corpusSize:corpus.length,
       aliases:Object.keys(aliases).length,
       people:people.length,
@@ -603,4 +735,4 @@ function createConversationLab({
   return {init,startSession,send,feedback,stats,loadCorpus,close};
 }
 
-module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,semanticNormalize,paraphraseReply,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING};
+module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,roleMentions,numericMentions,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING};
