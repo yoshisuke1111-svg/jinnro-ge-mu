@@ -128,7 +128,7 @@ function usablePersonName(value){
 function inferPersonNames(text,known=[]){
   const raw=String(text||'').normalize('NFKC');
   const out=[];
-  const add=value=>{const name=usablePersonName(value);if(name&&!out.includes(name))out.push(name);};
+  const add=value=>{const name=usablePersonName(value);if(name&&!/(?:どっち|どちら)/u.test(name)&&!out.includes(name))out.push(name);};
 
   // すでにこの会話で人名として見つけた語は、再登場時にも人名として扱う。
   for(const name of known||[])if(name&&raw.includes(name))add(name);
