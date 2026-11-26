@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createApp}=require('../server');
-const {normalizeText,scoreExample,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING}=require('../conversation-lab');
+const {normalizeText,scoreExample,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,hasGameTopic,ONLINE_LEARNING}=require('../conversation-lab');
 
 async function post(base,body){
   const res=await fetch(base+'/talk/api',{
@@ -154,4 +154,23 @@ test('unrelated roles and numbers heavily penalize retrieved replies',()=>{
 
   const good=relevancePenalty('俺人狼','人狼なんだね');
   assert.equal(good.factor,1);
+});
+
+
+test('general chat is separated from werewolf retrieval',()=>{
+  assert.equal(hasGameTopic('なんとかなるさ'),false);
+  assert.equal(hasGameTopic('今日は誰を吊る？'),true);
+  assert.equal(classifyIntent('あなたもいつか大人になるのか？').type,'personal_future');
+  assert.equal(classifyIntent('私には想像がつかないよ').type,'uncertainty');
+  assert.equal(classifyIntent('あなたはまだ知ってることが1歳に満たないだろうね').type,'soft_prediction');
+  assert.equal(classifyIntent('どこまで知りたい？').type,'scope_question');
+  assert.equal(classifyIntent('まぁ答えれないよね').type,'meta_limit');
+  assert.equal(classifyIntent('なんとかなるさ').type,'reassurance');
+  assert.match(intentReply(classifyIntent('なんとかなるさ'),{seed:'reassure'}),/なんとか|その時|案外/);
+});
+
+test('werewolf-only replies are rejected in unrelated general conversation',()=>{
+  const wolfLeak=relevancePenalty('なんとかなるさ','じゃあ今日は田中を吊る？','将来の話をしている');
+  assert.equal(wolfLeak.gameLeak,true);
+  assert.ok(wolfLeak.factor<0.1);
 });
