@@ -92,9 +92,50 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   function streamTicket(entry,pid) {
     const t=token();tickets.set(t,{code:entry.game.code,pid,until:Date.now()+45000});return t;
   }
+  function pendingJoinRequests(entry){
+    const now=Date.now(),requests=entry.joinRequests||new Map();
+    for(const [id,r] of requests){
+      if((r.status==='pending'&&r.expiresAt<=now)||(r.status==='approved'&&r.approvalUntil<=now)){
+        r.status='expired';r.approvalToken=null;
+      }
+      if((r.status==='rejected'||r.status==='expired'||r.status==='joined')&&now-(r.decidedAt||r.createdAt)>10*60000)requests.delete(id);
+    }
+    return [...requests.values()].filter(r=>r.status==='pending'&&r.expiresAt>now);
+  }
+  function roomView(entry,pid){
+    const view=entry.game.view(pid);
+    view.solo=!!entry.solo;
+    view.publicRoom=!entry.solo&&!entry.cpuWatch;
+    view.joinRequests=pid===entry.game.host&&entry.game.phase==='lobby'
+      ?pendingJoinRequests(entry).map(r=>({id:r.id,name:r.name,createdAt:r.createdAt}))
+      :[];
+    return view;
+  }
+  function publicRoomList(){
+    const now=Date.now();
+    return [...rooms.entries()]
+      .filter(([,entry])=>!entry.solo&&!entry.cpuWatch&&!entry.collapsing)
+      .map(([code,entry])=>{
+        const g=entry.game,host=g.byId(g.host);
+        return {
+          code,
+          host:host?.name||'部屋主不在',
+          hostOnline:!!host?.connected,
+          players:g.humans().length,
+          maxPlayers:30,
+          phase:g.phase,
+          day:g.day,
+          joinable:g.phase==='lobby'&&!!host?.connected&&g.players.length<30,
+          pending:pendingJoinRequests(entry).length,
+          createdAt:g.createdAt||now
+        };
+      })
+      .sort((a,b)=>(b.joinable-a.joinable)||b.createdAt-a.createdAt)
+      .slice(0,100);
+  }
   function ensureAiSeats(entry){
     if(!ai.enabled||entry.game.phase==='lobby'||entry.game.phase==='ended')return [];
-    const botIds=entry.game.players.filter(p=>p.bot).map(p=>p.id);
+    const botIds=entry.game.players.filter(p=>p.bot&&!p.silent).map(p=>p.id);
     entry.aiBotIds=botIds;
     return botIds;
   }
@@ -141,7 +182,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     const game=entry.game;
     for(const [pid,res] of entry.clients){
       if(!game.byId(pid)){send(res,'removed',{message:'この席は部屋から削除されました。参加画面から入り直せます。'});res.end();entry.clients.delete(pid);continue;}
-      send(res,'state',game.view(pid));
+      send(res,'state',roomView(entry,pid));
     }
     entry.revision=game.revision;
   }
@@ -229,6 +270,9 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     const ip=req.socket.remoteAddress||'local'; // Do not trust arbitrary X-Forwarded-For headers.
     try{
       if(req.method==='GET'&&url.pathname==='/health')return json(res,200,{ok:true,version:VERSION,uptimeMs:Date.now()-startedReal,rooms:rooms.size});
+      if(req.method==='GET'&&url.pathname==='/rooms'){
+        return json(res,200,{ok:true,rooms:publicRoomList(),now:Date.now()});
+      }
       if(req.method==='GET'&&url.pathname==='/health/training'){
         const status=Training.getTursoStatus();
         const summary=await Training.getTursoSummary();
@@ -402,7 +446,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         if(previous){send(previous,'replaced',{message:'同じ席が別のタブで開かれました。'});previous.end();}
         entry.clients.set(p.id,res);entry.game.connect(p.id);
         res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
-        res.write(': connected\n\n');send(res,'state',entry.game.view(p.id));
+        res.write(': connected\n\n');send(res,'state',roomView(entry,p.id));
         res.on('close',()=>{
           if(entry.clients.get(p.id)===res){entry.clients.delete(p.id);entry.game.disconnect(p.id);entry.lastEmpty=Date.now();}
         });
@@ -425,15 +469,35 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           else do{code=Array.from({length:5},()=>alphabet[crypto.randomInt(alphabet.length)]).join('');}while(rooms.has(code));
           const game=new Game({code,random:()=>crypto.randomInt(0x100000000)/0x100000000});
           const pid=crypto.randomUUID(),secret=token();game.addPlayer({id:pid,name:data.name});
-          const entry={game,sessions:new Map([[secret,pid]]),clients:new Map(),revision:0,lastEmpty:Date.now(),cpuWatch:false,clock:null,fastMode:false};
+          const entry={game,sessions:new Map([[secret,pid]]),clients:new Map(),revision:0,lastEmpty:Date.now(),cpuWatch:false,clock:null,fastMode:false,solo:data.solo===true,joinRequests:new Map()};
           rooms.set(code,entry);
           if(data.solo)game.prepareSolo(data.role??'seer',8);
           else void notifyRoomCreated({code,creator:game.realName(pid)}).catch(error=>recordError('discord room notify',error));
-          return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:game.view(pid)});
+          return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid)});
         }
         const code=normalizeRoomCode(body.code||data.code),entry=rooms.get(code);
         if(!entry)throw Error('部屋がありません。サーバー再起動時には部屋が消えます。');
         const game=entry.game;
+        if(event==='request_join'){
+          budget('join-request:'+ip,20,300000);
+          if(entry.solo||entry.cpuWatch)throw Error('この部屋には参加申請できません。');
+          if(game.phase!=='lobby')throw Error('この部屋は対戦中です。');
+          const name=validName(data.name);
+          if(game.players.some(p=>!p.bot&&p.name===name))throw Error('同じ名前の参加者がすでにいます。');
+          const existing=[...(entry.joinRequests||new Map()).values()].find(r=>r.name===name&&r.status==='pending'&&r.expiresAt>Date.now());
+          if(existing)return json(res,200,{ok:true,code,requestId:existing.id,status:'pending'});
+          const requestId=token(),createdAt=Date.now();
+          entry.joinRequests=entry.joinRequests||new Map();
+          entry.joinRequests.set(requestId,{id:requestId,name,createdAt,expiresAt:createdAt+5*60000,status:'pending',approvalToken:null,approvalUntil:0,decidedAt:0});
+          broadcast(entry);
+          return json(res,200,{ok:true,code,requestId,status:'pending'});
+        }
+        if(event==='join_status'){
+          const requestId=String(data.requestId||''),r=entry.joinRequests?.get(requestId);
+          if(!r)return json(res,200,{ok:true,code,status:'expired'});
+          pendingJoinRequests(entry);
+          return json(res,200,{ok:true,code,status:r.status,approvalToken:r.status==='approved'?r.approvalToken:null});
+        }
         let pid=entry.sessions.get(body.token),secret=body.token;
         if(event==='join'){
           // A stale local token must not trap the player outside the room. Fall back to exact-name reclaim.
@@ -451,26 +515,50 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
               const previous=entry.clients.get(pid);
               if(previous){send(previous,'replaced',{message:'同じ名前で参加し直したため、この接続を新しい画面へ引き継ぎます。'});entry.clients.delete(pid);previous.end();}
               existing.auto=false;game.connect(pid);
-              if(game.phase!=='lobby')game.system(existing.name+'が対戦に復帰しました。CPU代行を終了します。');
+              if(game.phase!=='lobby')game.system(existing.name+'が対戦に復帰しました。');
               broadcast(entry);
-              return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:game.view(pid),rejoined:true});
+              return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid),rejoined:true});
             }
             if(game.phase!=='lobby')throw Error('対戦中です。参加済みの名前を入力すると自分の席へ復帰できます。');
+            if(entry.solo||entry.cpuWatch)throw Error('この部屋には新規参加できません。');
+            const requestId=String(data.requestId||''),approvalToken=String(data.approvalToken||'');
+            const request=entry.joinRequests?.get(requestId);
+            if(!request||request.status!=='approved'||request.name!==requestedName||request.approvalUntil<Date.now()||!approvalToken||request.approvalToken!==approvalToken){
+              throw Error('新規参加には部屋主の許可が必要です。先に参加申請を送ってください。');
+            }
             pid=crypto.randomUUID();secret=token();game.addPlayer({id:pid,name:requestedName});entry.sessions.set(secret,pid);
+            request.status='joined';request.decidedAt=Date.now();request.approvalToken=null;
             // 参加人数が変わっても配役は自動変更しない。必要なら部屋主が配役を調整する。
             game.configVersion++;game.system(`${game.name(pid)}が参加しました。`);
           }
           game.connect(pid);broadcast(entry);
-          return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:game.view(pid)});
+          return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid)});
         }
         if(!pid||!game.byId(pid))return json(res,401,{ok:false,error:'参加情報を確認してください。'});
         budget('seat:'+secret,100,30000);
+        if(event==='approve_join'||event==='reject_join'){
+          if(pid!==game.host)throw Error('参加申請を処理できるのは部屋主だけです。');
+          if(game.phase!=='lobby')throw Error('参加申請は待機室でのみ処理できます。');
+          const request=entry.joinRequests?.get(String(data.requestId||''));
+          if(!request||request.status!=='pending')throw Error('この参加申請はすでに処理済みです。');
+          request.decidedAt=Date.now();
+          if(event==='approve_join'){
+            if(game.players.length>=30)throw Error('部屋が満員です。');
+            if(game.players.some(p=>!p.bot&&p.name===request.name))throw Error('同じ名前の参加者がすでにいます。');
+            request.status='approved';request.approvalToken=token();request.approvalUntil=Date.now()+2*60000;
+          }else{
+            request.status='rejected';request.approvalToken=null;request.approvalUntil=0;
+          }
+          broadcast(entry);
+          return json(res,200,{ok:true,status:request.status,name:request.name});
+        }
+        if(event==='bots'&&!entry.solo)throw Error('通常のオンライン部屋ではCPUを追加できません。');
         if(event==='chat'||event==='statement'){
           const previous=chatRates.get(secret)||0;
           if(Date.now()-previous<700)throw Error('連続投稿は少し間を空けてください。');
           chatRates.set(secret,Date.now());
         }
-        if(event==='state')return json(res,200,{ok:true,state:game.view(pid)});
+        if(event==='state')return json(res,200,{ok:true,state:roomView(entry,pid)});
         const trainingContext=Training.ACTION_EVENTS.has(event)&&Training.isHumanOnly(game)&&!game.byId(pid)?.bot
           ?Training.captureContext(game,pid):null;
         game.command(pid,event,data,Bots);
@@ -511,7 +599,10 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     for(const [key,r] of rates)if(Date.now()-r.start>300000)rates.delete(key);
     for(const [key,time] of chatRates)if(Date.now()-time>60000)chatRates.delete(key);
     for(const [key,v] of adminSessions)if(v.until<Date.now())adminSessions.delete(key);
-    for(const entry of rooms.values())for(const res of entry.clients.values())if(!res.destroyed)res.write(': heartbeat\n\n');
+    for(const entry of rooms.values()){
+      pendingJoinRequests(entry);
+      for(const res of entry.clients.values())if(!res.destroyed)res.write(': heartbeat\n\n');
+    }
   },15000);
   server.on('close',()=>{clearInterval(timer);clearInterval(housekeeping);});
   function close(){
