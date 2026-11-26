@@ -253,7 +253,7 @@ function createConversationLab({
       args:[sessionId,Date.now(),displayName]
     });
     const corpus=await loadCorpus();
-    return {sessionId,displayName,corpusSize:corpus.length};
+    return {sessionId,displayName,corpusSize:corpus.length,learningActive:ONLINE_LEARNING};
   }
 
   async function ensureSession(sessionId){
