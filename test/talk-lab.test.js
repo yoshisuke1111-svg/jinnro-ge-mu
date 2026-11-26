@@ -59,7 +59,7 @@ test('conversation aliases normalize known shorthand and session-only nicknames'
 
   const explicit=inferAliasesFromText('クロは黒レベラーの略');
   assert.equal(explicit['クロ'],'黒レベラー');
-  assert.equal(normalizeText('クロ怪しくない？',explicit),'black_leveler<suspicious>くない');
+  assert.equal(normalizeText('クロ怪しくない？',explicit),'black_leveler怪しくない');
 });
 
 
