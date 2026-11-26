@@ -11,6 +11,7 @@
   let actionSignature='',chatSignature='',recordSignature='',playerSignature='',privateSignature='',boardPlayerSignature='',bubbleSignature='';
   let timeOffset=0,toastTimer,sceneTimer,narrationTimer,lastSceneId=null,lastAdminNarrationId=null,lastWinner=null,lastPrivateId=null,lastActivity=0,session=null;
   let secretFlipTimer=null,secretCloseTimer=null,secretFadeTimer=null,secretFlipped=false,secretShownPhase=null,collapseRunning=false,arrowFrame=0,arrowTimer=0,lastArrowDrawAt=0,lastTickSecond='';
+  let pendingJoin=null,pendingJoinTimer=null,roomListTimer=null,lastJoinRequestIds=new Set();
   const SECRET_ROLE_AUTO_FLIP=4200,SECRET_ROLE_VISIBLE=10500,SECRET_RESULT_AUTO_FLIP=1800,SECRET_RESULT_VISIBLE=7200,SECRET_FADE=720;
   const reducedPref=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
   let reduced=storage('localStorage','getItem','ww-motion')==='off'||reducedPref;
@@ -43,7 +44,7 @@
     const finish=()=>{
       if(session)storage('sessionStorage','removeItem','ww3-'+session.code);
       session=null;state=null;
-      $('room').hidden=true;$('entrance').hidden=false;
+      $('room').hidden=true;$('entrance').hidden=false;$('roomBrowser').hidden=offline;
       if(!offline){const url=new URL(location.href);url.search='';history.replaceState(null,'',url);}
       document.body.classList.remove('room-collapsing','collapse-glitch','collapse-fly','collapse-freeze','collapse-fall');
       for(const el of fragments){el.classList.remove('collapse-fragment');for(const k of ['--fx','--fy','--fr','--fly-delay','--fall-delay'])el.style.removeProperty(k);}
@@ -65,7 +66,7 @@
     onError(message){toast(message,true);},
     onRemoved(message){
       if(session)storage('sessionStorage','removeItem','ww3-'+session.code);
-      session=null;state=null;$('room').hidden=true;$('entrance').hidden=false;toast(message,true);
+      session=null;state=null;$('room').hidden=true;$('entrance').hidden=false;$('roomBrowser').hidden=offline;refreshRooms();toast(message,true);
     },
     onRoomCollapse(payload){playRoomCollapse(payload);}
   });
@@ -88,7 +89,7 @@
     storage('sessionStorage','setItem','ww3-'+res.code,res.token);
     storage('localStorage','setItem','ww3-name',$('name').value.trim());
     if(!offline){const url=new URL(location.href);url.search='?room='+encodeURIComponent(res.code);history.replaceState(null,'',url);}
-    $('entrance').hidden=true;$('room').hidden=false;
+    $('entrance').hidden=true;$('roomBrowser').hidden=true;$('room').hidden=false;
   }
 
   const roleOptions=ROLE_IDS.map(k=>`<option value="${k}">${esc(ROLES[k].name)}</option>`).join('');
@@ -98,14 +99,73 @@
   $('name').value=storage('localStorage','getItem','ww3-name')||'';
   const urlRoom=new URLSearchParams(location.search).get('room')||'';$('code').value=urlRoom.toUpperCase();
   if(offline){
-    $('onlineEntry').hidden=true;$('connection').textContent='ソロ・通信なし';
+    $('onlineEntry').hidden=true;$('roomBrowser').hidden=true;$('connection').textContent='ソロ・通信なし';
     $('entryNote').textContent='このファイルはソロ専用です。外部通信はありません。再読み込みすると対戦は最初からになります。';
     $('copy').hidden=true;
   }
   $('practice').onclick=()=>runButton($('practice'),'準備中…',async()=>enter(await call('create',{name:$('name').value,solo:true,role:$('practiceRole').value})));
   $('create').onclick=()=>runButton($('create'),'部屋を作成中…',async()=>enter(await call('create',{name:$('name').value,roomCode:$('customCode').value.trim()})));
-  $('join').onclick=()=>runButton($('join'),'参加中…',async()=>{const res=await call('join',{name:$('name').value,code:$('code').value.trim().toUpperCase()});enter(res);if(res?.rejoined)toast('対戦に復帰しました。CPU代行を終了しました。');return res;});
-  $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('practice').click();});
+
+  function clearPendingJoin(){
+    clearTimeout(pendingJoinTimer);pendingJoinTimer=null;pendingJoin=null;
+    storage('sessionStorage','removeItem','ww-join-request');
+    $('joinPending').hidden=true;
+  }
+  function showPendingJoin(){
+    if(!pendingJoin)return;
+    $('joinPending').hidden=false;
+    $('joinPendingTitle').textContent='参加許可を待っています';
+    $('joinPendingText').textContent=`${pendingJoin.code} · ${pendingJoin.name} で申請中`;
+  }
+  async function pollJoinStatus(){
+    clearTimeout(pendingJoinTimer);
+    if(!pendingJoin||session)return;
+    try{
+      const res=await transport.request('join_status',{code:pendingJoin.code,requestId:pendingJoin.requestId});
+      if(res.status==='approved'&&res.approvalToken){
+        const joined=await transport.request('join',{name:pendingJoin.name,code:pendingJoin.code,requestId:pendingJoin.requestId,approvalToken:res.approvalToken});
+        clearPendingJoin();enter(joined);toast('部屋主に許可されました。入室します。');return;
+      }
+      if(res.status==='rejected'){clearPendingJoin();toast('参加申請は部屋主に拒否されました。',true);refreshRooms();return;}
+      if(res.status==='expired'){clearPendingJoin();toast('参加申請の有効時間が切れました。もう一度申請してください。',true);refreshRooms();return;}
+      showPendingJoin();pendingJoinTimer=setTimeout(pollJoinStatus,1400);
+    }catch(e){
+      $('joinPendingTitle').textContent='参加申請を確認中';
+      $('joinPendingText').textContent=e.message||'再確認しています';
+      pendingJoinTimer=setTimeout(pollJoinStatus,3000);
+    }
+  }
+  async function requestJoin(code){
+    const name=$('name').value.trim();
+    if(!name){toast('先にプレイヤー名を入力してください。',true);$('name').focus();return null;}
+    code=String(code||'').trim().toUpperCase();
+    if(!code){toast('部屋を選んでください。',true);return null;}
+    try{
+      const res=await transport.request('request_join',{name,code});
+      pendingJoin={code,name,requestId:res.requestId};
+      storage('sessionStorage','setItem','ww-join-request',JSON.stringify(pendingJoin));
+      showPendingJoin();pollJoinStatus();toast('部屋主へ参加申請を送りました。');return res;
+    }catch(e){toast(e.message,true);return null;}
+  }
+  $('join').onclick=()=>runButton($('join'),'申請中…',()=>requestJoin($('code').value));
+  $('cancelJoinWait').onclick=()=>clearPendingJoin();
+
+  function phaseLabel(phase){return ({lobby:'募集中',reveal:'開始直後',night:'対戦中',dawn:'対戦中',discussion:'対戦中',vote:'対戦中',execution:'対戦中',ended:'終了'})[phase]||phase;}
+  async function refreshRooms(){
+    if(offline||session||document.hidden)return;
+    try{
+      const res=await fetch('/rooms',{cache:'no-store'}),data=await res.json();
+      if(!res.ok||!data.ok)throw Error(data.error||'部屋一覧を取得できません。');
+      const box=$('publicRooms'),rooms=data.rooms||[];
+      box.innerHTML=rooms.length?rooms.map(r=>`<article class="public-room-card ${r.joinable?'joinable':'closed'}"><div class="public-room-main"><div><strong>${esc(r.code)}</strong><span>${esc(r.host)}の部屋</span></div><div class="public-room-meta"><span>${r.players}人</span><span>${esc(phaseLabel(r.phase))}</span>${r.pending?'<span>申請 '+r.pending+'</span>':''}</div></div><button type="button" data-public-room="${esc(r.code)}" ${r.joinable?'':'disabled'}>${r.joinable?'参加申請':'参加不可'}</button></article>`).join(''):'<p class="caption">現在、公開中の部屋はありません。自分で部屋を作るとここに表示されます。</p>';
+      box.querySelectorAll('[data-public-room]').forEach(b=>b.onclick=()=>{const code=b.dataset.publicRoom;$('code').value=code;requestJoin(code);});
+    }catch(e){$('publicRooms').innerHTML='<p class="caption">部屋一覧を取得できませんでした。更新してください。</p>';}
+  }
+  $('refreshRooms').onclick=refreshRooms;
+  const storedRequest=storage('sessionStorage','getItem','ww-join-request');
+  if(storedRequest){try{pendingJoin=JSON.parse(storedRequest);showPendingJoin();pollJoinStatus();}catch{clearPendingJoin();}}
+  refreshRooms();roomListTimer=setInterval(refreshRooms,5000);
+  $('name').addEventListener('keydown',e=>{if(e.key==='Enter'&&!$('code').value)$('practice').click();});
   function inviteUrl(){const url=new URL(location.href);if(state?.code)url.search='?room='+encodeURIComponent(state.code);return url.toString();}
   $('copy').onclick=async()=>{const url=inviteUrl();try{await navigator.clipboard.writeText(url);toast('招待URLをコピーしました。');}catch{window.prompt('この招待URLをコピーしてください。',url);}};
   if(navigator.share)$('shareInvite').hidden=false;
@@ -120,8 +180,8 @@
   document.querySelectorAll('[data-mobile-view]').forEach(b=>b.addEventListener('click',()=>setMobileView(b.dataset.mobileView)));
   setMobileView('board');
   $('leave').onclick=()=>{
-    if(state&&!['lobby','ended'].includes(state.phase)&&!confirm(offline?'練習を終了しますか？':'退出しますか？切断後はCPUが代行します。'))return;
-    transport.stop();if(offline){state=null;$('room').hidden=true;$('entrance').hidden=false;}else location.assign(location.pathname);
+    if(state&&!['lobby','ended'].includes(state.phase)&&!confirm(offline?'練習を終了しますか？':'退出しますか？席は残りますが、再参加するまで自動で会話や投票はしません。'))return;
+    transport.stop();if(offline){state=null;$('room').hidden=true;$('entrance').hidden=false;$('roomBrowser').hidden=true;}else location.assign(location.pathname);
   };
   $('motionToggle').onclick=()=>{
     reduced=!reduced;document.body.classList.toggle('reduced-motion',reduced);storage('localStorage','setItem','ww-motion',reduced?'off':'on');
@@ -130,10 +190,10 @@
   $('helpOpen').onclick=()=>$('helpDialog').showModal();$('helpClose').onclick=()=>$('helpDialog').close();
   for(const id of ['helpDialog','tarotDialog'])$(id).addEventListener('click',e=>{if(e.target===$(id))$(id).close();});
   $('helpContent').innerHTML=`
-    <p class="help-intro">人間1人からCPU込み4〜30人で遊べます。盤面では発言を吹き出し、疑い・判定・投票を矢印で表示します。</p>
+    <p class="help-intro">オンライン対戦は人間だけで4〜30人。一人練習では会話しない無言参加者を入れて進行を試せます。盤面では発言を吹き出し、疑い・判定・投票を矢印で表示します。</p>
     <div class="rules-note"><strong>盤面の矢印</strong><br>「怪しい」「白寄り」「質問」は全員が使えます。占い・霊媒の判定矢印も全員が出せるため、騙りも可能です。矢印はあくまで発言者の主張です。投票先は投票中には他人へ公開せず、結果発表時に濃い矢印で一斉表示します。</div>
     <div class="rules-note"><strong>秘密カード</strong><br>役職・占い結果・霊媒結果は本人だけにカードで表示されます。カードはタップでめくれ、放置時も自動で確認して閉じます。必要なら「自分」画面から役職カードを再確認できます。</div>
-    <div class="rules-note"><strong>CPU</strong><br>CPUは公開情報と自分の能力結果だけを使います。性格ごとに口調・発言量・慎重さ・反応速度・疑い方が異なり、質問、白寄り評価、直接返信も行います。CPU同士の返信連鎖は抑えています。</div>
+    <div class="rules-note"><strong>無言参加者</strong><br>一人練習専用です。会話やCOは一切せず、ゲームを止めないための投票・夜行動だけ自動で行います。通常のオンライン部屋には追加できません。</div>
     <div class="help-roles">${ROLE_IDS.map(k=>`<article class="role-help"><h3>${esc(ROLES[k].icon)} ${esc(ROLES[k].name)}<small>${teams[ROLES[k].team]}</small></h3><p>${esc(ROLES[k].text)}</p><p class="win">勝利：${esc(ROLES[k].win)}</p></article>`).join('')}<article class="role-help"><h3>♡ 恋人<small>追加状態・第三陣営</small></h3><p>${esc(LOVER.text)}</p></article></div>`;
 
   function markDirty(){settingsDirty=true;$('dirtyHint').textContent='未保存の変更があります';updateSum();if(state)$('start').disabled=false;}
@@ -145,8 +205,7 @@
   async function saveDraft(){const res=await call('config',draft());if(!res)return false;settingsDirty=false;settingsVersion=-1;$('dirtyHint').textContent='保存しました';if(state)renderSettings(state);return true;}
   $('saveSettings').onclick=saveDraft;$('start').onclick=async()=>{if(settingsDirty&&!(await saveDraft()))return;await call('start');};
   $('fillVillagers').onclick=()=>{const other=ROLE_IDS.filter(k=>k!=='villager').reduce((a,k)=>a+(Number($('count-'+k).value)||0),0);$('count-villager').value=Math.max(0,state.players.length-other);markDirty();};
-  $('setBots').onclick=async()=>{await runButton($('setBots'),'変更中…',()=>call('bots',{count:Number($('cpuCount').value)}));};
-  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=async()=>{const [kind,n]=b.dataset.preset.split(':');settingsDirty=false;settingsVersion=-1;await call('preset',{kind,count:Number(n)});});
+  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=async()=>{const kind=b.dataset.preset;settingsDirty=false;settingsVersion=-1;await call('preset',{kind});});
   $('soloRole').onchange=async()=>{settingsDirty=false;settingsVersion=-1;const role=$('soloRole').value;const n=Math.max(role==='lover'?6:4,state.players.length);const res=await call('solo',{role,count:n});if(res)toast('練習役職に合わせた基本配役に変更しました。');};
   $('shortTimes').onclick=()=>{$('time-discussion').value=20;$('time-night').value=10;$('time-other').value=8;$('time-vote').value=10;markDirty();};
   $('guestActive').onclick=()=>call('activity');$('stillHere').onclick=()=>{lastActivity=Date.now();call('activity');};$('speed').onclick=()=>{};
@@ -166,13 +225,25 @@
   $('exportLog').onclick=()=>{if(!state)return;const data={game:'人狼ゲーム',version:'0.8.4',phase:state.phase,day:state.day,players:state.players,messages:state.messages,reports:state.reports,votes:state.voteHistory,ownResults:state.me.privateResults,winner:state.winner};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`werewolf-log-${state.code}-${state.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('自分に見える範囲のログを保存しました。');};
 
   function renderSettings(s){
-    $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;$('playerSummary').textContent=`人間 ${s.players.filter(p=>!p.bot).length} ＋ CPU ${s.players.filter(p=>p.bot).length}`;
-    $('guestConfig').textContent=ROLE_IDS.filter(k=>s.config.roles[k]).map(k=>`${ROLES[k].name} ${s.config.roles[k]}`).join(' / ');$('cpuCount').max=30-s.players.filter(p=>!p.bot).length;
-    if(!settingsDirty&&settingsVersion!==s.configVersion){for(const k of ROLE_IDS)$('count-'+k).value=s.config.roles[k];for(const k of ['discussion','night','other','vote'])$('time-'+k).value=s.config.times[k];$('lovers').checked=s.config.lovers;$('firstNightSafe').checked=s.config.firstNightSafe;$('soloRole').value=s.config.testRole||'';$('cpuCount').value=s.players.filter(p=>p.bot).length;$('dirtyHint').textContent='保存済み';settingsVersion=s.configVersion;}
+    $('hostControls').hidden=!s.host;$('guestControls').hidden=s.host;
+    const silent=s.players.filter(p=>p.silent).length,human=s.players.filter(p=>!p.bot).length;
+    $('playerSummary').textContent=s.solo?`あなた＋無言参加者 ${silent}人`:`参加者 ${human}人`;
+    $('guestConfig').textContent=ROLE_IDS.filter(k=>s.config.roles[k]).map(k=>`${ROLES[k].name} ${s.config.roles[k]}`).join(' / ');
+    if(!settingsDirty&&settingsVersion!==s.configVersion){for(const k of ROLE_IDS)$('count-'+k).value=s.config.roles[k];for(const k of ['discussion','night','other','vote'])$('time-'+k).value=s.config.times[k];$('lovers').checked=s.config.lovers;$('firstNightSafe').checked=s.config.firstNightSafe;$('soloRole').value=s.config.testRole||'';$('dirtyHint').textContent='保存済み';settingsVersion=s.configVersion;}
     $('soloRoleLabel').hidden=!s.solo;$('configErrors').textContent=s.validation.join('\n');$('start').disabled=!settingsDirty&&s.validation.length>0;updateSum();
+
+    const requests=s.host?(s.joinRequests||[]):[];
+    $('joinRequestsBox').hidden=!s.host||s.solo||!requests.length;
+    $('joinRequestCount').textContent=String(requests.length);
+    const ids=new Set(requests.map(r=>r.id));
+    if(s.host&&!s.solo)for(const r of requests)if(!lastJoinRequestIds.has(r.id))toast(`${r.name}から参加申請が届きました。`);
+    lastJoinRequestIds=ids;
+    $('joinRequests').innerHTML=requests.map(r=>`<div class="join-request-row"><div><strong>${esc(r.name)}</strong><small>参加を希望しています</small></div><div><button type="button" class="approve" data-approve="${esc(r.id)}">許可</button><button type="button" class="reject" data-reject="${esc(r.id)}">拒否</button></div></div>`).join('');
+    $('joinRequests').querySelectorAll('[data-approve]').forEach(b=>b.onclick=()=>runButton(b,'許可中…',()=>call('approve_join',{requestId:b.dataset.approve})));
+    $('joinRequests').querySelectorAll('[data-reject]').forEach(b=>b.onclick=()=>runButton(b,'拒否中…',()=>call('reject_join',{requestId:b.dataset.reject})));
   }
   function playerHtml(p,s){
-    const sub=[p.bot?'CPU':'HUMAN',p.id===s.me.id?'あなた':'',p.host?'部屋主':'',!p.connected&&!p.bot?'切断中':'',p.auto?'代行中':'',!p.alive?'幽霊':''].filter(Boolean).join(' · '),index=s.players.findIndex(t=>t.id===p.id)%5;
+    const sub=[p.silent?'無言参加者':p.bot?'自動参加者':'HUMAN',p.id===s.me.id?'あなた':'',p.host?'部屋主':'',!p.connected&&!p.bot?'切断中':'',!p.alive?'幽霊':''].filter(Boolean).join(' · '),index=s.players.findIndex(t=>t.id===p.id)%5;
     const role=p.role?`<div class="player-sub">${esc(ROLES[p.role]?.name||p.role)}${p.lover?' ♡':''}${p.won?' <span class="win-mark">WIN</span>':''}</div>`:'';
     return `<div class="player-row ${p.id===s.me.id?'me':''} ${p.alive?'':'dead'}"><span class="avatar v${index}" aria-hidden="true">${esc([...p.name][0])}</span><div class="player-meta"><div class="player-name">${esc(p.name)}</div><div class="player-sub">${esc(sub)}</div>${role}</div></div>`;
   }
@@ -195,7 +266,7 @@
     return bits;
   }
   function renderIdentity(s){
-    const r=ROLES[s.me.role];$('aliveStatus').textContent=s.me.auto?'CPU代行中':s.me.alive?'生存':'幽霊';
+    const r=ROLES[s.me.role];$('aliveStatus').textContent=s.me.auto?'自動処理中':s.me.alive?'生存':'幽霊';
     if(s.phase==='ended'&&r){$('myRole').textContent=r.name;$('roleSymbol').textContent=r.icon;$('myRoleTeam').textContent=s.me.lover?'恋人陣営':teams[r.team];$('roleText').textContent=r.text;$('allies').textContent=roleSecrets(s).join('\n');}
     else{$('myRole').textContent='役職カードを見る';$('roleSymbol').textContent='☾';$('myRoleTeam').textContent='ゆっくり確認できます';$('roleText').textContent='役職は常時表示しません。必要な時だけカードを開けます。';$('allies').textContent='';}
   }
@@ -249,7 +320,7 @@
     const a=$('actions');a.innerHTML='';const text=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=value;if(cls)e.className=cls;a.append(e);};
     if(s.phase==='ended'){text('h2','対戦終了');text('p','全員の役職が公開されています。','caption');return;}
     if(!s.me.alive){text('h2','幽霊として観戦中');text('p','盤面と幽霊チャットで最後まで見られます。','caption ghost-notice');return;}
-    if(s.me.auto){text('h2','CPUが代行しています');text('p','次のフェーズで操作が戻ります。','caption');return;}
+    if(s.me.auto){text('h2','自動処理中');text('p','次のフェーズで操作が戻ります。','caption');return;}
     if(s.phase==='reveal'){text('h2','役職カード');text('p','カードは自動表示されます。見逃した場合は上の「役職カードを見る」から再確認できます。','caption');return;}
     if(s.phase==='discussion'){text('h2','話し合い');text('p','盤面の相手をタップすると、疑い・白寄り・質問・判定主張を矢印で出せます。','caption');return;}
     if(['dawn','execution'].includes(s.phase)){text('h2',s.phase==='dawn'?'朝の発表':'投票結果');text('p','中央のナレーションと盤面を確認してください。','caption');return;}
@@ -270,13 +341,13 @@
     document.querySelector('[data-channel="ghost"]').hidden=!ghost;document.querySelector('[data-channel="wolves"]').hidden=!wolf;
     if(channel==='ghost'&&!ghost||channel==='wolves'&&!wolf)channel='public';document.querySelectorAll('[data-channel]').forEach(b=>b.classList.toggle('active',b.dataset.channel===channel));$('chatScope').textContent=({public:'PUBLIC',wolves:'PACK ONLY',ghost:'GHOSTS ONLY'})[channel];
     const msgs=s.messages.filter(m=>m.channel==='system'||m.channel===channel).slice(-180),sig=channel+':'+msgs.map(m=>m.id).join(',');
-    if(chatSignature!==sig){const box=$('messages'),bottom=box.scrollHeight-box.scrollTop-box.clientHeight<80,changed=!chatSignature.startsWith(channel+':');box.innerHTML=msgs.length?msgs.map(m=>{const structured=['accuse','trust','question','report','claim'].includes(m.meta?.kind);return `<div class="message ${m.channel==='system'?'system':''} ${m.playerId===s.me.id?'self':''} ${s.players.find(p=>p.id===m.playerId)?.bot?'cpu':''} ${structured?'structured':''}">${m.channel!=='system'?`<div class="message-head"><strong>${esc(m.name)}</strong><small>${s.players.find(p=>p.id===m.playerId)?.bot?'CPU · ':''}${m.day?m.day+'日目':'待機室'}${structured?' · 矢印':''}</small></div>`:''}<div class="message-text">${esc(m.text)}</div></div>`}).join(''):'<p class="message empty">まだ発言はありません。</p>';if(bottom||changed)box.scrollTop=box.scrollHeight;chatSignature=sig;}
+    if(chatSignature!==sig){const box=$('messages'),bottom=box.scrollHeight-box.scrollTop-box.clientHeight<80,changed=!chatSignature.startsWith(channel+':');box.innerHTML=msgs.length?msgs.map(m=>{const structured=['accuse','trust','question','report','claim'].includes(m.meta?.kind);return `<div class="message ${m.channel==='system'?'system':''} ${m.playerId===s.me.id?'self':''} ${s.players.find(p=>p.id===m.playerId)?.bot?'cpu':''} ${structured?'structured':''}">${m.channel!=='system'?`<div class="message-head"><strong>${esc(m.name)}</strong><small>${s.players.find(p=>p.id===m.playerId)?.silent?'無言 · ':s.players.find(p=>p.id===m.playerId)?.bot?'自動 · ':''}${m.day?m.day+'日目':'待機室'}${structured?' · 矢印':''}</small></div>`:''}<div class="message-text">${esc(m.text)}</div></div>`}).join(''):'<p class="message empty">まだ発言はありません。</p>';if(bottom||changed)box.scrollTop=box.scrollHeight;chatSignature=sig;}
     let can=false,hint='';
     if(channel==='ghost'){can=!s.me.alive&&!['lobby','reveal','ended'].includes(s.phase);hint='死亡者だけに届きます。';}
     else if(channel==='wolves'){can=s.me.alive&&['wolf','darkwolf','black_leveler'].includes(s.me.role)&&s.phase==='night';hint='夜の人狼だけが見られます。';}
     else{can=['lobby','ended','discussion','vote','dawn','execution'].includes(s.phase)&&(s.me.alive||s.phase==='ended');hint=can?'公開チャットです。盤面の矢印と合わせて話せます。':'今は公開チャットに発言できません。';}
     if(s.phase==='ended')hint='試合終了。公開チャットで感想を話せます。';
-    if(can&&channel==='public'&&s.phase==='discussion')hint='公開チャット。CPUに「誰が怪しい？」「○○どう思う？」のような自由文でも質問できます。';
+    if(can&&channel==='public'&&s.phase==='discussion')hint='公開チャットです。発言や質問を自由に入力できます。';
     $('chatInput').disabled=!can;$('send').disabled=!can;$('chatHint').textContent=hint;$('chatInput').placeholder=can?(channel==='ghost'?'幽霊だけに話す…':channel==='wolves'?'仲間と相談…':'例：誰が怪しいと思う？'):'この時間は読むだけです';$('statementBox').hidden=!(s.phase==='discussion'&&s.me.alive&&channel==='public');
     const boardCan=['discussion','vote','dawn','execution','ended'].includes(s.phase)&&(s.me.alive||s.phase==='ended');
     $('boardChatForm').hidden=!['discussion','vote','dawn','execution','ended'].includes(s.phase);
@@ -318,7 +389,7 @@
     if(sig===boardPlayerSignature)return;
     boardPlayerSignature=sig;
     const box=$('boardPlayers');box.innerHTML='';const n=s.players.length;
-    s.players.forEach((p,i)=>{const pos=boardPoint(i,n),b=document.createElement('button');b.type='button';b.className=`board-player ${p.alive?'':'dead'} ${p.id===s.me.id?'me':''} ${p.bot?'bot':''} ${n>18?'dense':''}`;b.style.left=pos.x+'%';b.style.top=pos.y+'%';b.dataset.playerId=p.id;const peek=s.me.role==='cheater'&&p.role?`<em class="cheater-role">${esc(ROLES[p.role]?.name||p.role)}</em>`:'';b.innerHTML=`<span class="board-avatar">${esc([...(p.name||'?')][0]||'?')}</span><span class="board-name">${esc(p.name)}</span>${peek}<small>${p.bot?'CPU':''}${p.host?(p.bot?' · ':'')+'HOST':''}${!p.alive?' · 死亡':''}</small>`;b.onclick=()=>handleBoardPlayer(p.id);box.append(b);});
+    s.players.forEach((p,i)=>{const pos=boardPoint(i,n),b=document.createElement('button');b.type='button';b.className=`board-player ${p.alive?'':'dead'} ${p.id===s.me.id?'me':''} ${p.bot?'bot':''} ${n>18?'dense':''}`;b.style.left=pos.x+'%';b.style.top=pos.y+'%';b.dataset.playerId=p.id;const peek=s.me.role==='cheater'&&p.role?`<em class="cheater-role">${esc(ROLES[p.role]?.name||p.role)}</em>`:'';b.innerHTML=`<span class="board-avatar">${esc([...(p.name||'?')][0]||'?')}</span><span class="board-name">${esc(p.name)}</span>${peek}<small>${p.silent?'無言':p.bot?'自動':''}${p.host?((p.silent||p.bot)?' · ':'')+'HOST':''}${!p.alive?' · 死亡':''}</small>`;b.onclick=()=>handleBoardPlayer(p.id);box.append(b);});
   }
   function handleBoardPlayer(id){
     if(!state||id===state.me.id)return;
