@@ -34,7 +34,7 @@ async function start(){
   $('startPanel').hidden=true;$('chatPanel').hidden=false;
   $('corpus').textContent='参照できる実戦会話 '+data.corpusSize.toLocaleString('ja-JP')+'件 · 学習停止中';
   $('status').textContent=data.learningActive?'LEARNING':'PAUSED';
-  addMessage('ai','ここは会話AIだけを試す実験室じゃ。今は人間の実戦会話から近い返しを探して返してる。略称や呼び方もある程度まとめて判別する。今の会話はまだ即学習には使わない。',{meta:'語彙変換型会話AI v0.2 · 学習停止中'});
+  addMessage('ai','ここは会話AIだけを試す実験室じゃ。今は人間の実戦会話から近い返しを探して返してる。略称や呼び方もある程度まとめて判別する。今の会話はまだ即学習には使わない。',{meta:'意図＋語彙変換型会話AI v0.3 · 学習停止中'});
   $('input').focus();
 }
 $('startForm').addEventListener('submit',e=>{e.preventDefault();start().catch(err=>{toast(err.message);$('status').textContent='ERROR';});});
@@ -48,7 +48,10 @@ $('chatForm').addEventListener('submit',async e=>{
     const data=await api({action:'send',sessionId,text});
     thinking.remove();
     const pct=Math.round((Number(data.confidence)||0)*100);
-    const meta=data.lowConfidence?'学習例との一致が弱い · '+pct+'%':'学習例との近さ '+pct+'%';
+    let meta;
+    if(data.mode==='intent')meta='意図判定：'+(data.intentLabel||'会話');
+    else if(data.mode==='fallback')meta='一致する実戦会話が少ないため安全返答';
+    else meta=data.lowConfidence?'実戦会話との一致が弱い · '+pct+'%':'実戦会話との近さ '+pct+'%';
     addMessage('ai',data.reply,{turnId:data.aiTurnId,meta});
     $('corpus').textContent='参照できる実戦会話 '+Number(data.corpusSize||0).toLocaleString('ja-JP')+'件 · 学習停止中'+(data.aliases?' · 別名'+data.aliases+'件':'');
   }catch(err){thinking.remove();addMessage('ai','エラー：'+err.message,{meta:'SYSTEM'});}
