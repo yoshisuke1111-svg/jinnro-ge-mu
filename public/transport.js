@@ -6,35 +6,63 @@
     const result=nativeQuery.call(this,selector);
     if(this.id!=='room'||selector!==collapseSelector)return result;
     const all=[...result],preferred=all.filter(element=>element.matches('.panel,.room-heading>*,.phase-bar,.records-panel,.mobile-nav,.board-player,.message'));
-    const source=preferred.length?preferred:all,max=matchMedia('(max-width:700px)').matches?14:28,stride=Math.max(1,Math.ceil(source.length/max));
+    const source=preferred.length?preferred:all,max=matchMedia('(max-width:700px)').matches?18:36,stride=Math.max(1,Math.ceil(source.length/max));
     return source.filter((_,index)=>index%stride===0).slice(0,max);
   };
   const style=document.createElement('style');style.id='collapse-performance-fix';
   style.textContent=`
     .collapse-fall #room{animation:none!important;transform:none!important;filter:none!important}
-    .collapse-fragment{transform-origin:center top!important;backface-visibility:hidden}
+    .collapse-fragment{
+      transform-origin:center top!important;
+      backface-visibility:hidden;
+      contain:paint
+    }
     .collapse-fall .collapse-fragment{
-      animation:collapse-topdown-piece 1.05s cubic-bezier(.42,.02,.88,.4) var(--fall-delay,0ms) forwards!important;
+      animation:collapse-topdown-piece 1.68s cubic-bezier(.32,.02,.82,.38) var(--fall-delay,0ms) forwards!important;
       filter:none!important;
       will-change:transform,opacity!important
     }
     .room-collapse-fx .collapse-noise{
       animation:none!important;
       mix-blend-mode:normal!important;
-      opacity:.045!important;
-      background:linear-gradient(180deg,#0000 0,#1112 44%,#0003 100%)!important
+      opacity:.025!important;
+      background:linear-gradient(180deg,#0000 0,#1111 44%,#0002 100%)!important
+    }
+    .room-collapse-fx .collapse-dust{
+      position:absolute;left:-10%;right:-10%;top:-18vh;height:28vh;
+      opacity:0;transform:translate3d(0,0,0);
+      background:linear-gradient(180deg,#0000 0,#15191d22 45%,#66707818 72%,#0000 100%);
+      pointer-events:none
+    }
+    .room-collapse-fx.collapse-deep .collapse-dust{
+      animation:collapse-dust-sweep 3.25s ease-in forwards
     }
     @keyframes collapse-topdown-piece{
-      0%{transform:translate3d(0,0,0) rotate(0);opacity:1}
-      10%{transform:translate3d(0,3px,0) rotate(.4deg);opacity:1}
-      24%{transform:translate3d(calc(var(--fall-x,0px) * .08),10px,0) rotate(calc(var(--fall-r,0deg) * .08));opacity:1}
-      100%{transform:translate3d(var(--fall-x,0px),118vh,0) rotate(var(--fall-r,0deg));opacity:.03}
+      0%{transform:translate3d(0,0,0) rotate(0) scale(1);opacity:1}
+      10%{transform:translate3d(calc(var(--break-x,0px) * .18),2px,0) rotate(calc(var(--fall-r,0deg) * .025)) scale(.998);opacity:1}
+      20%{transform:translate3d(calc(var(--break-x,0px) * -.24),5px,0) rotate(calc(var(--fall-r,0deg) * -.045)) scale(.996);opacity:1}
+      31%{transform:translate3d(var(--break-x,0px),15px,0) rotate(calc(var(--fall-r,0deg) * .16)) scale(.985);opacity:1}
+      45%{transform:translate3d(calc(var(--fall-x,0px) * .28),48px,0) rotate(calc(var(--fall-r,0deg) * .35)) scale(.97);opacity:.98}
+      72%{opacity:.92}
+      100%{transform:translate3d(var(--fall-x,0px),128vh,0) rotate(var(--fall-r,0deg)) scale(.93);opacity:0}
+    }
+    @keyframes collapse-dust-sweep{
+      0%{opacity:0;transform:translate3d(0,0,0)}
+      18%{opacity:.32}
+      72%{opacity:.16}
+      100%{opacity:0;transform:translate3d(0,116vh,0)}
     }
     @media(max-width:700px){
       .room-collapse-fx .collapse-noise{display:none!important}
-      .collapse-fall .collapse-fragment{animation-duration:.92s!important}
+      .collapse-fall .collapse-fragment{animation-duration:1.48s!important}
+      .room-collapse-fx.collapse-deep .collapse-dust{animation-duration:2.9s}
     }
-  `;
+    .room-collapse-fx.reduced .collapse-dust{display:none!important}
+    .room-collapse-fx.reduced .collapse-fall .collapse-fragment,
+    body.reduced-motion .collapse-fall .collapse-fragment{
+      animation-duration:1.1s!important
+    }
+  `
   document.head.append(style);
 })();
 
