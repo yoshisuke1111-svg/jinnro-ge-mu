@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-let sessionId=null,busy=false;
+let sessionId=null,busy=false,startBusy=false;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,2600);}
 async function api(body){
@@ -19,7 +19,7 @@ function addMessage(kind,text,extra={}){
     const label=document.createElement('span');label.className='meta';label.textContent='この返答は？';rating.append(label);
     for(const [value,labelText,cls] of [[1,'👍','good'],[-1,'👎','bad']]){
       const b=document.createElement('button');b.type='button';b.textContent=labelText;b.className=cls;
-      b.onclick=async()=>{try{await api({action:'feedback',sessionId,turnId:extra.turnId,value});[...rating.querySelectorAll('button')].forEach(x=>x.disabled=true);b.classList.add('selected');toast(value===1?'評価を記録した（学習には未反映）':'評価を記録した（学習には未反映）');}catch(err){toast(err.message);}};
+      b.onclick=async()=>{try{const result=await api({action:'feedback',sessionId,turnId:extra.turnId,value});[...rating.querySelectorAll('button')].forEach(x=>x.disabled=true);b.classList.add('selected');toast(result.stored===false?'評価は一時的に保存できませんでした':'評価を記録した（学習には未反映）');}catch(err){toast(err.message);}};
       rating.append(b);
     }
     wrap.append(rating);
@@ -27,18 +27,28 @@ function addMessage(kind,text,extra={}){
   $('messages').append(wrap);$('messages').scrollTop=$('messages').scrollHeight;return wrap;
 }
 async function start(){
-  const name=$('name').value.trim()||'あなた';
-  $('status').textContent='接続中';
-  const data=await api({action:'start',name});
-  sessionId=data.sessionId;
-  $('startPanel').hidden=true;$('chatPanel').hidden=false;
-  $('corpus').textContent='参照できる実戦会話 '+data.corpusSize.toLocaleString('ja-JP')+'件 · 学習停止中';
-  $('status').textContent=data.learningActive?'LEARNING':'PAUSED';
-  addMessage('ai','ここは会話AIだけを試す実験室じゃ。今は人間の実戦会話から近い返しを探して返してる。略称や呼び方もある程度まとめて判別する。今の会話はまだ即学習には使わない。',{meta:'意図＋語彙変換型会話AI v0.3 · 学習停止中'});
-  $('input').focus();
+  if(startBusy)return;
+  startBusy=true;
+  const submit=$('startForm').querySelector('button[type="submit"]');
+  if(submit)submit.disabled=true;
+  try{
+    const name=$('name').value.trim()||'あなた';
+    $('status').textContent='接続中';
+    const data=await api({action:'start',name});
+    sessionId=data.sessionId;
+    $('messages').innerHTML='';
+    $('startPanel').hidden=true;$('chatPanel').hidden=false;
+    $('corpus').textContent='参照できる実戦会話 '+data.corpusSize.toLocaleString('ja-JP')+'件 · 学習停止中';
+    $('status').textContent=data.learningActive?'LEARNING':'PAUSED';
+    addMessage('ai','ここは会話AIだけを試す実験室じゃ。挨拶や雑談への反応と、人狼の実戦会話から探す返答を分けている。今の会話は評価として保存するが、即学習には使わない。',{meta:'意図判定＋文脈絞り込み型会話AI v0.4 · 学習停止中'});
+    $('input').focus();
+  }finally{
+    startBusy=false;
+    if(submit)submit.disabled=false;
+  }
 }
 $('startForm').addEventListener('submit',e=>{e.preventDefault();start().catch(err=>{toast(err.message);$('status').textContent='ERROR';});});
-$('newChat').onclick=()=>{sessionId=null;$('messages').innerHTML='';$('chatPanel').hidden=true;$('startPanel').hidden=false;$('status').textContent='準備完了';};
+$('newChat').onclick=()=>{sessionId=null;busy=false;startBusy=false;$('messages').innerHTML='';$('chatPanel').hidden=true;$('startPanel').hidden=false;$('status').textContent='準備完了';$('startForm').querySelector('button[type="submit"]')?.removeAttribute('disabled');};
 $('chatForm').addEventListener('submit',async e=>{
   e.preventDefault();if(busy||!sessionId)return;
   const text=$('input').value.trim();if(!text)return;
