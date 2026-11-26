@@ -336,18 +336,18 @@ function intentReply(intent,{seed=''}={}){
   const n=stableNumber(seed+'\u0000'+JSON.stringify(intent));
   const pick=arr=>arr[n%arr.length];
   if(intent.type==='greeting'){
-    if(intent.variant==='first_meeting')return pick(['初めまして よろしく','どうも 初めまして','初めまして よろしくね']);
-    if(intent.variant==='reunion')return pick(['久しぶり','お 久しぶり','久しぶりだね']);
-    return pick(['こんにちは','どうも こんにちは','やあ こんにちは']);
+    if(intent.variant==='first_meeting')return pick(['初めまして、よろしく。','どうも、初めまして。','初めまして。よろしくね。']);
+    if(intent.variant==='reunion')return pick(['久しぶり。','お、久しぶり。','久しぶりだね。']);
+    return pick(['こんにちは。','どうも、こんにちは。','やあ、こんにちは。']);
   }
   if(intent.type==='critique')return pick([
-    'たしかに今の返しは不自然だった もう少し会話につながる返しにする',
-    'まだ変か 今の返しは文脈がつながってなかったな',
-    'それはそう 唐突な返しになってた'
+    'たしかに今の返しは不自然だった。もう少し会話につながる返しにする。',
+    'まだ変か。今の返しは文脈がつながってなかったな。',
+    'それはそう。唐突な返しになってた。'
   ]);
   if(intent.type==='accusation')return pick([
-    'え どの辺が怪しく見えた？',
-    'そう見える？ 理由は聞きたい',
+    'え、どの辺が怪しく見えた？',
+    'そう見える？ 理由は聞きたい。',
     'まじ？ どこでそう思った？'
   ]);
   if(intent.type==='activity')return pick([
@@ -689,10 +689,14 @@ function createConversationLab({
     const best=ranked[0];
 
     // 弱い一致では過去ログをランダムに返さない。意味不明な飛躍の主因だった。
-    if(!best||best.score<0.22){
+    const minimumScore=0.45;
+    if(!best||best.score<minimumScore){
+      const reply=/[?？]\s*$/u.test(String(input||''))
+        ?'んー、そこはもう少し具体的に聞いてみて。'
+        :'それ、もう少し詳しく聞いてもいい？';
       return {
         id:null,
-        reply:'その話はまだ合う会話例が少ないな もう少し詳しく聞かせて',
+        reply,
         score:best?.score||0,
         origin:'fallback',
         lowConfidence:true,
@@ -700,7 +704,7 @@ function createConversationLab({
       };
     }
 
-    const pool=ranked.filter(x=>x.score>=Math.max(.22,best.score-0.06)).slice(0,4);
+    const pool=ranked.filter(x=>x.score>=Math.max(minimumScore,best.score-0.06)).slice(0,4);
     return pool[stableNumber(input+'\u0000'+best.id)%pool.length]||best;
   }
 
@@ -777,7 +781,8 @@ function createConversationLab({
       args:[v,turnId,sessionId]
     }),null);
     // 評価は保存するが、ONLINE_LEARNING=false の間は返答候補へ即反映しない。
-    return {ok:true,rowsAffected:Number(result?.rowsAffected||0),stored:!!result,learningActive:ONLINE_LEARNING};
+    const rowsAffected=Number(result?.rowsAffected||0);
+    return {ok:true,rowsAffected,stored:rowsAffected>0,learningActive:ONLINE_LEARNING};
   }
 
   async function stats(){
