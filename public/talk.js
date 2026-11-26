@@ -40,7 +40,7 @@ async function start(){
     $('startPanel').hidden=true;$('chatPanel').hidden=false;
     $('corpus').textContent='参照できる実戦会話 '+data.corpusSize.toLocaleString('ja-JP')+'件 · 学習停止中';
     $('status').textContent=data.learningActive?'LEARNING':'PAUSED';
-    addMessage('ai','ここは会話AIだけを試す実験室じゃ。挨拶や雑談への反応と、人狼の実戦会話から探す返答を分けている。今の会話は評価として保存するが、即学習には使わない。',{meta:'意図判定＋文脈絞り込み型会話AI v0.4 · 学習停止中'});
+    addMessage('ai','ここは会話AIだけを試す実験室じゃ。普通の雑談と人狼の実戦会話を分け、直前の会話も少し覚えて返す。今の会話は評価として保存するが、即学習には使わない。',{meta:'雑談分離＋短期文脈型会話AI v0.5 · 学習停止中'});
     $('input').focus();
   }finally{
     startBusy=false;
