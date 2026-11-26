@@ -111,6 +111,85 @@ function cleanReply(text){
   return String(text||'').replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim().slice(0,180);
 }
 
+const RESERVED_NAME_WORDS=new Set([
+  '人狼','狼','村人','占い','占い師','霊媒','霊媒師','騎士','狩人','狂人',
+  'チーター','リセッター','白レベラー','黒レベラー','墓荒らし',
+  'cpu','bot','ボット','co','今日','明日','昨日','今','誰','みんな','全員','自分'
+].map(x=>String(x).normalize('NFKC').toLowerCase()));
+
+function usablePersonName(value){
+  const name=String(value||'').normalize('NFKC').trim().replace(/(?:さん|くん|君|ちゃん|氏)$/u,'');
+  const key=name.toLowerCase();
+  if(name.length<2||name.length>16||RESERVED_NAME_WORDS.has(key))return '';
+  if(!/^[\p{L}\p{N}_ー・.-]+$/u.test(name))return '';
+  return name;
+}
+
+function inferPersonNames(text,known=[]){
+  const raw=String(text||'').normalize('NFKC');
+  const out=[];
+  const add=value=>{const name=usablePersonName(value);if(name&&!out.includes(name))out.push(name);};
+
+  // すでにこの会話で人名として見つけた語は、再登場時にも人名として扱う。
+  for(const name of known||[])if(name&&raw.includes(name))add(name);
+
+  // 「田中さん」「佐藤ちゃん」などは強い人名シグナル。
+  for(const m of raw.matchAll(/([\p{L}\p{N}_ー・.-]{2,16}?)(?:さん|くん|君|ちゃん|氏)(?=$|[\s、。,.!！?？はがをにともって])/gu))add(m[1]);
+
+  // 「田中と佐藤どっち」のような比較。
+  for(const m of raw.matchAll(/([\p{L}\p{N}_ー・.-]{2,12})と([\p{L}\p{N}_ー・.-]{2,12})(?:なら|だと|は)?(?:どっち|どちら)/gu)){
+    add(m[1]);add(m[2]);
+  }
+
+  // 人狼会話で頻出する「Xどう思う」「X怪しい」など。
+  // 文頭や句読点の後だけを見ることで、普通の文章を人名扱いしすぎない。
+  const triggers='(?:どう思|怪し|白い|黒い|吊り|吊る|投票|噛み|噛む|占う|占い先|守る|護衛|狼っぽ|村っぽ)';
+  const re=new RegExp('(?:^|[\\s、。,.!！?？])([\\p{L}\\p{N}_ー・.-]{2,8}?)(?:さん|くん|君|ちゃん|氏)?(?='+triggers+')','gu');
+  for(const m of raw.matchAll(re))add(m[1]);
+
+  // 会話の冒頭にある軽い前置きを除去してもう一度見る。
+  const stripped=raw.replace(/^(?:正直|今は?|じゃあ|てか|ちなみに|ところで|個人的には?|俺は|私は)[、,\s]*/u,'');
+  if(stripped!==raw){
+    const m=stripped.match(new RegExp('^([\\p{L}\\p{N}_ー・.-]{2,8}?)(?:さん|くん|君|ちゃん|氏)?(?='+triggers+')','u'));
+    if(m)add(m[1]);
+  }
+  return out;
+}
+
+function makePersonTemplate(prompt,reply,playerNames=[]){
+  const names=[];
+  for(const value of playerNames||[]){
+    const name=usablePersonName(value);
+    if(name&&!names.includes(name)&&(String(prompt).includes(name)||String(reply).includes(name)))names.push(name);
+  }
+  names.sort((a,b)=>b.length-a.length);
+  const slotByName=new Map();
+  let next=1;
+  const replace=text=>{
+    let out=String(text||'');
+    for(const name of names){
+      if(!slotByName.has(name))slotByName.set(name,next++);
+      out=out.split(name).join('{{person'+slotByName.get(name)+'}}');
+    }
+    return out;
+  };
+  return {prompt:replace(prompt),reply:replace(reply),personSlots:slotByName.size};
+}
+
+function runtimePersonTemplate(text,known=[]){
+  const names=inferPersonNames(text,known);
+  let templated=String(text||'');
+  names.forEach((name,i)=>{templated=templated.split(name).join('{{person'+(i+1)+'}}');});
+  return {text:templated,names};
+}
+
+function renderPersonTemplate(text,names=[]){
+  return String(text||'').replace(/\{\{person(\d+)\}\}/g,(_,n)=>{
+    const name=names[Number(n)-1];
+    return name||'その人';
+  });
+}
+
 function createConversationLab({
   url=process.env.TURSO_DATABASE_URL||'',
   authToken=process.env.TURSO_AUTH_TOKEN||'',
@@ -122,6 +201,7 @@ function createConversationLab({
   const enabled=Boolean(String(url).trim()&&String(authToken).trim());
   let db=client,readyPromise=null,cache={at:0,examples:[]},lastError=null;
   const sessionAliases=new Map();
+  const sessionPeople=new Map();
 
   async function init(){
     if(readyPromise)return readyPromise;
@@ -201,10 +281,13 @@ function createConversationLab({
         }
         const prompt=cleanReply(source?.text||'');
         if(!prompt)continue;
+        const playerNames=(Array.isArray(context.players)?context.players:[]).map(p=>p?.name).filter(Boolean);
+        const templated=makePersonTemplate(prompt,reply,playerNames);
         examples.push({
           id:String(row.example_id||''),
-          prompt,
-          reply,
+          prompt:templated.prompt,
+          reply:templated.reply,
+          personSlots:templated.personSlots,
           origin:'game'
         });
         if(examples.length>=limit)break;
@@ -263,6 +346,7 @@ function createConversationLab({
     if(!(await init()))throw Error('会話ラボの保存先に接続できません。');
     const sessionId=crypto.randomUUID(),displayName=cleanReply(name||'あなた').slice(0,24)||'あなた';
     sessionAliases.set(sessionId,{});
+    sessionPeople.set(sessionId,[]);
     await db.execute({
       sql:'INSERT INTO conversation_lab_sessions (session_id,created_at,display_name) VALUES (?,?,?)',
       args:[sessionId,Date.now(),displayName]
@@ -280,12 +364,15 @@ function createConversationLab({
     return Boolean(result.rows?.length);
   }
 
-  function chooseReply(input,corpus,recent,aliases={}){
+  function chooseReply(input,corpus,recent,aliases={},people=[]){
+    const runtime=runtimePersonTemplate(input,people);
+    const comparisonInput=runtime.text;
     let best=null;
     for(const e of corpus){
-      const repeatPenalty=recent.has(normalizeText(e.reply))?0.35:1;
-      const score=scoreExample(input,e,aliases)*repeatPenalty;
-      if(!best||score>best.score)best={...e,score};
+      const rendered=renderPersonTemplate(e.reply,runtime.names);
+      const repeatPenalty=recent.has(normalizeText(rendered))?0.35:1;
+      const score=scoreExample(comparisonInput,e,aliases)*repeatPenalty;
+      if(!best||score>best.score)best={...e,score,runtimeNames:runtime.names};
     }
     if(!best||best.score<0.045){
       const candidates=corpus
@@ -293,7 +380,7 @@ function createConversationLab({
         .filter(e=>e.reply.length>=2&&e.reply.length<=38);
       if(candidates.length){
         const e=candidates[crypto.randomInt(candidates.length)];
-        return {...e,score:0.02,lowConfidence:true};
+        return {...e,score:0.02,lowConfidence:true,runtimeNames:runtime.names};
       }
       return {id:null,reply:'まだこの話題の会話例が少ないみたい',score:0,origin:'system',lowConfidence:true};
     }
@@ -309,6 +396,9 @@ function createConversationLab({
     const aliases=sessionAliases.get(sessionId)||{};
     Object.assign(aliases,inferAliasesFromText(clean));
     sessionAliases.set(sessionId,aliases);
+    const people=sessionPeople.get(sessionId)||[];
+    for(const name of inferPersonNames(clean,people))if(!people.includes(name))people.push(name);
+    sessionPeople.set(sessionId,people);
 
     const userTurnId=crypto.randomUUID(),now=Date.now();
     await db.execute({
@@ -319,24 +409,26 @@ function createConversationLab({
     });
 
     const [corpus,recent]=await Promise.all([loadCorpus(),recentReplies(sessionId)]);
-    const picked=chooseReply(clean,corpus,recent,aliases);
+    const picked=chooseReply(clean,corpus,recent,aliases,people);
+    const reply=renderPersonTemplate(picked.reply,picked.runtimeNames||people);
     const aiTurnId=crypto.randomUUID();
     await db.execute({
       sql:`INSERT INTO conversation_lab_turns
            (turn_id,session_id,created_at,speaker,text,reply_to,source_example_id,confidence)
            VALUES (?,?,?,?,?,?,?,?)`,
-      args:[aiTurnId,sessionId,Date.now(),'ai',picked.reply,userTurnId,picked.id,picked.score]
+      args:[aiTurnId,sessionId,Date.now(),'ai',reply,userTurnId,picked.id,picked.score]
     });
 
     return {
       userTurnId,
       aiTurnId,
-      reply:picked.reply,
+      reply,
       confidence:picked.score,
       lowConfidence:!!picked.lowConfidence,
       source:picked.origin||'game',
       corpusSize:corpus.length,
       aliases:Object.keys(aliases).length,
+      people:people.length,
       learningActive:ONLINE_LEARNING
     };
   }
@@ -376,4 +468,4 @@ function createConversationLab({
   return {init,startSession,send,feedback,stats,loadCorpus,close};
 }
 
-module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,inferAliasesFromText,ONLINE_LEARNING};
+module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING};
