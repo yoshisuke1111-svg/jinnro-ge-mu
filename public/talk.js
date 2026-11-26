@@ -34,7 +34,7 @@ async function start(){
   $('startPanel').hidden=true;$('chatPanel').hidden=false;
   $('corpus').textContent='参照できる実戦会話 '+data.corpusSize.toLocaleString('ja-JP')+'件 · 学習停止中';
   $('status').textContent=data.learningActive?'LEARNING':'PAUSED';
-  addMessage('ai','ここは会話AIだけを試す実験室じゃ。今は人間の実戦会話から近い返しを探して返してる。略称や呼び方もある程度まとめて判別する。今の会話はまだ即学習には使わない。',{meta:'検索型会話AI v0 · 学習停止中'});
+  addMessage('ai','ここは会話AIだけを試す実験室じゃ。今は人間の実戦会話から近い返しを探して返してる。略称や呼び方もある程度まとめて判別する。今の会話はまだ即学習には使わない。',{meta:'語彙変換型会話AI v0.2 · 学習停止中'});
   $('input').focus();
 }
 $('startForm').addEventListener('submit',e=>{e.preventDefault();start().catch(err=>{toast(err.message);$('status').textContent='ERROR';});});
