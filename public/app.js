@@ -66,14 +66,14 @@
         for(const k of ['--fall-x','--fall-r','--fall-delay','--break-x'])el.style.removeProperty(k);
       }
       overlay.classList.add('collapse-finished');setTimeout(()=>overlay.remove(),420);
-      collapseRunning=false;toast('部屋が強制崩壊しました。',true);
+      collapseRunning=false;
     };
 
     // Accessibility setting still reduces the movement, but never makes the forced collapse a blink.
     if(reduced){
       overlay.classList.add('reduced');
       document.body.classList.add('collapse-fall');
-      setTimeout(finish,Math.min(3400,duration-120));
+      setTimeout(finish,Math.max(6000,duration-180));
       return;
     }
 
