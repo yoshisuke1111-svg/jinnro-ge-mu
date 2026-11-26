@@ -20,7 +20,7 @@
   <section id="startPanel" class="start-card">
     <p class="eyebrow">CONVERSATION LAB</p>
     <h1>会話だけを育てる場所</h1>
-    <p class="lead">人狼の実戦で集めた人間の発言から、入力に近い会話例を探して返します。今は文章生成AIではなく、外部APIを使わない検索型の第1段階です。</p>
+    <p class="lead">人狼の実戦会話を参考にしつつ、語彙辞書で意味の近い表現をまとめ、名前を現在の会話へ置き換え、返答を別の言い回しへ組み替えます。外部APIは使いません。</p>
     <div class="notice">
       <strong>現在はオンライン学習を停止中</strong>
       <span>会話ログと👍/👎評価は記録しますが、今はその場で返答AIへ反映しません。十分たまってからまとめて再学習します。個人情報や秘密は入力しないでください。</span>
@@ -33,7 +33,7 @@
 
   <section id="chatPanel" class="chat-shell" hidden>
     <div class="lab-info">
-      <div><span class="dot"></span><strong>自作会話AI v0</strong><small id="corpus">会話例を読み込み中</small></div>
+      <div><span class="dot"></span><strong>自作会話AI v0.2</strong><small id="corpus">会話例を読み込み中</small></div>
       <button id="newChat" type="button">新しい会話</button>
     </div>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
