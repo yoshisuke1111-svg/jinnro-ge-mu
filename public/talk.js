@@ -19,7 +19,7 @@ function addMessage(kind,text,extra={}){
     const label=document.createElement('span');label.className='meta';label.textContent='この返答は？';rating.append(label);
     for(const [value,labelText,cls] of [[1,'👍','good'],[-1,'👎','bad']]){
       const b=document.createElement('button');b.type='button';b.textContent=labelText;b.className=cls;
-      b.onclick=async()=>{try{await api({action:'feedback',sessionId,turnId:extra.turnId,value});[...rating.querySelectorAll('button')].forEach(x=>x.disabled=true);b.classList.add('selected');toast(value===1?'良い例として保存した':'悪い例として保存した');}catch(err){toast(err.message);}};
+      b.onclick=async()=>{try{await api({action:'feedback',sessionId,turnId:extra.turnId,value});[...rating.querySelectorAll('button')].forEach(x=>x.disabled=true);b.classList.add('selected');toast(value===1?'評価を記録した（学習には未反映）':'評価を記録した（学習には未反映）');}catch(err){toast(err.message);}};
       rating.append(b);
     }
     wrap.append(rating);
@@ -32,9 +32,9 @@ async function start(){
   const data=await api({action:'start',name});
   sessionId=data.sessionId;
   $('startPanel').hidden=true;$('chatPanel').hidden=false;
-  $('corpus').textContent='参照できる会話例 '+data.corpusSize.toLocaleString('ja-JP')+'件';
-  $('status').textContent='ONLINE';
-  addMessage('ai','ここは会話AIだけを試す実験室じゃ。今は人間の実戦会話から近い返しを探して返してる。何でも話しかけてみて。',{meta:'検索型会話AI v0'});
+  $('corpus').textContent='参照できる実戦会話 '+data.corpusSize.toLocaleString('ja-JP')+'件 · 学習停止中';
+  $('status').textContent=data.learningActive?'LEARNING':'PAUSED';
+  addMessage('ai','ここは会話AIだけを試す実験室じゃ。今は人間の実戦会話から近い返しを探して返してる。略称や呼び方もある程度まとめて判別する。今の会話はまだ即学習には使わない。',{meta:'検索型会話AI v0 · 学習停止中'});
   $('input').focus();
 }
 $('startForm').addEventListener('submit',e=>{e.preventDefault();start().catch(err=>{toast(err.message);$('status').textContent='ERROR';});});
@@ -50,7 +50,7 @@ $('chatForm').addEventListener('submit',async e=>{
     const pct=Math.round((Number(data.confidence)||0)*100);
     const meta=data.lowConfidence?'学習例との一致が弱い · '+pct+'%':'学習例との近さ '+pct+'%';
     addMessage('ai',data.reply,{turnId:data.aiTurnId,meta});
-    $('corpus').textContent='参照できる会話例 '+Number(data.corpusSize||0).toLocaleString('ja-JP')+'件';
+    $('corpus').textContent='参照できる実戦会話 '+Number(data.corpusSize||0).toLocaleString('ja-JP')+'件 · 学習停止中'+(data.aliases?' · 別名'+data.aliases+'件':'');
   }catch(err){thinking.remove();addMessage('ai','エラー：'+err.message,{meta:'SYSTEM'});}
   finally{busy=false;$('send').disabled=false;$('input').focus();}
 });
