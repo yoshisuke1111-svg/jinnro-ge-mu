@@ -275,11 +275,29 @@ function numericMentions(text){
 
 function classifyIntent(text){
   const raw=cleanReply(text).normalize('NFKC');
-  const compact=raw.replace(/[\s　。、,.!！?？]+/g,'');
+  const compact=raw.replace(/[\s　。、,.!！?？~〜～…]+/g,'');
   if(!compact)return {type:'empty'};
 
-  if(/^(?:こんにちは|こんちは|こんばんは|おはよう|おはよ|やあ|どうも|はじめまして|よろしく|よろしくお願いします)$/u.test(compact)){
-    return {type:'greeting'};
+  if(/^(?:初めまして|はじめまして)$/u.test(compact)){
+    return {type:'greeting',variant:'first_meeting'};
+  }
+  if(/^(?:久しぶり|ひさしぶり|お久しぶり)$/u.test(compact)){
+    return {type:'greeting',variant:'reunion'};
+  }
+  if(/^(?:こんにちは|こんちは|こんばんは|おはよう|おはよ|やあ|どうも|よろしく|よろしくお願いします)$/u.test(compact)){
+    return {type:'greeting',variant:'normal'};
+  }
+
+  if(
+    /(?:人間|普通).*(?:そんな|そういう).*(?:しゃべ|喋|話し|言い).*(?:しない|ません|ない)/u.test(raw)||
+    /(?:返し|返答|返信|しゃべり方|喋り方|話し方|口調|言い方|会話).*(?:おかしい|変|不自然|違う|人間っぽくない)/u.test(raw)||
+    /^(?:うーん|うん|いや|んー|なんか|やっぱり|やっぱ)?(?:まだ)?(?:おかしい|変|不自然)(?:か|な|ね)?$/u.test(compact)
+  ){
+    return {type:'critique'};
+  }
+
+  if(/^(?:お前|君|きみ|あなた|あんた)(?:は|が)?(?:ちょっと|少し|かなり|だいぶ)?(?:怪しい|疑わしい|黒っぽい|狼っぽい|人狼っぽい|人狼だろ|狼だろ)(?:と思う|かも|な|ね)?$/u.test(compact)){
+    return {type:'accusation'};
   }
 
   if(/^(?:何|なに)(?:を)?(?:しよう|する|しよ|やろう|やる)(?:ね|か|かな)?$/u.test(compact)||
@@ -309,13 +327,29 @@ const INTENT_LABELS={
   activity:'話題相談',
   role_claim:'役職申告',
   self_intro:'自己紹介',
-  confused:'聞き返し'
+  confused:'聞き返し',
+  critique:'会話への指摘',
+  accusation:'疑われた時の返答'
 };
 
 function intentReply(intent,{seed=''}={}){
   const n=stableNumber(seed+'\u0000'+JSON.stringify(intent));
   const pick=arr=>arr[n%arr.length];
-  if(intent.type==='greeting')return pick(['こんにちは','どうも こんにちは','やあ こんにちは']);
+  if(intent.type==='greeting'){
+    if(intent.variant==='first_meeting')return pick(['初めまして よろしく','どうも 初めまして','初めまして よろしくね']);
+    if(intent.variant==='reunion')return pick(['久しぶり','お 久しぶり','久しぶりだね']);
+    return pick(['こんにちは','どうも こんにちは','やあ こんにちは']);
+  }
+  if(intent.type==='critique')return pick([
+    'たしかに今の返しは不自然だった もう少し会話につながる返しにする',
+    'まだ変か 今の返しは文脈がつながってなかったな',
+    'それはそう 唐突な返しになってた'
+  ]);
+  if(intent.type==='accusation')return pick([
+    'え どの辺が怪しく見えた？',
+    'そう見える？ 理由は聞きたい',
+    'まじ？ どこでそう思った？'
+  ]);
   if(intent.type==='activity')return pick([
     '何か話題決める？ 人狼の話でも雑談でもいいよ',
     '何しようか 人狼の話か普通の雑談でもする？',
@@ -442,6 +476,23 @@ function createConversationLab({
   let db=client,readyPromise=null,cache={at:0,examples:[]},lastError=null;
   const sessionAliases=new Map();
   const sessionPeople=new Map();
+  const liveSessions=new Map();
+  const memoryReplies=new Map();
+
+  function rememberReply(sessionId,text){
+    const list=memoryReplies.get(sessionId)||[];
+    list.unshift(normalizeText(text));
+    memoryReplies.set(sessionId,list.filter(Boolean).slice(0,8));
+  }
+
+  async function softDb(label,work,fallback=null){
+    try{return await work();}
+    catch(error){
+      lastError=String(error?.message||error);
+      logger.warn?.('Conversation lab '+label+' failed',lastError);
+      return fallback;
+    }
+  }
 
   async function init(){
     if(readyPromise)return readyPromise;
@@ -484,6 +535,9 @@ function createConversationLab({
       }catch(error){
         lastError=String(error?.message||error);
         logger.error?.('Conversation lab init failed',lastError);
+        try{db?.close?.();}catch{}
+        db=null;
+        readyPromise=null;
         return false;
       }
     })();
@@ -497,7 +551,7 @@ function createConversationLab({
     while(examples.length<limit){
       const take=Math.min(pageSize,limit-examples.length);
       const result=await db.execute({
-        sql:`SELECT example_id, action_json, context_json
+        sql:`SELECT example_id, action_json, context_json, recorded_at, game_time, day, phase
              FROM training_examples
              WHERE action_type='chat'
              ORDER BY recorded_at DESC
@@ -512,12 +566,19 @@ function createConversationLab({
         const reply=cleanReply(action.text);
         if(!reply||reply.length<1)continue;
         const selfId=context.self?.id;
+        const actionTime=Number(row.game_time||row.recorded_at||0);
+        const contextDay=Number(context.day??row.day??0);
+        const contextPhase=String(context.phase||row.phase||'');
         const messages=(Array.isArray(context.messages)?context.messages:[])
-          .filter(m=>m&&m.channel==='public'&&cleanReply(m.text));
+          .filter(m=>m&&m.channel==='public'&&cleanReply(m.text))
+          .filter(m=>Number(m.day??contextDay)===contextDay&&String(m.phase||contextPhase)===contextPhase);
         let source=null;
         for(let i=messages.length-1;i>=0;i--){
           const m=messages[i];
-          if(m.playerId!==selfId){source=m;break;}
+          if(m.playerId===selfId)continue;
+          const messageTime=Number(m.at||0);
+          if(actionTime&&messageTime&&actionTime-messageTime>45000)continue;
+          source=m;break;
         }
         const prompt=cleanReply(source?.text||'');
         if(!prompt)continue;
@@ -557,11 +618,12 @@ function createConversationLab({
   }
 
   async function loadCorpus({force=false}={}){
-    if(!(await init()))return [];
     const now=Date.now();
     if(!force&&cache.examples.length&&now-cache.at<corpusTtlMs)return cache.examples;
-    const game=await pageTrainingExamples();
-    const lab=ONLINE_LEARNING?await positiveLabExamples():[];
+    if(!(await init()))return cache.examples;
+    const game=await softDb('corpus read',()=>pageTrainingExamples(),null);
+    if(!game)return cache.examples;
+    const lab=ONLINE_LEARNING?(await softDb('positive examples',()=>positiveLabExamples(),[])):[];
     const seen=new Set(),examples=[];
     for(const e of [...lab,...game]){
       const key=normalizeText(e.prompt)+'\u0000'+normalizeText(e.reply);
@@ -573,35 +635,43 @@ function createConversationLab({
   }
 
   async function recentReplies(sessionId){
-    const result=await db.execute({
+    const memory=new Set(memoryReplies.get(sessionId)||[]);
+    if(!(await init()))return memory;
+    const result=await softDb('recent replies',()=>db.execute({
       sql:`SELECT text FROM conversation_lab_turns
            WHERE session_id=? AND speaker='ai'
            ORDER BY created_at DESC LIMIT 8`,
       args:[sessionId]
-    });
-    return new Set((result.rows||[]).map(r=>normalizeText(r.text)));
+    }),null);
+    if(result)for(const row of result.rows||[])memory.add(normalizeText(row.text));
+    return memory;
   }
 
   async function startSession(name=''){
-    if(!(await init()))throw Error('会話ラボの保存先に接続できません。');
     const sessionId=crypto.randomUUID(),displayName=cleanReply(name||'あなた').slice(0,24)||'あなた';
     sessionAliases.set(sessionId,{});
     sessionPeople.set(sessionId,[]);
-    await db.execute({
-      sql:'INSERT INTO conversation_lab_sessions (session_id,created_at,display_name) VALUES (?,?,?)',
-      args:[sessionId,Date.now(),displayName]
-    });
+    liveSessions.set(sessionId,{displayName,createdAt:Date.now()});
+    memoryReplies.set(sessionId,[]);
+    if(await init()){
+      await softDb('session save',()=>db.execute({
+        sql:'INSERT INTO conversation_lab_sessions (session_id,created_at,display_name) VALUES (?,?,?)',
+        args:[sessionId,Date.now(),displayName]
+      }));
+    }
     const corpus=await loadCorpus();
-    return {sessionId,displayName,corpusSize:corpus.length,learningActive:ONLINE_LEARNING};
+    return {sessionId,displayName,corpusSize:corpus.length,learningActive:ONLINE_LEARNING,storageAvailable:!!db};
   }
 
   async function ensureSession(sessionId){
     if(!sessionId)return false;
-    const result=await db.execute({
+    if(liveSessions.has(sessionId))return true;
+    if(!(await init()))return false;
+    const result=await softDb('session lookup',()=>db.execute({
       sql:'SELECT session_id FROM conversation_lab_sessions WHERE session_id=? LIMIT 1',
       args:[sessionId]
-    });
-    return Boolean(result.rows?.length);
+    }),null);
+    return Boolean(result?.rows?.length);
   }
 
   function chooseReply(input,corpus,recent,aliases={},people=[]){
@@ -635,7 +705,6 @@ function createConversationLab({
   }
 
   async function send({sessionId,text}){
-    if(!(await init()))throw Error('会話ラボの保存先に接続できません。');
     if(!(await ensureSession(sessionId)))throw Error('会話セッションが見つかりません。新しく始めてください。');
     const clean=cleanReply(text).slice(0,400);
     if(!clean)throw Error('メッセージを入力してください。');
@@ -648,12 +717,12 @@ function createConversationLab({
     sessionPeople.set(sessionId,people);
 
     const userTurnId=crypto.randomUUID(),now=Date.now();
-    await db.execute({
+    if(await init())await softDb('user turn save',()=>db.execute({
       sql:`INSERT INTO conversation_lab_turns
            (turn_id,session_id,created_at,speaker,text)
            VALUES (?,?,?,?,?)`,
       args:[userTurnId,sessionId,now,'user',clean]
-    });
+    }));
 
     const intent=classifyIntent(clean);
     const [corpus,recent]=await Promise.all([loadCorpus(),recentReplies(sessionId)]);
@@ -672,7 +741,8 @@ function createConversationLab({
       if(picked.origin==='fallback')mode='fallback';
     }
     const aiTurnId=crypto.randomUUID();
-    await db.execute({
+    rememberReply(sessionId,reply);
+    if(await init())await softDb('ai turn save',()=>db.execute({
       sql:`INSERT INTO conversation_lab_turns
            (turn_id,session_id,created_at,speaker,text,reply_to,source_example_id,confidence)
            VALUES (?,?,?,?,?,?,?,?)`,
@@ -697,17 +767,17 @@ function createConversationLab({
   }
 
   async function feedback({sessionId,turnId,value}){
-    if(!(await init()))throw Error('会話ラボの保存先に接続できません。');
     const v=Number(value);
     if(![-1,1].includes(v))throw Error('評価が不正です。');
-    const result=await db.execute({
+    if(!(await init()))return {ok:true,rowsAffected:0,stored:false,learningActive:ONLINE_LEARNING};
+    const result=await softDb('feedback save',()=>db.execute({
       sql:`UPDATE conversation_lab_turns
            SET feedback=?
            WHERE turn_id=? AND session_id=? AND speaker='ai'`,
       args:[v,turnId,sessionId]
-    });
+    }),null);
     // 評価は保存するが、ONLINE_LEARNING=false の間は返答候補へ即反映しない。
-    return {ok:true,rowsAffected:Number(result.rowsAffected||0),learningActive:ONLINE_LEARNING};
+    return {ok:true,rowsAffected:Number(result?.rowsAffected||0),stored:!!result,learningActive:ONLINE_LEARNING};
   }
 
   async function stats(){
