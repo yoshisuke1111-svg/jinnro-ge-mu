@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createApp}=require('../server');
-const {normalizeText,scoreExample,inferAliasesFromText,ONLINE_LEARNING}=require('../conversation-lab');
+const {normalizeText,scoreExample,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING}=require('../conversation-lab');
 
 async function post(base,body){
   const res=await fetch(base+'/talk/api',{
@@ -60,4 +60,31 @@ test('conversation aliases normalize known shorthand and session-only nicknames'
   const explicit=inferAliasesFromText('クロは黒レベラーの略');
   assert.equal(explicit['クロ'],'黒レベラー');
   assert.equal(normalizeText('クロ怪しくない？',explicit),'black_leveler怪しくない');
+});
+
+
+test('conversation reply templates replace old player names with current names',()=>{
+  const pair=makePersonTemplate('伊織どう思う？','伊織ちょっと怪しい',['伊織','真白']);
+  assert.equal(pair.prompt,'{{person1}}どう思う？');
+  assert.equal(pair.reply,'{{person1}}ちょっと怪しい');
+
+  const runtime=runtimePersonTemplate('田中どう思う？');
+  assert.deepEqual(runtime.names,['田中']);
+  assert.equal(runtime.text,'{{person1}}どう思う？');
+  assert.equal(renderPersonTemplate(pair.reply,runtime.names),'田中ちょっと怪しい');
+});
+
+test('person-name detection handles particles, honorifics, and two-name comparisons',()=>{
+  assert.deepEqual(inferPersonNames('田中は怪しい'),['田中']);
+  assert.deepEqual(inferPersonNames('佐藤さんどう思う？'),['佐藤']);
+  assert.deepEqual(inferPersonNames('田中と佐藤どっちが怪しい？'),['田中','佐藤']);
+
+  const pair=makePersonTemplate('伊織と真白どっち？','伊織かな',['伊織','真白']);
+  const runtime=runtimePersonTemplate('田中と佐藤どっち？',['田中','佐藤']);
+  assert.equal(renderPersonTemplate(pair.reply,runtime.names),'田中かな');
+});
+
+test('old names never leak when the current message has no matching person name',()=>{
+  const pair=makePersonTemplate('伊織について','伊織はまだ分からない',['伊織']);
+  assert.equal(renderPersonTemplate(pair.reply,[]),'その人はまだ分からない');
 });
