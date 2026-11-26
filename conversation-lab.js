@@ -747,7 +747,7 @@ function createConversationLab({
            (turn_id,session_id,created_at,speaker,text,reply_to,source_example_id,confidence)
            VALUES (?,?,?,?,?,?,?,?)`,
       args:[aiTurnId,sessionId,Date.now(),'ai',reply,userTurnId,picked.id,picked.score]
-    });
+    }));
 
     return {
       userTurnId,
