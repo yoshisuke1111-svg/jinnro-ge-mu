@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createApp}=require('../server');
-const {normalizeText,scoreExample,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING}=require('../conversation-lab');
+const {normalizeText,scoreExample,semanticNormalize,paraphraseReply,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING}=require('../conversation-lab');
 
 async function post(base,body){
   const res=await fetch(base+'/talk/api',{
@@ -13,7 +13,7 @@ async function post(base,body){
 }
 
 test('conversation similarity handles Japanese text normalization',()=>{
-  assert.equal(normalizeText('  誰が怪しい？ '),'誰が怪しい');
+  assert.equal(normalizeText('  誰が怪しい？ '),'誰が<suspicious>');
   assert.ok(scoreExample('誰が怪しい？',{prompt:'誰が怪しいと思う？'})>0.25);
   assert.ok(scoreExample('誰が怪しい？',{prompt:'今日は晴れだね'})<0.2);
 });
@@ -50,16 +50,16 @@ test('conversation lab API starts, replies, and records feedback',async()=>{
 
 test('conversation aliases normalize known shorthand and session-only nicknames',()=>{
   assert.equal(ONLINE_LEARNING,false);
-  assert.equal(normalizeText('黒レベが怪しい'),'black_levelerが怪しい');
-  assert.equal(normalizeText('霊媒どう思う？'),'mediumどう思う');
-  assert.equal(normalizeText('村田は怪しい'),'村田は怪しい');
+  assert.equal(normalizeText('黒レベが怪しい'),'black_levelerが<suspicious>');
+  assert.equal(normalizeText('霊媒どう思う？'),'medium<opinion>');
+  assert.equal(normalizeText('村田は怪しい'),'村田は<suspicious>');
 
   const aliases=inferAliasesFromText('黒ちゃん=黒レベラーって呼ぶ');
   assert.equal(aliases['黒ちゃん'],'黒レベラー');
 
   const explicit=inferAliasesFromText('クロは黒レベラーの略');
   assert.equal(explicit['クロ'],'黒レベラー');
-  assert.equal(normalizeText('クロ怪しくない？',explicit),'black_leveler怪しくない');
+  assert.equal(normalizeText('クロ怪しくない？',explicit),'black_leveler<suspicious>くない');
 });
 
 
@@ -87,4 +87,24 @@ test('person-name detection handles particles, honorifics, and two-name comparis
 test('old names never leak when the current message has no matching person name',()=>{
   const pair=makePersonTemplate('伊織について','伊織はまだ分からない',['伊織']);
   assert.equal(renderPersonTemplate(pair.reply,[]),'その人はまだ分からない');
+});
+
+
+test('semantic vocabulary treats different wording as the same concept',()=>{
+  assert.equal(semanticNormalize('怪しい'),' <suspicious>'.trim());
+  assert.equal(semanticNormalize('疑わしい'),'<suspicious>');
+  assert.equal(semanticNormalize('どう見る'),'<opinion>');
+  assert.ok(scoreExample('その人ちょっと怪しい',{prompt:'その人は少し疑わしい'})>0.45);
+});
+
+test('retrieved human lines are paraphrased instead of copied verbatim when vocabulary allows it',()=>{
+  const original='田中ちょっと怪しい';
+  const rewritten=paraphraseReply(original,{seed:'case-1'});
+  assert.notEqual(rewritten,original);
+  assert.ok(rewritten.includes('田中'));
+  assert.ok(/気になる|疑ってる|黒っぽ|黒く/.test(rewritten));
+
+  const unknown=paraphraseReply('まだ分からないかな',{seed:'case-2'});
+  assert.notEqual(unknown,'まだ分からないかな');
+  assert.ok(/判断|読め|何とも/.test(unknown));
 });
