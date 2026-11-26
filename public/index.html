@@ -2,11 +2,93 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#121923">
 <meta name="description" content="公開部屋から参加申請できるオンライン人狼。一人練習は無言参加者と遊べます。">
 <title>人狼ゲーム</title>
 <link rel="stylesheet" href="/style.css">
+<style>
+/* v0.8.4 UX consolidation pass: final, deliberately small overrides. */
+html{scroll-padding-top:96px}
+body{min-height:100dvh}
+.site-header{position:sticky;top:0;z-index:70;width:100%}
+.start-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:24px 0 0}
+.start-guide>div{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--panel),#000 7%);min-width:0}
+.start-guide b{display:grid;place-items:center;flex:0 0 25px;width:25px;height:25px;border:1px solid #75694f;border-radius:50%;color:var(--accent);font-size:11px}
+.start-guide span{display:grid;min-width:0}
+.start-guide strong{font-size:12px;line-height:1.45}
+.start-guide small{margin-top:3px;color:var(--muted);font-size:10px;line-height:1.55}
+.public-room-jump{display:inline-flex;align-items:center;min-height:42px;margin-top:18px;padding:8px 12px;border:1px solid var(--line);border-radius:9px;color:var(--text);text-decoration:none;font-size:12px}
+.public-room-jump:hover{border-color:var(--accent);color:var(--accent)}
+.field-note{display:flex;justify-content:space-between;gap:12px;margin:6px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
+.field-note output{white-space:nowrap;font-variant-numeric:tabular-nums}
+.room-browser{scroll-margin-top:96px}
+.room-code-label{overflow-wrap:anywhere}
+.phase-info,.phase-info>div,.room-heading>div{min-width:0}
+.board-legend{max-width:100%;overflow-x:auto;scrollbar-width:thin}
+.join-pending{box-shadow:0 0 0 1px #d8bc8312 inset}
+button,input,select,summary,a{-webkit-tap-highlight-color:transparent}
+.help-dialog,.tarot-dialog{max-height:calc(100dvh - 24px);overflow:auto}
+.toast{max-width:min(560px,calc(100vw - 24px));overflow-wrap:anywhere}
+@media(max-width:950px){
+  .start-guide{grid-template-columns:1fr}
+  .start-guide>div{padding:10px 11px}
+}
+@media(max-width:700px){
+  html{scroll-padding-top:82px}
+  .site-header{height:auto;min-height:68px;padding:8px 12px;gap:6px;flex-wrap:wrap}
+  .brand{font-size:16px;gap:9px;min-width:100px}
+  .brand small{font-size:8px}
+  .header-tools{margin-left:auto;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+  .header-tools .quiet{min-height:40px;padding:6px 8px;font-size:11px}
+  .connection{font-size:10px}
+  .entrance{gap:12px}
+  .intro-cover,.entry-card{margin:0}
+  .start-guide{margin-top:20px}
+  .public-room-jump{width:100%;justify-content:center}
+  .room-browser{width:100%;scroll-margin-top:82px}
+  .room-heading{align-items:stretch;flex-direction:column;margin-bottom:15px}
+  .room-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:7px}
+  .room-tools .room-code-label{grid-column:1/-1;padding:7px 9px;border:1px solid var(--line);border-radius:8px}
+  .room-tools button{width:100%;min-width:0}
+  .lobby-layout{display:block}
+  .lobby-members{margin-top:12px}
+  .preset-row>button{flex:1 1 180px}
+  .role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .time-grid{grid-template-columns:1fr}
+  .settings-footer{align-items:stretch;flex-direction:column}
+  .settings-footer button{width:100%}
+  .phase-bar{gap:10px}
+  .phase-info{gap:10px}
+  .clock-area{min-width:88px}
+  .statement-row{flex-wrap:wrap}
+  .statement-row select{flex:1 1 calc(50% - 4px);width:auto;min-width:110px}
+  .statement-row button{flex:1 1 100%;width:100%}
+  .record-grid{grid-template-columns:1fr}
+  body[data-phase] main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}
+  .mobile-nav{position:fixed!important;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:90;margin:0!important;box-shadow:0 8px 30px #0008}
+  .chat-form{bottom:calc(72px + env(safe-area-inset-bottom))!important}
+  .board-chat-form{bottom:calc(72px + env(safe-area-inset-bottom))!important}
+  .board-action-dock{bottom:calc(136px + env(safe-area-inset-bottom))!important}
+  body[data-phase] .toast{bottom:calc(82px + env(safe-area-inset-bottom))}
+  .site-footer{padding-bottom:max(16px,env(safe-area-inset-bottom))}
+}
+@media(max-width:430px){
+  .site-header{align-items:flex-start}
+  .brand small{display:none}
+  .header-tools{width:100%;justify-content:space-between;border-top:1px solid var(--line);padding-top:5px}
+  .connection{margin-right:auto}
+  .room-tools{grid-template-columns:1fr}
+  .room-tools .room-code-label{grid-column:auto}
+  .join-row{flex-direction:column}
+  .join-row button{width:100%}
+  .role-grid{grid-template-columns:1fr}
+  .phase-bar{display:grid;grid-template-columns:minmax(0,1fr) auto}
+  .phase-info{min-width:0}
+  .phase-info p{overflow-wrap:anywhere}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
 <script src="/shared/rules.js" defer></script>
 <script src="/transport.js" defer></script>
 <script src="/app.js" defer></script>
@@ -14,7 +96,7 @@
 <body>
 <header class="site-header">
   <div class="brand"><span class="brand-moon" aria-hidden="true"></span><div>人狼ゲーム<small>WEREWOLF · 0.8.4</small></div></div>
-  <div class="header-tools"><span id="connection" class="connection">準備完了</span><button id="motionToggle" class="quiet" aria-pressed="false">演出 ON</button><button id="helpOpen" class="quiet">遊び方・役職</button></div>
+  <div class="header-tools"><span id="connection" class="connection" role="status" aria-live="polite">準備完了</span><button id="motionToggle" class="quiet" aria-pressed="false">演出 ON</button><button id="helpOpen" class="quiet">遊び方・役職</button></div>
 </header>
 <main>
   <section id="entrance" class="entrance">
@@ -22,13 +104,20 @@
       <p class="eyebrow">人狼ゲーム</p>
       <h1>ゲームを始める</h1>
       <p class="intro-copy">公開部屋から知らない人にも参加申請できます。<br>一人練習では会話しない「無言参加者」とゲーム進行だけ試せます。</p>
+      <div class="start-guide" aria-label="ゲーム開始までの流れ">
+        <div><b>1</b><span><strong>名前を決める</strong><small>ゲーム中に表示される名前です。</small></span></div>
+        <div><b>2</b><span><strong>遊び方を選ぶ</strong><small>一人練習か、公開・招待部屋へ進みます。</small></span></div>
+        <div><b>3</b><span><strong>配役を確認して開始</strong><small>部屋主が設定し、全員でゲームを始めます。</small></span></div>
+      </div>
+      <a class="public-room-jump" href="#roomBrowser">公開中の部屋を見る ↓</a>
       <div class="creator-badge"><strong>作成者 鈾</strong></div>
       <div class="intro-tags"><span>公開部屋</span><span>参加許可制</span><span>最大30人</span><span>自由配役</span></div><p class="caption"><a href="/talk" target="_blank" rel="noopener" class="quiet-link">別タブで会話AIを開く → 会話AI LAB ↗</a></p>
     </div>
     <div class="entry-card panel">
       <div class="entry-heading"><p class="eyebrow">PLAY</p><h2>ゲームを始める</h2><p>まずプレイヤー名を決めてください。</p></div>
       <label for="name">プレイヤー名 <span class="muted">1〜16文字</span></label>
-      <input id="name" maxlength="32" placeholder="名前を入力" autocomplete="nickname">
+      <input id="name" maxlength="16" placeholder="名前を入力" autocomplete="nickname" aria-describedby="nameHelp">
+      <p id="nameHelp" class="field-note"><span>空白だけの名前は使えません。</span><output id="nameCount" for="name">0 / 16</output></p>
       <div class="entry-section-label"><span>一人で練習</span><small>無言参加者と進行確認</small></div>
       <label for="practiceRole">練習する役職</label>
       <select id="practiceRole"></select>
@@ -37,12 +126,12 @@
       <div id="onlineEntry">
         <div class="divider"><span>オンラインで遊ぶ</span></div>
         <label for="customCode" class="custom-code-label">作る部屋のコード <span class="muted">空欄なら自動生成</span></label>
-        <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off">
+        <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false">
         <button id="create" class="secondary full">オンラインの部屋を作る</button>
         <p class="caption room-code-help">3〜16文字。文字・数字・「-」「_」が使えます。同じコードの部屋がある場合は作成できません。</p>
-        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加申請する部屋コード" maxlength="16"><button id="join" class="secondary">参加申請</button></div>
+        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加申請する部屋コード" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="join" class="secondary">参加申請</button></div>
       </div>
-      <p id="entryNote" class="entry-note">新規参加は部屋主の許可が必要です。切断後の復帰は、同じ部屋コードと同じ名前なら再申請なしで戻れます。</p>
+      <p id="entryNote" class="entry-note">新規参加は部屋主の許可が必要です。切断後は、この端末で同じ招待URLを開くと保存済みの復帰情報で席に戻れます。</p>
     </div>
   </section>
 
@@ -51,7 +140,7 @@
       <div><p class="eyebrow">PUBLIC ROOMS</p><h2>公開中の部屋</h2><p class="caption">入りたい部屋へ参加申請を送ると、部屋主に許可・拒否が届きます。</p></div>
       <button id="refreshRooms" class="quiet" type="button">更新</button>
     </div>
-    <div id="joinPending" class="join-pending" hidden><strong id="joinPendingTitle">参加許可を待っています</strong><span id="joinPendingText"></span><button id="cancelJoinWait" type="button" class="quiet">待機表示を閉じる</button></div>
+    <div id="joinPending" class="join-pending" hidden><strong id="joinPendingTitle">参加許可を待っています</strong><span id="joinPendingText"></span><button id="cancelJoinWait" type="button" class="quiet">この端末の待機を閉じる</button></div>
     <div id="publicRooms" class="public-room-list"><p class="caption">部屋を読み込み中…</p></div>
   </section>
 
@@ -71,7 +160,7 @@
           <section id="joinRequestsBox" class="join-requests-box" hidden><div class="section-heading"><div><p class="eyebrow">JOIN REQUESTS</p><h3>参加申請</h3></div><span id="joinRequestCount" class="tag">0</span></div><div id="joinRequests"></div></section>
           <details id="roleSettings" class="setting-details">
             <summary>配役を自由に設定 <span id="roleSum"></span></summary>
-            <p class="caption">16の基本役職＋追加状態「恋人」。第三陣営の配役は勝利条件も確認してください。</p>
+            <p class="caption">22種類の役職＋追加状態「恋人」。第三陣営や特殊役職は勝利条件も確認してください。</p>
             <div id="roleInputs" class="role-grid"></div>
             <button id="fillVillagers" class="quiet">残りを村人で埋める</button>
             <div class="check-row"><label><input id="lovers" type="checkbox"> 恋人を1組追加（2人・元の役職に重ねる）</label></div>
@@ -94,7 +183,7 @@
           <button id="start" class="primary large">この配役でゲームを始める <span>→</span></button>
         </div>
         <div id="guestControls" hidden><p>部屋主が配役を準備しています。右の参加者を確認してお待ちください。</p><div id="guestConfig" class="caption"></div><button id="guestActive" class="secondary">準備できています</button></div>
-        <p class="small-note">現在のテスト期間中は、待機室で無操作でも自動退出しません。切断後も同じ部屋コードと名前で席へ戻れます。</p>
+        <p class="small-note">現在のテスト期間中は、待機室で無操作でも自動退出しません。切断後は、この端末で同じ招待URLを開くと席へ復帰できます。</p>
       </div>
       <aside class="panel lobby-members"><div class="section-heading"><h2>参加者</h2><span class="mini-label">PLAYERS</span></div><div id="lobbyPlayers" class="player-list"></div><p class="caption">通常のオンライン部屋にはCPUはいません。一人練習だけ無言参加者が入ります。</p></aside>
     </section>
@@ -164,9 +253,9 @@
       </div>
 
       <nav id="mobileNav" class="mobile-nav" aria-label="スマホ用画面切り替え">
-        <button type="button" data-mobile-view="board" class="active">盤面</button>
-        <button type="button" data-mobile-view="chat">会話</button>
-        <button type="button" data-mobile-view="self">自分</button>
+        <button type="button" data-mobile-view="board" class="active" aria-controls="boardPanel" aria-pressed="true">盤面</button>
+        <button type="button" data-mobile-view="chat" aria-controls="chatPanel" aria-pressed="false">会話</button>
+        <button type="button" data-mobile-view="self" aria-controls="selfPanel" aria-pressed="false">自分</button>
       </nav>
       <section class="panel records-panel"><div class="section-heading"><div><p class="eyebrow">FOLLOW THE EVIDENCE</p><h2>公開された主張と投票</h2></div><button id="exportLog" class="quiet">ログを保存</button></div>
         <p class="caption">色付き矢印は「発言者がそう主張した」ことを表します。占い・霊媒の矢印も真実とは限りません。</p>
@@ -177,7 +266,7 @@
   </section>
 </main>
 <footer class="site-footer"><span>人狼ゲーム · v0.8.4</span><span>作成者 鈾</span></footer>
-<div id="toast" class="toast" role="status" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="helpDialog" class="help-dialog"><div class="dialog-head"><div><p class="eyebrow">VILLAGE HANDBOOK</p><h2>遊び方と役職</h2></div><button id="helpClose" class="quiet">閉じる ×</button></div><div id="helpContent"></div></dialog>
 <dialog id="tarotDialog" class="tarot-dialog secret-dialog">
   <p class="eyebrow" id="tarotEyebrow">SECRET CARD</p><p id="tarotHeading">あなただけに公開</p>
@@ -187,5 +276,20 @@
   </button>
   <p id="tarotAuto" class="caption">タップで確認できます。表になってからしばらく表示します。</p><button id="tarotClose" class="secondary">閉じる</button>
 </dialog>
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  const name=document.getElementById('name');
+  const count=document.getElementById('nameCount');
+  const updateCount=()=>{if(count&&name)count.textContent=`${[...name.value].length} / 16`;};
+  name?.addEventListener('input',updateCount);
+  updateCount();
+
+  const nav=document.getElementById('mobileNav');
+  const updateNavState=()=>nav?.querySelectorAll('[data-mobile-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.classList.contains('active'))));
+  nav?.addEventListener('click',()=>requestAnimationFrame(updateNavState));
+  if(nav)new MutationObserver(updateNavState).observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});
+  updateNavState();
+});
+</script>
 </body>
 </html>
