@@ -92,6 +92,10 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
   function streamTicket(entry,pid) {
     const t=token();tickets.set(t,{code:entry.game.code,pid,until:Date.now()+45000});return t;
   }
+  function recoveryFor(entry,pid){
+    for(const [key,id] of entry.recovery||[])if(id===pid)return key;
+    return '';
+  }
   function pendingJoinRequests(entry){
     const now=Date.now(),requests=entry.joinRequests||new Map();
     for(const [id,r] of requests){
@@ -195,6 +199,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       entry.clients.delete(pid);client.end();
     }
     for(const [sessionToken,sessionPid] of entry.sessions)if(sessionPid===pid)entry.sessions.delete(sessionToken);
+    for(const [recoveryKey,recoveryPid] of entry.recovery||[])if(recoveryPid===pid)entry.recovery.delete(recoveryKey);
     for(const [ticketId,ticket] of tickets)if(ticket.code===g.code&&ticket.pid===pid)tickets.delete(ticketId);
     g.players=g.players.filter(x=>x.id!==pid);
     delete g.actions[pid];delete g.specialActions[pid];delete g.votes[pid];
@@ -468,12 +473,12 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           if(code){if(rooms.has(code))throw Error('その部屋コードはすでに使われています。別のコードにしてください。');}
           else do{code=Array.from({length:5},()=>alphabet[crypto.randomInt(alphabet.length)]).join('');}while(rooms.has(code));
           const game=new Game({code,random:()=>crypto.randomInt(0x100000000)/0x100000000});
-          const pid=crypto.randomUUID(),secret=token();game.addPlayer({id:pid,name:data.name});
-          const entry={game,sessions:new Map([[secret,pid]]),clients:new Map(),revision:0,lastEmpty:Date.now(),cpuWatch:false,clock:null,fastMode:false,solo:data.solo===true,joinRequests:new Map()};
+          const pid=crypto.randomUUID(),secret=token(),recoveryKey=token();game.addPlayer({id:pid,name:data.name});
+          const entry={game,sessions:new Map([[secret,pid]]),recovery:new Map([[recoveryKey,pid]]),clients:new Map(),revision:0,lastEmpty:Date.now(),cpuWatch:false,clock:null,fastMode:false,solo:data.solo===true,joinRequests:new Map()};
           rooms.set(code,entry);
           if(data.solo)game.prepareSolo(data.role??'seer',8);
           else void notifyRoomCreated({code,creator:game.realName(pid)}).catch(error=>recordError('discord room notify',error));
-          return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid)});
+          return json(res,200,{ok:true,code,token:secret,recoveryKey,playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid)});
         }
         const code=normalizeRoomCode(body.code||data.code),entry=rooms.get(code);
         if(!entry)throw Error('部屋がありません。サーバー再起動時には部屋が消えます。');
@@ -499,40 +504,46 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
           return json(res,200,{ok:true,code,status:r.status,approvalToken:r.status==='approved'?r.approvalToken:null});
         }
         let pid=entry.sessions.get(body.token),secret=body.token;
+        const suppliedRecovery=String(data.recoveryKey||'');
+        if(!pid&&suppliedRecovery)pid=entry.recovery?.get(suppliedRecovery)||null;
         if(event==='join'){
-          // A stale local token must not trap the player outside the room. Fall back to exact-name reclaim.
-          if(body.token&&!pid)secret='';
-          if(pid&&!game.byId(pid)){entry.sessions.delete(secret);pid=null;secret='';}
+          if(body.token&&!entry.sessions.has(body.token))secret='';
+          if(pid&&!game.byId(pid)){
+            if(secret)entry.sessions.delete(secret);
+            if(suppliedRecovery)entry.recovery?.delete(suppliedRecovery);
+            pid=null;secret='';
+          }
+          if(pid){
+            if(!secret||entry.sessions.get(secret)!==pid){
+              secret=token();
+              for(const [sessionToken,sessionPid] of entry.sessions)if(sessionPid===pid)entry.sessions.delete(sessionToken);
+              entry.sessions.set(secret,pid);
+            }
+            const previous=entry.clients.get(pid);
+            if(previous){send(previous,'replaced',{message:'同じ席を新しい画面で開いたため、接続を引き継ぎます。'});entry.clients.delete(pid);previous.end();}
+            const existing=game.byId(pid);existing.auto=false;game.connect(pid);
+            if(game.phase!=='lobby')game.system(existing.name+'が対戦に復帰しました。');
+            broadcast(entry);
+            return json(res,200,{ok:true,code,token:secret,recoveryKey:recoveryFor(entry,pid),playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid),rejoined:true});
+          }
           if(!pid){
             const requestedName=validName(data.name);
             const existing=game.players.find(p=>!p.bot&&p.name===requestedName);
-            if(existing){
-              // Exact-name reclaim is intentionally permissive during the current multiplayer test.
-              // It works in the lobby and during a match, even if the old connection still looks alive.
-              pid=existing.id;secret=token();
-              for(const [sessionToken,sessionPid] of entry.sessions)if(sessionPid===pid)entry.sessions.delete(sessionToken);
-              entry.sessions.set(secret,pid);
-              const previous=entry.clients.get(pid);
-              if(previous){send(previous,'replaced',{message:'同じ名前で参加し直したため、この接続を新しい画面へ引き継ぎます。'});entry.clients.delete(pid);previous.end();}
-              existing.auto=false;game.connect(pid);
-              if(game.phase!=='lobby')game.system(existing.name+'が対戦に復帰しました。');
-              broadcast(entry);
-              return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid),rejoined:true});
-            }
-            if(game.phase!=='lobby')throw Error('対戦中です。参加済みの名前を入力すると自分の席へ復帰できます。');
+            if(existing)throw Error('同じ名前の席があります。本人は元のブラウザから復帰してください。');
+            if(game.phase!=='lobby')throw Error('対戦中です。参加済みの人だけ復帰できます。');
             if(entry.solo||entry.cpuWatch)throw Error('この部屋には新規参加できません。');
             const requestId=String(data.requestId||''),approvalToken=String(data.approvalToken||'');
             const request=entry.joinRequests?.get(requestId);
             if(!request||request.status!=='approved'||request.name!==requestedName||request.approvalUntil<Date.now()||!approvalToken||request.approvalToken!==approvalToken){
               throw Error('新規参加には部屋主の許可が必要です。先に参加申請を送ってください。');
             }
-            pid=crypto.randomUUID();secret=token();game.addPlayer({id:pid,name:requestedName});entry.sessions.set(secret,pid);
+            pid=crypto.randomUUID();secret=token();const newRecoveryKey=token();game.addPlayer({id:pid,name:requestedName});entry.sessions.set(secret,pid);entry.recovery=entry.recovery||new Map();entry.recovery.set(newRecoveryKey,pid);
             request.status='joined';request.decidedAt=Date.now();request.approvalToken=null;
             // 参加人数が変わっても配役は自動変更しない。必要なら部屋主が配役を調整する。
             game.configVersion++;game.system(`${game.name(pid)}が参加しました。`);
           }
           game.connect(pid);broadcast(entry);
-          return json(res,200,{ok:true,code,token:secret,playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid)});
+          return json(res,200,{ok:true,code,token:secret,recoveryKey:recoveryFor(entry,pid),playerId:pid,ticket:streamTicket(entry,pid),state:roomView(entry,pid)});
         }
         if(!pid||!game.byId(pid))return json(res,401,{ok:false,error:'参加情報を確認してください。'});
         budget('seat:'+secret,100,30000);
