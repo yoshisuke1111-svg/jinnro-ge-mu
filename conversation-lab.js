@@ -22,6 +22,95 @@ const STATIC_ALIASES=[
   ['co',['CO','co','カミングアウト']]
 ];
 
+/*
+ * 小さな意味辞書。
+ * 検索時は表現の違いを概念へ寄せ、出力時は逆に複数の言い回しへ散らす。
+ * 外部AIや辞書APIには依存しない。
+ */
+const SEMANTIC_LEXICON=[
+  ['<suspicious>',['怪しい','疑わしい','黒っぽい','狼っぽい','引っかかる','気になる']],
+  ['<whiteish>',['白い','白っぽい','村っぽい','村目','白寄り']],
+  ['<unknown>',['分からない','わからない','わからん','判断つかない','読めない','何とも言えない']],
+  ['<agree>',['そう思う','同意','同じ意見','わかる','それはそう']],
+  ['<disagree>',['違うと思う','そうは思わない','反対','微妙だと思う','納得できない']],
+  ['<maybe>',['たぶん','多分','おそらく','かもしれない','かも']],
+  ['<slightly>',['ちょっと','少し','やや','若干']],
+  ['<opinion>',['どう思う','どう見る','どう感じる','どう考える']],
+  ['<reason>',['理由','根拠','なんで','なぜ','どうして']],
+  ['<vote>',['投票する','投票','入れる','票を入れる']],
+  ['<execute>',['吊る','吊り','処刑する','処刑']],
+  ['<attack>',['噛む','襲撃する','襲う','噛み']],
+  ['<divine>',['占う','占いを見る','占い先にする']],
+  ['<protect>',['守る','護衛する','護衛']],
+  ['<claim>',['coする','カミングアウトする','役職を名乗る','名乗る']],
+  ['<reply>',['返事','返信','反応','リアクション']],
+  ['<now>',['今のところ','今んとこ','今は','現在']],
+  ['<strong>',['かなり','結構','だいぶ','相当']],
+  ['<think>',['思う','感じる','見える','考える']],
+  ['<question>',['本当','ほんと','マジ','まじ']]
+];
+
+const OUTPUT_LEXICON=[
+  [/ちょっと怪しい/gu,['少し気になる','やや疑ってる','少し黒っぽく見える']],
+  [/少し怪しい/gu,['ちょっと気になる','やや疑ってる','少し黒く見える']],
+  [/怪しいと思う/gu,['気になるかな','疑ってる','黒っぽく見える']],
+  [/怪しい/gu,['気になる','疑わしい','黒っぽい']],
+  [/白いと思う/gu,['白寄りに見える','村っぽく感じる','今は白めかな']],
+  [/白い/gu,['白寄り','村っぽい','白め']],
+  [/分からない|わからない|わからん/gu,['まだ判断つかない','まだ読めない','何とも言えない']],
+  [/たぶん|多分/gu,['たぶん','おそらく','たぶんだけど']],
+  [/そう思う/gu,['そんな気はする','そう見える','自分も近い見方']],
+  [/どう思う/gu,['どう見る','どう感じる','どう考えてる']],
+  [/理由/gu,['根拠','そう見た理由','理由']],
+  [/ちょっと/gu,['少し','やや','ちょい']],
+  [/かな$/u,['かも','気がする','と思う']],
+  [/だと思う$/u,['かなと思う','って見てる','気がする']],
+  [/じゃない\??$/u,['じゃないかな','だと思うけど','っぽくない？']]
+];
+
+function semanticNormalize(text){
+  let out=String(text||'');
+  const pairs=[];
+  for(const [concept,forms] of SEMANTIC_LEXICON){
+    for(const form of forms)pairs.push([String(form).normalize('NFKC').toLowerCase(),concept]);
+  }
+  pairs.sort((a,b)=>b[0].length-a[0].length);
+  for(const [from,to] of pairs)if(from)out=out.split(from).join(to);
+  return out;
+}
+
+function stableNumber(text){
+  let h=2166136261;
+  for(const ch of String(text||'')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
+
+function paraphraseReply(text,{seed=''}={}){
+  const original=String(text||'').trim();
+  let out=original;
+  let changed=false;
+  let salt=stableNumber(seed+'\u0000'+original);
+  for(const [pattern,choices] of OUTPUT_LEXICON){
+    pattern.lastIndex=0;
+    if(!pattern.test(out))continue;
+    pattern.lastIndex=0;
+    const choice=choices[salt%choices.length];
+    salt=Math.imul(salt^0x9e3779b9,16777619)>>>0;
+    const next=out.replace(pattern,choice);
+    if(next!==out){out=next;changed=true;}
+    // 一文を全部置換しすぎない。1〜2箇所の自然な言い換えに留める。
+    if(changed&&salt%3===0)break;
+  }
+  if(!changed){
+    // 安全に変えられる語がない短文は、意味を変えにくい終助詞だけ軽く変える。
+    if(/だね$/u.test(out))out=out.replace(/だね$/u,'だな');
+    else if(/だな$/u.test(out))out=out.replace(/だな$/u,'だね');
+    else if(/かな$/u.test(out))out=out.replace(/かな$/u,'かも');
+  }
+  return cleanReply(out)||original;
+}
+
+
 function staticAliasPairs(){
   const pairs=[];
   for(const [canonical,names] of STATIC_ALIASES){
@@ -74,7 +163,7 @@ function safeJson(text,fallback=null){
 }
 
 function normalizeText(text,sessionAliases={}){
-  return applyAliases(text,sessionAliases)
+  return semanticNormalize(applyAliases(text,sessionAliases))
     .replace(/[\s　]+/g,'')
     .replace(/[。、,.!！?？「」『』（）()\[\]{}・…ー~〜～:：;；"'\`]/g,'')
     .slice(0,500);
@@ -370,24 +459,27 @@ function createConversationLab({
   function chooseReply(input,corpus,recent,aliases={},people=[]){
     const runtime=runtimePersonTemplate(input,people);
     const comparisonInput=runtime.text;
-    let best=null;
+    const ranked=[];
     for(const e of corpus){
       const rendered=renderPersonTemplate(e.reply,runtime.names);
       const repeatPenalty=recent.has(normalizeText(rendered))?0.35:1;
       const score=scoreExample(comparisonInput,e,aliases)*repeatPenalty;
-      if(!best||score>best.score)best={...e,score,runtimeNames:runtime.names};
+      ranked.push({...e,score,runtimeNames:runtime.names});
     }
+    ranked.sort((a,b)=>b.score-a.score);
+    const best=ranked[0];
     if(!best||best.score<0.045){
       const candidates=corpus
-        .filter(e=>!recent.has(normalizeText(e.reply)))
+        .filter(e=>!recent.has(normalizeText(renderPersonTemplate(e.reply,runtime.names))))
         .filter(e=>e.reply.length>=2&&e.reply.length<=38);
       if(candidates.length){
-        const e=candidates[crypto.randomInt(candidates.length)];
+        const e=candidates[stableNumber(input+sessionId)%candidates.length];
         return {...e,score:0.02,lowConfidence:true,runtimeNames:runtime.names};
       }
       return {id:null,reply:'まだこの話題の会話例が少ないみたい',score:0,origin:'system',lowConfidence:true};
     }
-    return best;
+    const pool=ranked.filter(x=>x.score>=best.score-0.08).slice(0,5);
+    return pool[stableNumber(input+'\u0000'+best.id)%pool.length]||best;
   }
 
   async function send({sessionId,text}){
@@ -413,7 +505,8 @@ function createConversationLab({
 
     const [corpus,recent]=await Promise.all([loadCorpus(),recentReplies(sessionId)]);
     const picked=chooseReply(clean,corpus,recent,aliases,people);
-    const reply=renderPersonTemplate(picked.reply,picked.runtimeNames||people);
+    const renderedReply=renderPersonTemplate(picked.reply,picked.runtimeNames||people);
+    const reply=paraphraseReply(renderedReply,{seed:sessionId+'\u0000'+clean+'\u0000'+picked.id});
     const aiTurnId=crypto.randomUUID();
     await db.execute({
       sql:`INSERT INTO conversation_lab_turns
@@ -471,4 +564,4 @@ function createConversationLab({
   return {init,startSession,send,feedback,stats,loadCorpus,close};
 }
 
-module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING};
+module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,semanticNormalize,paraphraseReply,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,ONLINE_LEARNING};
