@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#121923">
-<meta name="description" content="友達とURLで集まる、軽量オンライン人狼。1人＋CPUの練習にも対応。">
+<meta name="description" content="公開部屋から参加申請できるオンライン人狼。一人練習は無言参加者と遊べます。">
 <title>人狼ゲーム</title>
 <link rel="stylesheet" href="/style.css">
 <script src="/shared/rules.js" defer></script>
@@ -21,29 +21,38 @@
     <div class="intro intro-cover panel">
       <p class="eyebrow">人狼ゲーム</p>
       <h1>ゲームを始める</h1>
-      <p class="intro-copy">CPUとの一人練習と、URLを共有したオンライン対戦に対応しています。<br>待機室で人数・役職・制限時間を変更できます。</p>
+      <p class="intro-copy">公開部屋から知らない人にも参加申請できます。<br>一人練習では会話しない「無言参加者」とゲーム進行だけ試せます。</p>
       <div class="creator-badge"><strong>作成者 鈾</strong></div>
-      <div class="intro-tags"><span>CPU対戦</span><span>最大30人</span><span>ブラウザ対応</span><span>自由配役</span></div><p class="caption"><a href="/talk" target="_blank" rel="noopener" class="quiet-link">別タブで会話AIを開く → 会話AI LAB ↗</a></p>
+      <div class="intro-tags"><span>公開部屋</span><span>参加許可制</span><span>最大30人</span><span>自由配役</span></div><p class="caption"><a href="/talk" target="_blank" rel="noopener" class="quiet-link">別タブで会話AIを開く → 会話AI LAB ↗</a></p>
     </div>
     <div class="entry-card panel">
       <div class="entry-heading"><p class="eyebrow">PLAY</p><h2>ゲームを始める</h2><p>まずプレイヤー名を決めてください。</p></div>
       <label for="name">プレイヤー名 <span class="muted">1〜16文字</span></label>
       <input id="name" maxlength="32" placeholder="名前を入力" autocomplete="nickname">
-      <div class="entry-section-label"><span>一人で遊ぶ</span><small>CPU相手に練習</small></div>
+      <div class="entry-section-label"><span>一人で練習</span><small>無言参加者と進行確認</small></div>
       <label for="practiceRole">練習する役職</label>
       <select id="practiceRole"></select>
-      <button id="practice" class="primary large">ひとり＋CPUで練習する <span>→</span></button>
-      <p class="caption">あなた＋CPU7人で準備します。<br>待機室で人数・配役を変更できます。</p>
+      <button id="practice" class="primary large">無言参加者と一人練習 <span>→</span></button>
+      <p class="caption">あなた＋無言参加者7人で準備します。無言参加者は発言せず、投票や夜行動だけ自動で進みます。</p>
       <div id="onlineEntry">
         <div class="divider"><span>オンラインで遊ぶ</span></div>
         <label for="customCode" class="custom-code-label">作る部屋のコード <span class="muted">空欄なら自動生成</span></label>
         <input id="customCode" placeholder="例：JINRO-1 / 放課後" aria-label="作成する部屋コード" maxlength="16" autocomplete="off">
         <button id="create" class="secondary full">オンラインの部屋を作る</button>
         <p class="caption room-code-help">3〜16文字。文字・数字・「-」「_」が使えます。同じコードの部屋がある場合は作成できません。</p>
-        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加する部屋コード" maxlength="16"><button id="join" class="secondary">参加</button></div>
+        <div class="join-row"><input id="code" placeholder="部屋コード" aria-label="参加申請する部屋コード" maxlength="16"><button id="join" class="secondary">参加申請</button></div>
       </div>
-      <p id="entryNote" class="entry-note">招待URLを開くと、部屋コードが自動で入ります。切断した場合も、同じ部屋コードと同じ名前で自分の席へすぐ復帰できます。</p>
+      <p id="entryNote" class="entry-note">新規参加は部屋主の許可が必要です。切断後の復帰は、同じ部屋コードと同じ名前なら再申請なしで戻れます。</p>
     </div>
+  </section>
+
+  <section id="roomBrowser" class="room-browser panel">
+    <div class="room-browser-head">
+      <div><p class="eyebrow">PUBLIC ROOMS</p><h2>公開中の部屋</h2><p class="caption">入りたい部屋へ参加申請を送ると、部屋主に許可・拒否が届きます。</p></div>
+      <button id="refreshRooms" class="quiet" type="button">更新</button>
+    </div>
+    <div id="joinPending" class="join-pending" hidden><strong id="joinPendingTitle">参加許可を待っています</strong><span id="joinPendingText"></span><button id="cancelJoinWait" type="button" class="quiet">待機表示を閉じる</button></div>
+    <div id="publicRooms" class="public-room-list"><p class="caption">部屋を読み込み中…</p></div>
   </section>
 
   <section id="room" hidden>
@@ -58,8 +67,8 @@
         <div class="section-heading"><div><p class="eyebrow">SET THE TABLE</p><h2>村の準備</h2></div><span id="playerSummary" class="tag"></span></div>
         <div id="hostControls">
           <p class="caption">プリセットを選ぶか、配役設定から役職を変更できます。</p>
-          <div class="preset-row"><button data-preset="basic:6" class="secondary">基本 6人</button><button data-preset="basic:8" class="secondary">基本 8人</button><button data-preset="third:12" class="secondary">第三陣営 12人</button><button data-preset="all:24" class="secondary">全役職 24人</button></div>
-          <div class="cpu-row"><label for="cpuCount">CPU人数</label><input id="cpuCount" type="number" min="0" max="29" value="7"><button id="setBots" class="secondary">人数を変更</button><small class="muted">CPU人数だけを変更します。配役は自動では変わりません。</small></div>
+          <div class="preset-row"><button data-preset="basic" class="secondary">現在人数の基本配役</button><button data-preset="third" class="secondary">現在人数の第三陣営配役</button><button data-preset="all" class="secondary">現在人数の全役職配役</button></div>
+          <section id="joinRequestsBox" class="join-requests-box" hidden><div class="section-heading"><div><p class="eyebrow">JOIN REQUESTS</p><h3>参加申請</h3></div><span id="joinRequestCount" class="tag">0</span></div><div id="joinRequests"></div></section>
           <details id="roleSettings" class="setting-details">
             <summary>配役を自由に設定 <span id="roleSum"></span></summary>
             <p class="caption">16の基本役職＋追加状態「恋人」。第三陣営の配役は勝利条件も確認してください。</p>
@@ -87,7 +96,7 @@
         <div id="guestControls" hidden><p>部屋主が配役を準備しています。右の参加者を確認してお待ちください。</p><div id="guestConfig" class="caption"></div><button id="guestActive" class="secondary">準備できています</button></div>
         <p class="small-note">現在のテスト期間中は、待機室で無操作でも自動退出しません。切断後も同じ部屋コードと名前で席へ戻れます。</p>
       </div>
-      <aside class="panel lobby-members"><div class="section-heading"><h2>参加者</h2><span class="mini-label">HUMAN + CPU</span></div><div id="lobbyPlayers" class="player-list"></div><p class="caption">CPUは公開情報と自分の能力結果だけを使います。ほかの人の役職をこっそり読むことはしません。</p></aside>
+      <aside class="panel lobby-members"><div class="section-heading"><h2>参加者</h2><span class="mini-label">PLAYERS</span></div><div id="lobbyPlayers" class="player-list"></div><p class="caption">通常のオンライン部屋にはCPUはいません。一人練習だけ無言参加者が入ります。</p></aside>
     </section>
 
     <section id="play" hidden>
