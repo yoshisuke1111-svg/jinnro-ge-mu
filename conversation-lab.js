@@ -473,7 +473,7 @@ function createConversationLab({
         .filter(e=>!recent.has(normalizeText(renderPersonTemplate(e.reply,runtime.names))))
         .filter(e=>e.reply.length>=2&&e.reply.length<=38);
       if(candidates.length){
-        const e=candidates[stableNumber(input+sessionId)%candidates.length];
+        const e=candidates[stableNumber(input)%candidates.length];
         return {...e,score:0.02,lowConfidence:true,runtimeNames:runtime.names};
       }
       return {id:null,reply:'まだこの話題の会話例が少ないみたい',score:0,origin:'system',lowConfidence:true};
