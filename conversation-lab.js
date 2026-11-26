@@ -157,23 +157,26 @@ function inferPersonNames(text,known=[]){
 }
 
 function makePersonTemplate(prompt,reply,playerNames=[]){
-  const names=[];
+  const p=String(prompt||''),r=String(reply||''),names=[];
   for(const value of playerNames||[]){
     const name=usablePersonName(value);
-    if(name&&!names.includes(name)&&(String(prompt).includes(name)||String(reply).includes(name)))names.push(name);
+    if(name&&!names.includes(name)&&(p.includes(name)||r.includes(name)))names.push(name);
   }
-  names.sort((a,b)=>b.length-a.length);
-  const slotByName=new Map();
-  let next=1;
+  // 参加者一覧の順ではなく、会話の中で最初に登場した順でスロットを決める。
+  names.sort((a,b)=>{
+    const ai=Math.min(p.indexOf(a)>=0?p.indexOf(a):1e9,r.indexOf(a)>=0?r.indexOf(a)+p.length+1:1e9);
+    const bi=Math.min(p.indexOf(b)>=0?p.indexOf(b):1e9,r.indexOf(b)>=0?r.indexOf(b)+p.length+1:1e9);
+    return ai-bi||b.length-a.length;
+  });
+  const slotByName=new Map(names.map((name,i)=>[name,i+1]));
   const replace=text=>{
     let out=String(text||'');
-    for(const name of names){
-      if(!slotByName.has(name))slotByName.set(name,next++);
+    for(const name of [...names].sort((a,b)=>b.length-a.length)){
       out=out.split(name).join('{{person'+slotByName.get(name)+'}}');
     }
     return out;
   };
-  return {prompt:replace(prompt),reply:replace(reply),personSlots:slotByName.size};
+  return {prompt:replace(p),reply:replace(r),personSlots:slotByName.size};
 }
 
 function runtimePersonTemplate(text,known=[]){
