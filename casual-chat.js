@@ -127,7 +127,22 @@ function createCasualChat({
     };
   }
 
+  function sweep(now=Date.now()){
+    const staleMs=15*60*1000;
+    for(const [sessionToken,session] of sessions){
+      const room=rooms.get(session.roomCode);
+      const participant=room?.participants.get(session.participantId);
+      if(!room||!participant||now-participant.lastSeen>staleMs){
+        room?.participants.delete(session.participantId);
+        sessions.delete(sessionToken);
+      }
+    }
+    for(const [code,room] of rooms)if(!room.participants.size)rooms.delete(code);
+    return {rooms:rooms.size,sessions:sessions.size};
+  }
+
   async function enter({name,code='',create=false,consent=false}={}){
+    sweep();
     if(consent!==true)throw Error('会話を学習用に保存することへの同意が必要です。');
     const displayName=cleanName(name);
     let roomCode=normalizeCode(code);
@@ -227,7 +242,7 @@ function createCasualChat({
     try{db?.close?.();}catch{}
   }
 
-  return {init,enter,send,roomState,leave,stats,close,_rooms:rooms};
+  return {init,enter,send,roomState,leave,sweep,stats,close,_rooms:rooms};
 }
 
 module.exports={createCasualChat,cleanText,cleanName,normalizeCode};
