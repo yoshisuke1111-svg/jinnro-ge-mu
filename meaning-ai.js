@@ -97,12 +97,28 @@ function buildSemanticModel(rows=[]){
 
 function vectorFor(text,model,{expand=true}={}){
   const base=tokens(text);
+  const baseSet=new Set(base);
   const vec=new Map();
   for(const t of base)vec.set(t,1);
   if(expand){
+    const firstHop=[];
     for(const t of base){
       for(const [other,score] of model.neighbors.get(t)||[]){
         const weight=Math.min(.72,.18+score*.42);
+        vec.set(other,Math.max(vec.get(other)||0,weight));
+        firstHop.push([other,weight]);
+      }
+    }
+
+    // 1つ先の返答だけでなく「似た返答を生む表現」も弱く共有する。
+    // 例: 「寒い」→「布団から出たくない」←「冬つらい」のような橋を拾う。
+    // 2段目はかなり弱くし、会話が数ターン進んだだけの話題飛躍は強くしすぎない。
+    firstHop.sort((a,b)=>b[1]-a[1]);
+    for(const [middle,firstWeight] of firstHop.slice(0,32)){
+      for(const [other,score] of (model.neighbors.get(middle)||[]).slice(0,12)){
+        if(baseSet.has(other))continue;
+        const weight=Math.min(.24,firstWeight*score*.28);
+        if(weight<.035)continue;
         vec.set(other,Math.max(vec.get(other)||0,weight));
       }
     }
