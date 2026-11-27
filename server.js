@@ -670,6 +670,7 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     for(const [key,r] of rates)if(Date.now()-r.start>300000)rates.delete(key);
     for(const [key,time] of chatRates)if(Date.now()-time>60000)chatRates.delete(key);
     for(const [key,v] of adminSessions)if(v.until<Date.now())adminSessions.delete(key);
+    casual.sweep?.();
     for(const entry of rooms.values()){
       pendingJoinRequests(entry);
       for(const res of entry.clients.values())if(!res.destroyed)res.write(': heartbeat\n\n');
