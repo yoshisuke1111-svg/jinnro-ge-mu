@@ -12,6 +12,8 @@ const Bots=require('./shared/bots');
 const {createAiCpu}=require('./ai-cpu');
 const Training=require('./training-data');
 const {createConversationLab}=require('./conversation-lab');
+const {createCasualChat}=require('./casual-chat');
+const {createMeaningAi}=require('./meaning-ai');
 const VERSION='0.8.4';
 const token=()=>crypto.randomBytes(32).toString('base64url');
 const normalizeRoomCode=value=>{
@@ -26,10 +28,12 @@ function makeClock(){
   return {now(){return gameBase+(Date.now()-realBase)*speed;},setSpeed(next){const current=this.now();realBase=Date.now();gameBase=current;speed=next;},getSpeed(){return speed;}};
 }
 
-function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null,conversationLab=null,collapseDelayMs=7600}={}) {
+function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASSWORD||null,discordWebhook=process.env.DISCORD_WEBHOOK_URL||'',discordNotifyUserId=process.env.DISCORD_NOTIFY_USER_ID||'',publicBaseUrl=process.env.PUBLIC_BASE_URL||'',fetchImpl=globalThis.fetch,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms)),aiCpu=null,conversationLab=null,casualChat=null,meaningAi=null,collapseDelayMs=7600}={}) {
   const rooms=new Map(),tickets=new Map(),rates=new Map(),chatRates=new Map(),adminSessions=new Map();
   const ai=aiCpu||createAiCpu({fetchImpl});
   const talk=conversationLab||createConversationLab();
+  const casual=casualChat||createCasualChat();
+  const meaning=meaningAi||createMeaningAi();
   const startedReal=Date.now(),recentErrors=[];let requestCount=0,apiCount=0;
   const recordError=(scope,error)=>{recentErrors.push({at:Date.now(),scope,message:String(error?.message||error)});if(recentErrors.length>40)recentErrors.splice(0,recentErrors.length-40);};
   const effectiveAdminPassword=adminPassword||crypto.randomBytes(9).toString('base64url');
@@ -76,7 +80,9 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     '/':'public/index.html','/index.html':'public/index.html','/app.js':'public/app.js','/style.css':'public/style.css',
     '/transport.js':'public/transport.js','/shared/rules.js':'shared/rules.js','/solo.html':'public/solo.html',
     '/admin':'public/admin.html','/admin.html':'public/admin.html','/admin.js':'public/admin.js','/admin.css':'public/admin.css',
-    '/talk':'public/talk.html','/talk.html':'public/talk.html','/talk.js':'public/talk.js','/talk.css':'public/talk.css'
+    '/talk':'public/talk.html','/talk.html':'public/talk.html','/talk.js':'public/talk.js','/talk.css':'public/talk.css',
+    '/chat':'public/chat.html','/chat.html':'public/chat.html','/chat.js':'public/chat.js','/chat.css':'public/chat.css',
+    '/meaning':'public/meaning.html','/meaning.html':'public/meaning.html','/meaning.js':'public/meaning.js','/meaning.css':'public/meaning.css'
   };
   const json=(res,status,obj)=>{if(!res.headersSent)res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj));};
   const send=(res,event,data)=>{
@@ -286,6 +292,49 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
       if(req.method==='GET'&&url.pathname==='/health/talk'){
         const stats=await talk.stats();
         return json(res,200,{ok:true,...stats});
+      }
+      if(req.method==='GET'&&url.pathname==='/health/chat'){
+        const stats=await casual.stats();
+        return json(res,200,{ok:true,...stats});
+      }
+      if(req.method==='GET'&&url.pathname==='/health/meaning'){
+        const stats=await meaning.stats();
+        return json(res,200,{ok:true,...stats});
+      }
+      if(req.method==='POST'&&url.pathname==='/chat/api'){
+        if(!String(req.headers['content-type']).startsWith('application/json'))return json(res,415,{ok:false,error:'JSONが必要です。'});
+        const body=await readBody(req),action=String(body.action||'');
+        if(action==='create'||action==='join'){
+          budget('casual-enter:'+ip,40,300000);
+          const result=await casual.enter({
+            name:String(body.name||'').slice(0,32),
+            code:String(body.code||'').slice(0,32),
+            create:action==='create',
+            consent:body.consent===true
+          });
+          const {sessionToken,...state}=result;
+          return json(res,200,{ok:true,sessionToken,state});
+        }
+        const sessionToken=String(body.sessionToken||'').slice(0,120);
+        budget('casual:'+sessionToken+':'+ip,140,60000);
+        if(action==='state')return json(res,200,{ok:true,state:casual.roomState(sessionToken)});
+        if(action==='send'){
+          const result=await casual.send({
+            sessionToken,
+            text:String(body.text||'').slice(0,400),
+            replyTo:body.replyTo?String(body.replyTo).slice(0,100):null
+          });
+          return json(res,200,{ok:true,...result});
+        }
+        if(action==='leave')return json(res,200,casual.leave(sessionToken));
+        throw Error('雑談チャットの操作が不正です。');
+      }
+      if(req.method==='POST'&&url.pathname==='/meaning/api'){
+        if(!String(req.headers['content-type']).startsWith('application/json'))return json(res,415,{ok:false,error:'JSONが必要です。'});
+        budget('meaning:'+ip,80,60000);
+        const body=await readBody(req);
+        const result=await meaning.compare(String(body.a||'').slice(0,300),String(body.b||'').slice(0,300));
+        return json(res,200,{ok:true,...result});
       }
       if(req.method==='POST'&&url.pathname==='/talk/api'){
         if(!String(req.headers['content-type']).startsWith('application/json'))return json(res,415,{ok:false,error:'JSONが必要です。'});
@@ -631,6 +680,8 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
     clearInterval(timer);clearInterval(housekeeping);
     for(const entry of rooms.values())for(const res of entry.clients.values())res.end();
     void talk.close?.();
+    void casual.close?.();
+    void meaning.close?.();
     return new Promise(resolve=>{server.close(resolve);server.closeAllConnections();});
   }
   return {server,rooms,close,adminPassword:effectiveAdminPassword,aiStatus:{enabled:ai.enabled,model:ai.model,cpuCount:ai.cpuCount}};
