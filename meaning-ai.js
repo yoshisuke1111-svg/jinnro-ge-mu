@@ -170,7 +170,7 @@ function createMeaningAi({
   client=null,
   clientFactory=null,
   logger=console,
-  cacheMs=120000
+  cacheMs=20000
 }={}){
   const enabled=Boolean(client||(String(url).trim()&&String(authToken).trim()));
   let db=client,readyPromise=null,lastError=null,cache={at:0,model:buildSemanticModel([])};
