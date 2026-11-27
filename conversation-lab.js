@@ -364,6 +364,77 @@ function classifyIntent(text,{history=[]}={}){
   return {type:'search'};
 }
 
+function analyzeMeaning(text,{history=[],intent=null}={}){
+  const raw=cleanReply(text).normalize('NFKC');
+  const prior=historyText(history);
+  const resolved=intent||classifyIntent(raw,{history});
+  const game=hasGameTopic(raw)||hasGameTopic(prior);
+
+  let topic='一般雑談';
+  if(game)topic='人狼ゲーム';
+  else if(resolved.type==='greeting')topic='挨拶';
+  else if(resolved.type==='personal_future')topic='将来・成長';
+  else if(resolved.type==='uncertainty')topic='分からなさ・想像';
+  else if(resolved.type==='scope_question')topic='知りたい範囲';
+  else if(resolved.type==='meta_limit')topic='答えられる範囲';
+  else if(resolved.type==='reassurance')topic='安心・励まし';
+  else if(resolved.type==='soft_prediction')topic='推測';
+  else if(resolved.type==='critique')topic='会話の自然さ';
+  else if(/(?:AI|ai|人工知能|あなた|君|きみ|お前|あんた)/u.test(raw))topic='相手について';
+  else if(/(?:学校|授業|勉強|宿題|研究)/u.test(raw))topic='学校・学習';
+  else if(/(?:今日|明日|昨日|朝|昼|夜|最近)/u.test(raw))topic='日常';
+
+  let target='話題';
+  if(/(?:あなた|君|きみ|お前|あんた)/u.test(raw))target='相手';
+  else if(/^(?:私|わたし|僕|ぼく|俺|自分)/u.test(raw))target='自分';
+  else if(inferPersonNames(raw).length)target='人物';
+
+  let tense='現在・一般';
+  if(/(?:いつか|将来|これから|今後|〜?だろう|なるのか|なれる|予定)/u.test(raw))tense='未来';
+  else if(/(?:昨日|さっき|以前|昔|だった|でした|したよ|したな|してた)/u.test(raw))tense='過去';
+
+  let tone='中立';
+  if(resolved.type==='reassurance'||/(?:大丈夫|なんとかなる|嬉しい|よかった)/u.test(raw))tone='安心・肯定';
+  else if(resolved.type==='uncertainty'||/(?:分からない|わからない|想像つかない|かもしれない)/u.test(raw))tone='不確実';
+  else if(/(?:嫌|無理|違う|おかしい|変|ダメ|駄目|ないよね)/u.test(raw))tone='否定・違和感';
+  else if(/[?？]\s*$/u.test(raw))tone='問いかけ';
+
+  let contextDependence='低';
+  if(
+    /^(?:それ|そう|そこ|あれ|これ|どこまで|なんで|どうして|まぁ|うん|いや|んー)/u.test(raw)||
+    resolved.type==='scope_question'||resolved.type==='meta_limit'||resolved.type==='uncertainty'||
+    raw.length<=10
+  )contextDependence=prior?'高':'中';
+
+  const speechAct=INTENT_LABELS[resolved.type]||(
+    /[?？]\s*$/u.test(raw)?'質問':'発言'
+  );
+
+  let summary='';
+  if(resolved.type==='personal_future')summary='相手が将来どう変わるかを尋ねている。';
+  else if(resolved.type==='uncertainty')summary='自分にはまだ想像・判断できないと伝えている。';
+  else if(resolved.type==='scope_question')summary='相手がどの程度まで知りたいかを確認している。';
+  else if(resolved.type==='meta_limit')summary='相手には答えきれないだろうと見込んでいる。';
+  else if(resolved.type==='reassurance')summary='先のことを過度に心配しなくてよいと励ましている。';
+  else if(resolved.type==='soft_prediction')summary='断定せず、可能性として推測を述べている。';
+  else if(resolved.type==='critique')summary='返答や会話の不自然さを指摘している。';
+  else if(resolved.type==='greeting')summary='会話を始めるための挨拶。';
+  else if(resolved.type==='accusation')summary='相手を疑っていることを直接伝えている。';
+  else summary=(/[?？]\s*$/u.test(raw)?'相手に情報や考えを尋ねている。':'自分の考えや状況を伝えている。');
+
+  return {
+    domain:game?'werewolf':'general',
+    topic,
+    speechAct,
+    target,
+    tense,
+    tone,
+    contextDependence,
+    summary,
+    usesHistory:Boolean(prior&&contextDependence==='高')
+  };
+}
+
 const INTENT_LABELS={
   greeting:'挨拶',
   activity:'話題相談',
@@ -569,6 +640,7 @@ function createConversationLab({
   const liveSessions=new Map();
   const memoryReplies=new Map();
   const sessionTurns=new Map();
+  const turnDetails=new Map();
 
   function rememberReply(sessionId,text){
     const list=memoryReplies.get(sessionId)||[];
@@ -619,6 +691,22 @@ function createConversationLab({
             ON conversation_lab_turns(session_id, created_at);
           CREATE INDEX IF NOT EXISTS idx_conversation_lab_turns_feedback
             ON conversation_lab_turns(feedback);
+          CREATE TABLE IF NOT EXISTS conversation_lab_teaching (
+            teaching_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            ai_turn_id TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            mode TEXT NOT NULL,
+            prompt TEXT NOT NULL,
+            ai_reply TEXT NOT NULL,
+            correction TEXT NOT NULL,
+            meaning_json TEXT,
+            history_json TEXT
+          );
+          CREATE INDEX IF NOT EXISTS idx_conversation_lab_teaching_created
+            ON conversation_lab_teaching(created_at);
+          CREATE INDEX IF NOT EXISTS idx_conversation_lab_teaching_turn
+            ON conversation_lab_teaching(ai_turn_id);
         `);
         await db.execute('SELECT 1 AS ok');
         lastError=null;
@@ -738,11 +826,12 @@ function createConversationLab({
     return memory;
   }
 
-  async function startSession(name=''){
+  async function startSession(name='',mode='general'){
     const sessionId=crypto.randomUUID(),displayName=cleanReply(name||'あなた').slice(0,24)||'あなた';
+    const sessionMode=String(mode||'general')==='werewolf'?'werewolf':'general';
     sessionAliases.set(sessionId,{});
     sessionPeople.set(sessionId,[]);
-    liveSessions.set(sessionId,{displayName,createdAt:Date.now()});
+    liveSessions.set(sessionId,{displayName,createdAt:Date.now(),mode:sessionMode});
     memoryReplies.set(sessionId,[]);
     sessionTurns.set(sessionId,[]);
     if(await init()){
@@ -752,7 +841,7 @@ function createConversationLab({
       }));
     }
     const corpus=await loadCorpus();
-    return {sessionId,displayName,corpusSize:corpus.length,learningActive:ONLINE_LEARNING,storageAvailable:!!db};
+    return {sessionId,displayName,mode:sessionMode,corpusSize:corpus.length,learningActive:ONLINE_LEARNING,storageAvailable:!!db};
   }
 
   async function ensureSession(sessionId){
@@ -822,9 +911,16 @@ function createConversationLab({
     }));
 
     const history=sessionTurns.get(sessionId)||[];
-    const intent=classifyIntent(clean,{history});
+    const sessionMode=liveSessions.get(sessionId)?.mode||'general';
+    let intent=classifyIntent(clean,{history});
+    const meaning=analyzeMeaning(clean,{history,intent});
     const [corpus,recent]=await Promise.all([loadCorpus(),recentReplies(sessionId)]);
     let picked,reply,mode='retrieval';
+
+    // 会話専用モードでは、人狼実戦ログを返答候補として使わない。
+    if(sessionMode==='general'&&intent.type==='search'){
+      intent={type:/[?？]\s*$/u.test(clean)?'general_question':'general_statement'};
+    }
 
     if(intent.type!=='search'){
       mode='intent';
@@ -839,6 +935,18 @@ function createConversationLab({
       if(picked.origin==='fallback')mode='fallback';
     }
     const aiTurnId=crypto.randomUUID();
+    turnDetails.set(aiTurnId,{
+      sessionId,
+      prompt:clean,
+      reply,
+      meaning,
+      mode:sessionMode,
+      history:history.slice(-3)
+    });
+    if(turnDetails.size>500){
+      const first=turnDetails.keys().next().value;
+      if(first)turnDetails.delete(first);
+    }
     rememberReply(sessionId,reply);
     history.push({user:clean,ai:reply});
     if(history.length>6)history.splice(0,history.length-6);
@@ -860,11 +968,59 @@ function createConversationLab({
       mode,
       intent:intent.type!=='search'?intent.type:null,
       intentLabel:intent.type!=='search'?(INTENT_LABELS[intent.type]||intent.type):null,
+      meaning,
+      sessionMode,
       corpusSize:corpus.length,
       aliases:Object.keys(aliases).length,
       people:people.length,
       learningActive:ONLINE_LEARNING
     };
+  }
+
+  async function teach({sessionId,turnId,correction}){
+    if(!(await ensureSession(sessionId)))throw Error('会話セッションが見つかりません。');
+    const fixed=cleanReply(correction).slice(0,400);
+    if(!fixed)throw Error('自然だと思う返答を入力してください。');
+
+    let detail=turnDetails.get(turnId);
+    if(!detail&&await init()){
+      const result=await softDb('teaching source lookup',()=>db.execute({
+        sql:`SELECT a.text AS ai_reply,u.text AS prompt
+             FROM conversation_lab_turns a
+             JOIN conversation_lab_turns u ON u.turn_id=a.reply_to
+             WHERE a.turn_id=? AND a.session_id=? AND a.speaker='ai'
+             LIMIT 1`,
+        args:[turnId,sessionId]
+      }),null);
+      const row=result?.rows?.[0];
+      if(row){
+        const history=sessionTurns.get(sessionId)||[];
+        const prompt=cleanReply(row.prompt);
+        const intent=classifyIntent(prompt,{history});
+        detail={
+          sessionId,
+          prompt,
+          reply:cleanReply(row.ai_reply),
+          meaning:analyzeMeaning(prompt,{history,intent}),
+          mode:liveSessions.get(sessionId)?.mode||'general',
+          history:history.slice(-3)
+        };
+      }
+    }
+    if(!detail||detail.sessionId!==sessionId)throw Error('教える対象の返答が見つかりません。');
+
+    if(!(await init()))return {ok:true,stored:false,learningActive:ONLINE_LEARNING};
+    const teachingId=crypto.randomUUID();
+    const result=await softDb('teaching save',()=>db.execute({
+      sql:`INSERT INTO conversation_lab_teaching
+           (teaching_id,session_id,ai_turn_id,created_at,mode,prompt,ai_reply,correction,meaning_json,history_json)
+           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      args:[
+        teachingId,sessionId,turnId,Date.now(),detail.mode||'general',
+        detail.prompt,detail.reply,fixed,JSON.stringify(detail.meaning||{}),JSON.stringify(detail.history||[])
+      ]
+    }),null);
+    return {ok:true,stored:Boolean(result),learningActive:ONLINE_LEARNING};
   }
 
   async function feedback({sessionId,turnId,value}){
@@ -894,13 +1050,14 @@ function createConversationLab({
       turns:await q('SELECT COUNT(*) AS count FROM conversation_lab_turns'),
       positive:await q('SELECT COUNT(*) AS count FROM conversation_lab_turns WHERE feedback=1'),
       negative:await q('SELECT COUNT(*) AS count FROM conversation_lab_turns WHERE feedback=-1'),
+      teachings:await q('SELECT COUNT(*) AS count FROM conversation_lab_teaching'),
       lastError
     };
   }
 
   async function close(){try{db?.close?.();}catch{}}
 
-  return {init,startSession,send,feedback,stats,loadCorpus,close};
+  return {init,startSession,send,teach,feedback,stats,loadCorpus,close};
 }
 
-module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,roleMentions,numericMentions,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,hasGameTopic,historyText,ONLINE_LEARNING};
+module.exports={createConversationLab,normalizeText,scoreExample,dice,applyAliases,applyStaticAliases,semanticNormalize,paraphraseReply,classifyIntent,intentReply,analyzeMeaning,relevancePenalty,roleMentions,numericMentions,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,hasGameTopic,historyText,ONLINE_LEARNING};
