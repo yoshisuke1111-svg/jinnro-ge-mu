@@ -83,9 +83,9 @@ function addMessage(kind,text,extra={}){
 }
 function updateCorpus(data){
   if(sessionMode==='general'){
-    $('corpus').textContent='雑談AI · 人狼実戦ログは返答に未使用'+(teacherMode?' · 教師モード':'');
+    $('corpus').textContent='旧・一般会話 · 人狼実戦ログは返答に未使用'+(teacherMode?' · 教師モード':'');
   }else{
-    $('corpus').textContent='人狼AI · 実戦会話 '+Number(data.corpusSize||0).toLocaleString('ja-JP')+'件'+(teacherMode?' · 教師モード':'');
+    $('corpus').textContent='旧・人狼会話 · 実戦会話 '+Number(data.corpusSize||0).toLocaleString('ja-JP')+'件'+(teacherMode?' · 教師モード':'');
   }
 }
 async function start(){
@@ -108,7 +108,7 @@ async function start(){
     const intro=sessionMode==='general'
       ?'ここでは普通の会話だけを試す。人狼の実戦ログには頼らず、文の意味と直前の流れを見て返す。'
       :'ここでは人狼会話を試す。意味判定に加えて、条件が合う時だけ実戦会話も参考にする。';
-    addMessage('ai',intro,{meta:'意味解析＋教師データ型会話AI v0.6 · 学習停止中'});
+    addMessage('ai',intro,{meta:'旧方式 baseline · 意味AI未接続'});
     $('input').focus();
   }finally{
     startBusy=false;
