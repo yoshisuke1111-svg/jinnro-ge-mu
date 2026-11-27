@@ -292,7 +292,10 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         const body=await readBody(req),action=String(body.action||'');
         if(action==='start'){
           budget('talk-start:'+ip,30,300000);
-          const result=await talk.startSession(String(body.name||'').slice(0,32));
+          const result=await talk.startSession(
+            String(body.name||'').slice(0,32),
+            String(body.mode||'general').slice(0,16)
+          );
           return json(res,200,{ok:true,...result});
         }
         const sessionId=String(body.sessionId||'').slice(0,80);
@@ -303,6 +306,14 @@ function createApp({tickMs=250,maxRooms=100,adminPassword=process.env.ADMIN_PASS
         }
         if(action==='feedback'){
           const result=await talk.feedback({sessionId,turnId:String(body.turnId||'').slice(0,80),value:Number(body.value)});
+          return json(res,200,result);
+        }
+        if(action==='teach'){
+          const result=await talk.teach({
+            sessionId,
+            turnId:String(body.turnId||'').slice(0,80),
+            correction:String(body.correction||'').slice(0,400)
+          });
           return json(res,200,result);
         }
         throw Error('会話ラボの操作が不正です。');
