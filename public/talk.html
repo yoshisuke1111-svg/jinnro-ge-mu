@@ -23,16 +23,16 @@ body{min-height:100dvh}
 <body>
 <header class="lab-header">
   <a href="/" class="back">← 人狼ゲーム</a>
-  <div class="brand"><span class="pulse"></span><strong>会話AI LAB</strong><small>SELF-TRAINING CHAT</small></div>
+  <div class="brand"><span class="pulse"></span><strong>旧会話AI LAB</strong><small>BASELINE / COMPARISON</small></div>
   <span id="status" class="status" role="status" aria-live="polite">準備中</span>
 </header>
 
 <main>
   <section id="startPanel" class="start-card">
     <p class="eyebrow">CONVERSATION LAB</p>
-    <h1>会話だけを育てる場所</h1>
-    <p class="lead">普通の会話だけを育てる「雑談AI」と、人狼の実戦ログも使う「人狼AI」を分けました。教師モードでは、AIが文をどう読んだかを表示し、「本当はこう返してほしい」を教師データとして保存できます。外部APIは使いません。</p>
-    <div class="notice">
+    <h1>旧方式の比較用AI</h1>
+    <p class="lead">このページは、意味モデル導入前の旧方式を比較するために残しています。質問・雑談などを大まかに分類して返す方式なので、文章の意味を本当に理解しているわけではありません。本命の学習は、人間同士の「雑談 CHAT」と「意味AI LAB」で進めます。</p>
+    <div class="notice"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><a href="/chat" style="color:#ead3a3">雑談 CHAT →</a><a href="/meaning" style="color:#ead3a3">意味AI LAB →</a></div>
       <strong>現在はオンライン学習を停止中</strong>
       <span>会話ログと👍/👎評価は記録しますが、今はその場で返答AIへ反映しません。十分たまってからまとめて再学習します。個人情報や秘密は入力しないでください。</span>
     </div>
@@ -65,7 +65,7 @@ body{min-height:100dvh}
 
   <section id="chatPanel" class="chat-shell" hidden>
     <div class="lab-info">
-      <div><span class="dot"></span><strong>自作会話AI v0.6</strong><small id="corpus">会話モードを準備中</small></div>
+      <div><span class="dot"></span><strong>旧会話AI baseline</strong><small id="corpus">会話モードを準備中</small></div>
       <button id="newChat" type="button">新しい会話</button>
     </div>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
