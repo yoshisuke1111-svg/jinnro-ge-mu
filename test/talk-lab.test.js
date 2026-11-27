@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createApp}=require('../server');
-const {normalizeText,scoreExample,semanticNormalize,paraphraseReply,classifyIntent,intentReply,relevancePenalty,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,hasGameTopic,ONLINE_LEARNING}=require('../conversation-lab');
+const {normalizeText,scoreExample,semanticNormalize,paraphraseReply,classifyIntent,intentReply,analyzeMeaning,relevancePenalty,inferAliasesFromText,inferPersonNames,makePersonTemplate,runtimePersonTemplate,renderPersonTemplate,hasGameTopic,ONLINE_LEARNING}=require('../conversation-lab');
 
 async function post(base,body){
   const res=await fetch(base+'/talk/api',{
@@ -22,8 +22,9 @@ test('conversation lab API starts, replies, and records feedback',async()=>{
   const calls=[];
   const fakeLab={
     async stats(){return {enabled:true,corpusSize:12,sessions:1,turns:2,positive:0,negative:0};},
-    async startSession(name){calls.push(['start',name]);return {sessionId:'session-1',displayName:name||'あなた',corpusSize:12};},
-    async send(payload){calls.push(['send',payload]);return {userTurnId:'u1',aiTurnId:'a1',reply:'今はまだ分からないかな',confidence:.42,lowConfidence:false,source:'game',corpusSize:12};},
+    async startSession(name,mode){calls.push(['start',name,mode]);return {sessionId:'session-1',displayName:name||'あなた',mode:mode||'general',corpusSize:12};},
+    async send(payload){calls.push(['send',payload]);return {userTurnId:'u1',aiTurnId:'a1',reply:'今はまだ分からないかな',confidence:.42,lowConfidence:false,source:'game',corpusSize:12,meaning:{topic:'一般雑談'}};},
+    async teach(payload){calls.push(['teach',payload]);return {ok:true,stored:true};},
     async feedback(payload){calls.push(['feedback',payload]);return {ok:true,rowsAffected:1};},
     async close(){calls.push(['close']);}
   };
@@ -31,19 +32,24 @@ test('conversation lab API starts, replies, and records feedback',async()=>{
   await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+app.server.address().port;
   try{
-    const started=await post(base,{action:'start',name:'テスト'});
+    const started=await post(base,{action:'start',name:'テスト',mode:'general'});
     assert.equal(started.res.status,200,JSON.stringify(started.json));
     assert.equal(started.json.sessionId,'session-1');
+    assert.equal(started.json.mode,'general');
 
     const sent=await post(base,{action:'send',sessionId:'session-1',text:'誰が怪しい？'});
     assert.equal(sent.res.status,200,JSON.stringify(sent.json));
     assert.equal(sent.json.reply,'今はまだ分からないかな');
     assert.equal(sent.json.aiTurnId,'a1');
 
+    const taught=await post(base,{action:'teach',sessionId:'session-1',turnId:'a1',correction:'そうだな、まだ分からないな'});
+    assert.equal(taught.res.status,200,JSON.stringify(taught.json));
+    assert.equal(taught.json.stored,true);
+
     const rated=await post(base,{action:'feedback',sessionId:'session-1',turnId:'a1',value:1});
     assert.equal(rated.res.status,200,JSON.stringify(rated.json));
     assert.equal(rated.json.rowsAffected,1);
-    assert.deepEqual(calls.slice(0,3).map(x=>x[0]),['start','send','feedback']);
+    assert.deepEqual(calls.slice(0,4).map(x=>x[0]),['start','send','teach','feedback']);
   }finally{await app.close();}
 });
 
@@ -173,4 +179,24 @@ test('werewolf-only replies are rejected in unrelated general conversation',()=>
   const wolfLeak=relevancePenalty('なんとかなるさ','じゃあ今日は田中を吊る？','将来の話をしている');
   assert.equal(wolfLeak.gameLeak,true);
   assert.ok(wolfLeak.factor<0.1);
+});
+
+
+test('meaning analysis exposes what the conversation AI thinks the sentence is doing',()=>{
+  const future=analyzeMeaning('あなたもいつか大人になるのか？',{history:[]});
+  assert.equal(future.domain,'general');
+  assert.equal(future.topic,'将来・成長');
+  assert.equal(future.target,'相手');
+  assert.equal(future.tense,'未来');
+  assert.match(future.summary,/将来|変わ/);
+
+  const contextual=analyzeMeaning('どこまで知りたい？',{
+    history:[{user:'あなたもいつか大人になるのか？',ai:'まだ分からないな'}]
+  });
+  assert.equal(contextual.contextDependence,'高');
+  assert.equal(contextual.usesHistory,true);
+
+  const game=analyzeMeaning('今日は誰を吊る？',{history:[]});
+  assert.equal(game.domain,'werewolf');
+  assert.equal(game.topic,'人狼ゲーム');
 });
